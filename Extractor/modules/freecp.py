@@ -311,31 +311,33 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                 if hash_match:
                     token = hash_match.group(1)
                     
-                    async with session.get(f"https://api.classplusapp.com/v2/course/preview/similar/{token}?limit=20", headers=headers) as response:
+                    async with session.get(f"https://api.classplusapp.com/v2/course/preview/similar/{token}?limit=100", headers=headers) as response:
                         if response.status == 200:
                             res_json = await response.json()
                             courses = res_json.get('data', {}).get('coursesData', [])
 
                             if courses:
-                                text = ''
+                                filename = f"{org_code}_batches.txt"
                                 all_indices = []
-                                for cnt, course in enumerate(courses):
-                                    name = course['name']
-                                    price = course['finalPrice']
-                                    index = cnt + 1
-                                    text += f"{index}. ```\n{name} 💵₹{price}```\n"
-                                    all_indices.append(str(index))
-                                
-                                copy_paste_format = "&".join(all_indices)
-                                text += f"\n**For Multiple Batches Copy This** 👇\n`{copy_paste_format}`"
+                                with open(filename, "w", encoding="utf-8") as f:
+                                    f.write("『 ⚡ 𝗘𝗫𝗧𝗥𝗔𝗖𝗧𝗢𝗥 𝗟𝗨𝗖𝗜𝗙𝗘𝗥 ⚡ 』\n\n")
+                                    for cnt, course in enumerate(courses):
+                                        name = course['name']
+                                        price = course['finalPrice']
+                                        index = cnt + 1
+                                        f.write(f"{index}. {name} 💵 ₹{price}\n")
+                                        all_indices.append(str(index))
+                                        copy_paste_format = "&".join(all_indices)
+                                        f.write(f"\n\nFor Multiple Batches Copy This 👇\n{copy_paste_format}\n")
+                                           # send the txt file instead of message
+                                await m.reply_document(
+                                    document=filename,
+                                    caption=f"📚 All Available Batches from `{org_code}`",
+                                 )
+                                os.remove(filename)
+                                 # then ask for input like before
+                                await m.reply_text("**Now send the index number(s) for extraction**")
 
-                                try:
-                                    await editable.edit(f"**Send index number of the Category Name\n\n{text}\n\nIf Your Batch Not Listed Then Enter Your Batch Name\n\nFor multiple batches, enter indices separated by & (e.g. 1&2&3)**")
-                                except Exception as e:
-                                    print(f"Error editing message: {e}")
-                                    # Create new message if edit fails
-                                    editable = await m.reply_text(f"**Send index number of the Category Name\n\n{text}\n\nIf Your Batch Not Listed Then Enter Your Batch Name\n\nFor multiple batches, enter indices separated by & (e.g. 1&2&3)**")
-                            
                                 try:
                                     input2 = await bot.listen(chat_id=m.chat.id, filters=filters.user(user_id), timeout=120)
                                     raw_text2 = input2.text
@@ -417,7 +419,7 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                             formatted_time = f"{minutes} minutes {seconds} seconds"
 
                                                         caption = (
-                                                            f"༺★༻ 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 ༺★༻\n"
+                                                            f"『 ⚡ 𝗘𝗫𝗧𝗥𝗔𝗖𝗧𝗢𝗥 𝗟𝗨𝗖𝗜𝗙𝗘𝗥 ⚡ 』\n"
                                                             f"╭━━━━━━━━━━━━━━━━━━━━━━━╮\n"
                                                             f"🌀 <b>App Name :</b> <code>{App_Name}</code>\n"
                                                             f"🔑 <b>Org Code :</b> <code>{org_code}</code>\n"
