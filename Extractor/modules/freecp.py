@@ -414,7 +414,7 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                             formatted_time = f"{minutes} minutes {seconds} seconds"
 
                                                         caption = (
-                                                            f"༺★༻ 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 ༺★༻\n"
+                                                            f"★ 𝗘𝗫𝗧𝗥𝗔𝗖𝗧𝗢𝗥 𝗟𝗨𝗖𝗜𝗙𝗘𝗥 ★\n"
                                                             f"╭━━━━━━━━━━━━━━━━━━━━━━━╮\n"
                                                             f"🌀 <b>App Name :</b> <code>{App_Name}</code>\n"
                                                             f"🔑 <b>Org Code :</b> <code>{org_code}</code>\n"
