@@ -551,7 +551,7 @@ async def cpwp_callback(client, callback_query):
     try:
         # Send initial processing message
         processing_msg = await callback_query.message.reply_text(
-            "⏳ Starting process... Please wait"
+            "HANDLING CLASSPLUS....... PLEASE WAIT"
         )
         
         user_id = callback_query.from_user.id

@@ -323,10 +323,9 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                         if response.status == 200:
                             res_json = await response.json()
                             courses = res_json.get('data', {}).get('coursesData', [])
-                            App_Name = res_json.get('data', {}).get('orgName', org_code)
-
+                            App_Name = res_json['data']['name']
                             if courses:
-                                filename = f"{org_code}_batches.txt"
+                                filename = f"batches.txt"
                                 all_indices = []
                                 with open(filename, "w", encoding="utf-8") as f:
                                     f.write("『 ⚡ 𝗘𝗫𝗧𝗥𝗔𝗖𝗧𝗢𝗥 𝗟𝗨𝗖𝗜𝗙𝗘𝗥 ⚡ 』\n\n")
@@ -335,8 +334,8 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                         price = course['finalPrice']
                                         index = cnt + 1
                                         f.write(f"{index}. {name} 💵 ₹{price}\n")
+                                        all_indices.append(str(index))
                                            # send the txt file instead of message
-                                all_indices.append(str(index))
                                 copy_paste_format = "&".join(all_indices)
 
                                 await m.reply_document(
@@ -485,11 +484,20 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                             except:
                                                                 pass
                                                     else:
-                                                        await m.reply_text(f"**No content found in batch: {selected_batch_name}**")
+                                                        await m.reply_text(
+                                                            f"⚠️ <b>No content found in batch:</b> <code>{selected_batch_name}</code>"
+                                                        )
                                                 else:
-                                                    await m.reply_text(f"**Error in fetching batch {selected_batch_name}: {response.text}**")
+                                                    await m.reply_text(
+                                                        f"❌ <b>Error fetching batch:</b> <code>{selected_batch_name}</code>\n"
+                                                        f"🪵 <b>Details:</b> <code>{response.status}</code>"
+                                                    )
                                         except Exception as e:
-                                            await m.reply_text(f"**Error in processing batch {selected_batch_name}: {str(e)}**")
+                                            await m.reply_text(
+                                                f"💥 <b>Error processing batch:</b> <code>{selected_batch_name}</code>\n"
+                                                f"🧩 <b>Reason:</b> <code>{str(e)}</code>"
+                                            )
+
                                         finally:
                                             processed_batches += 1
                                             try:
