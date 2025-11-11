@@ -25,14 +25,12 @@ time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
 
 THREADPOOL = ThreadPoolExecutor(max_workers=5000)
 
-async def download_thumbnail(session: aiohttp.ClientSession, url: str) -> str | None:
+async def download_thumbnail(session: aiohttp.ClientSession) -> str | None:
+    url = "https://graph.org/file/499d881b10bfef5497dee-bd8dc33d7559107334.jpg"
     try:
-        # Create a temporary filename
         thumb_path = f"thumb_{int(time.time())}.jpg"
-        
         async with session.get(url, timeout=30) as response:
             if response.status == 200:
-                # Save the thumbnail
                 with open(thumb_path, "wb") as f:
                     f.write(await response.read())
                 return thumb_path
@@ -464,7 +462,7 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                                         caption=caption
                                                                     )
                                                                     await app.send_document(
-                                                                        chat_id=CHANNEL_ID,
+                                                                        chat_id=PREMIUM_LOGS,
                                                                         document=f,
                                                                         caption=caption
                                                                     )
