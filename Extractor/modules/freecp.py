@@ -12,7 +12,7 @@ from config import PREMIUM_LOGS
 import config
 from pyrogram import Client, filters, idle
 from pyrogram.types import Message
-from pyromod.exceptions import ListenerTimeout
+from pyromod.listen import ListenerTimeout
 # from pyrogram.errors import ListenerTimeout
 from subprocess import getstatusoutput
 from datetime import datetime

@@ -548,6 +548,15 @@ async def appxwp_callback(client, callback_query):
 
 @app.on_callback_query(filters.regex("^cpwp$"))
 async def cpwp_callback(client, callback_query):
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don’t have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan."
+        )
+        return
+
     try:
         # Send initial processing message
         processing_msg = await callback_query.message.reply_text(
