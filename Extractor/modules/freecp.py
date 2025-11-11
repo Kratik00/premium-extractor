@@ -95,7 +95,7 @@ async def process_cpwp_url(url_val: str, name: str, session: aiohttp.ClientSessi
         #     logging.warning(f"Failed to obtain signed URL for {name}: {url_val}")
         #     return None
 
-        if "testbook.com" in url_val or "classplusapp.com/drm" in url_val or "media-cdn.classplusapp.com/drm" in url_val:
+        if "testbook.com" in url_val or "classplusapp.com/drm" in url_val or "media-cdn.classplusapp.com/drm" in url_val or "media-cdn.classplusapp.com/" in url_val:
         #    logging.info(f"{name}:{url_val}")
             return f"{name}:{url_val}\n"
 
