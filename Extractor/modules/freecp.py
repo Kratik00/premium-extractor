@@ -72,23 +72,15 @@ async def fetch_cpwp_signed_url(url_val: str, name: str, session: aiohttp.Client
     for attempt in range(MAX_RETRIES):
         params = {"url": url_val}
         try:
-            # Add timeout for signed URL request
-            async with session.get(
-                "https://api.classplusapp.com/cams/uploader/video/jw-signed-url", 
-                params=params, 
-                headers=headers,
-                timeout=30  # 30 second timeout
-            ) as response:
+            async with session.get("https://api.classplusapp.com/cams/uploader/video/jw-signed-url", params=params, headers=headers) as response:
                 response.raise_for_status()
                 response_json = await response.json()
                 signed_url = response_json.get("url") or response_json.get('drmUrls', {}).get('manifestUrl')
-                if signed_url:
-                    return signed_url
+                return signed_url
                 
-        except asyncio.TimeoutError:
-            logging.error(f"Timeout fetching signed URL for {name} (Attempt {attempt + 1}/{MAX_RETRIES})")
         except Exception as e:
-            logging.error(f"Error fetching signed URL for {name}: {e} (Attempt {attempt + 1}/{MAX_RETRIES})")
+         #   logging.exception(f"Unexpected error fetching signed URL for {name}: {e}. Attempt {attempt + 1}/{MAX_RETRIES}")
+            pass
 
         if attempt < MAX_RETRIES - 1:
             await asyncio.sleep(2 ** attempt)
@@ -98,30 +90,25 @@ async def fetch_cpwp_signed_url(url_val: str, name: str, session: aiohttp.Client
 
 async def process_cpwp_url(url_val: str, name: str, session: aiohttp.ClientSession, headers: Dict[str, str]) -> str | None:
     try:
-        # Add timeout for signed URL fetch
-        signed_url = await asyncio.wait_for(
-            fetch_cpwp_signed_url(url_val, name, session, headers),
-            timeout=30  # 30 second timeout
-        )
-        
+        signed_url = await fetch_cpwp_signed_url(url_val, name, session, headers)
         if not signed_url:
             logging.warning(f"Failed to obtain signed URL for {name}: {url_val}")
             return None
 
         if "testbook.com" in url_val or "classplusapp.com/drm" in url_val or "media-cdn.classplusapp.com/drm" in url_val:
+        #    logging.info(f"{name}:{url_val}")
             return f"{name}:{url_val}\n"
 
-        # Add timeout for URL verification
-        async with session.get(signed_url, timeout=30) as response:
+        async with session.get(signed_url) as response:
             response.raise_for_status()
+       #     logging.info(f"{name}:{url_val}")
             return f"{name}:{url_val}\n"
             
-    except asyncio.TimeoutError:
-        logging.error(f"Timeout processing URL for {name}")
-        return None
     except Exception as e:
-        logging.error(f"Error processing {name}: {e}")
-        return None
+    #    logging.exception(f"Unexpected error processing {name}: {e}")
+        pass
+    return None
+
 
 
 async def get_cpwp_course_content(session: aiohttp.ClientSession, headers: Dict[str, str], Batch_Token: str, folder_id: int = 0, limit: int = 9999999999, retry_count: int = 0) -> Tuple[List[str], int, int, int]:
