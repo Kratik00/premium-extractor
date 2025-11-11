@@ -91,9 +91,9 @@ async def fetch_cpwp_signed_url(url_val: str, name: str, session: aiohttp.Client
 async def process_cpwp_url(url_val: str, name: str, session: aiohttp.ClientSession, headers: Dict[str, str]) -> str | None:
     try:
         signed_url = await fetch_cpwp_signed_url(url_val, name, session, headers)
-        if not signed_url:
-            logging.warning(f"Failed to obtain signed URL for {name}: {url_val}")
-            return None
+        # if not signed_url:
+        #     logging.warning(f"Failed to obtain signed URL for {name}: {url_val}")
+        #     return None
 
         if "testbook.com" in url_val or "classplusapp.com/drm" in url_val or "media-cdn.classplusapp.com/drm" in url_val:
         #    logging.info(f"{name}:{url_val}")
