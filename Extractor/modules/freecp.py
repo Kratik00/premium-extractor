@@ -12,7 +12,7 @@ from config import PREMIUM_LOGS
 import config
 from pyrogram import Client, filters, idle
 from pyrogram.types import Message
-from pyromod.listen import ListenerTimeout
+# from pyromod.listen import ListenerTimeout
 # from pyrogram.errors import ListenerTimeout
 from subprocess import getstatusoutput
 from datetime import datetime
@@ -355,8 +355,8 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                     input2 = await bot.listen(chat_id=m.chat.id, filters=filters.user(user_id), timeout=120)
                                     raw_text2 = input2.text
                                     await input2.delete(True)
-                                except ListenerTimeout:
-                                    await editable.edit("**Timeout! You took too long to respond**")
+                                except asyncio.TimeoutError:  # ✅ replaces ListenerTimeout
+                                    await editable.edit("⏳ <b>Timeout!</b> You took too long to respond.")
                                     return
                                 except Exception as e:
                                     logging.exception("Error during input2 listening:")
