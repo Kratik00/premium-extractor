@@ -446,22 +446,10 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                                     except Exception as ce:
                                                                         print(f"Error sending to channel: {ce}")
                                                                     
-                                                                    # Send to premium logs
-                                                                    await app.send_document(
-                                                                        chat_id=PREMIUM_LOGS,
-                                                                        document=f,
-                                                                        caption=caption,
-                                                                        thumb=thumb_path
-                                                                    )
                                                                 else:
                                                                     # Send without thumbnail if download failed
                                                                     await m.reply_document(
                                                                         document=f, 
-                                                                        caption=caption
-                                                                    )
-                                                                    await app.send_document(
-                                                                        chat_id=PREMIUM_LOGS,
-                                                                        document=f,
                                                                         caption=caption
                                                                     )
                                                                     await app.send_document(
