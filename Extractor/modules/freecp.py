@@ -271,7 +271,15 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                 user_name += f" {user.last_name}"
             mention = f'<a href="tg://user?id={user_id}">{user_name}</a>'
             
-            editable = await m.reply_text("**Enter ORG Code Of Your Classplus App**")
+            editable = await m.reply_text(
+                "💬 <b>Just send me your <u>Organization Code</u></b>\n\n"
+                "🛑 <b>Help:</b>\n"
+                "<blockquote>Go to the <b>Play Store</b> and copy your app’s share link — it looks like:\n"
+                "<code>https://play.google.com/store/apps/details?id=co.groot.bfwyu</code>\n\n"
+                "The last part (e.g., <code>bfwyu</code>) is your <b>Organization Code</b>.\n\n"
+                "Alternatively, open your app → tap the ☰ (three lines) in the top-left corner → find it there.</blockquote>"
+            )
+
             
             try:
                 input1 = await bot.listen(chat_id=m.chat.id, filters=filters.user(user_id), timeout=120)
@@ -315,6 +323,7 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                         if response.status == 200:
                             res_json = await response.json()
                             courses = res_json.get('data', {}).get('coursesData', [])
+                            App_Name = res_json.get('data', {}).get('orgName', org_code)
 
                             if courses:
                                 filename = f"{org_code}_batches.txt"
@@ -326,17 +335,21 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                         price = course['finalPrice']
                                         index = cnt + 1
                                         f.write(f"{index}. {name} 💵 ₹{price}\n")
-                                        all_indices.append(str(index))
-                                        copy_paste_format = "&".join(all_indices)
-                                        f.write(f"\n\nFor Multiple Batches Copy This 👇\n{copy_paste_format}\n")
                                            # send the txt file instead of message
+                                all_indices.append(str(index))
+                                copy_paste_format = "&".join(all_indices)
+
                                 await m.reply_document(
                                     document=filename,
-                                    caption=f"📚 All Available Batches from `{org_code}`",
-                                 )
+                                    caption = (
+                                        f"『 ⚡ 𝗔𝗹𝗹 𝗕𝗮𝘁𝗰𝗵𝗲𝘀 𝗳𝗿𝗼𝗺 <b>{App_Name}</b> ⚡ 』\n\n"
+                                        f"📋 <b>For Multiple Batches Copy This 👇</b>\n"
+                                        f"<code>{copy_paste_format}</code>"
+                                        ),
+                                )
                                 os.remove(filename)
                                  # then ask for input like before
-                                await m.reply_text("**Now send the index number(s) for extraction**")
+                                await m.reply_text("⚡ Send the index number(s) for extraction:")
 
                                 try:
                                     input2 = await bot.listen(chat_id=m.chat.id, filters=filters.user(user_id), timeout=120)
@@ -499,11 +512,11 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                     except:
                                         pass
                             else:
-                                raise Exception("Didn't Find Any Course")
+                                raise Exception("NOTHING FOUND IN THIS COURSE")
                         else:
                             raise Exception(f"{response.text}")
                 else:
-                    raise Exception('No App Found In Org Code')
+                    raise Exception('WRONG INPUT')
                     
         except Exception as e:
             error_msg = f"**Error : {e}**"
