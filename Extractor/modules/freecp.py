@@ -550,8 +550,11 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                         pass
                             else:
                                 raise Exception("NOTHING FOUND IN THIS COURSE")
-                        else:
-                            raise Exception(f"{response.text}")
+    #                     else:
+    #                     error_text = await response.text()
+    # await m.reply_text(f"❌ API Error: {error_text}")
+    # return
+
                 else:
                     raise Exception('WRONG INPUT')
                     
