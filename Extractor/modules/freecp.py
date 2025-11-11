@@ -358,11 +358,11 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                 # download thumbnail once before processing batches
                                 thumb_path = await download_thumbnail(session)
                                 for batch_index in batch_indices:
-                                     batch_index = batch_index.strip()
-                                     start_time = time.time()  # Reset timer per batch
-                                     # Use the same thumbnail for all batches
-                                     # # your rest of code here using thumb_path
-                                     if batch_index.isdigit() and int(batch_index) <= len(courses):
+                                    batch_index = batch_index.strip()
+                                    start_time = time.time()  # Reset timer per batch
+                                    # Use the same thumbnail for all batches
+                                    # # your rest of code here using thumb_path
+                                    if batch_index.isdigit() and int(batch_index) <= len(courses):
                                         selected_course_index = int(batch_index)
                                         course = courses[selected_course_index - 1]
                                         selected_batch_id = course['id']
