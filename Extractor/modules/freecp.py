@@ -25,12 +25,14 @@ time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
 
 THREADPOOL = ThreadPoolExecutor(max_workers=5000)
 
-async def download_thumbnail(session: aiohttp.ClientSession) -> str | None:
-    url = "https://graph.org/file/499d881b10bfef5497dee-bd8dc33d7559107334.jpg"
+async def download_thumbnail(session: aiohttp.ClientSession, url: str) -> str | None:
     try:
+        # Create a temporary filename
         thumb_path = f"thumb_{int(time.time())}.jpg"
+        
         async with session.get(url, timeout=30) as response:
             if response.status == 200:
+                # Save the thumbnail
                 with open(thumb_path, "wb") as f:
                     f.write(await response.read())
                 return thumb_path
@@ -353,15 +355,16 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                 batch_indices = raw_text2.split('&')
                                 total_batches = len(batch_indices)
                                 processed_batches = 0
+                                thumb_path = "https://graph.org/file/499d881b10bfef5497dee-bd8dc33d7559107334.jpg"  # Reset thumbnail path for each batch
                                 
                                 # Process each batch separately
-                                # download thumbnail once before processing batches
-                                thumb_path = await download_thumbnail(session)
                                 for batch_index in batch_indices:
                                     batch_index = batch_index.strip()
-                                    start_time = time.time()  # Reset timer per batch
-                                    # Use the same thumbnail for all batches
-                                    # # your rest of code here using thumb_path
+                                    start_time = time.time()  # Reset timer for each batch
+                                    # Download thumbnail for this batch
+                                    if config.THUMB_URL:
+                                        thumb_path = await download_thumbnail(session, config.THUMB_URL)
+                                    
                                     if batch_index.isdigit() and int(batch_index) <= len(courses):
                                         selected_course_index = int(batch_index)
                                         course = courses[selected_course_index - 1]
@@ -414,7 +417,7 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                             formatted_time = f"{minutes} minutes {seconds} seconds"
 
                                                         caption = (
-                                                            f"★ 𝗘𝗫𝗧𝗥𝗔𝗖𝗧𝗢𝗥 𝗟𝗨𝗖𝗜𝗙𝗘𝗥 ★\n"
+                                                            f"༺★༻ 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 ༺★༻\n"
                                                             f"╭━━━━━━━━━━━━━━━━━━━━━━━╮\n"
                                                             f"🌀 <b>App Name :</b> <code>{App_Name}</code>\n"
                                                             f"🔑 <b>Org Code :</b> <code>{org_code}</code>\n"
@@ -445,7 +448,6 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                                         )
                                                                     except Exception as ce:
                                                                         print(f"Error sending to channel: {ce}")
-                                                                    
                                                                 else:
                                                                     # Send without thumbnail if download failed
                                                                     await m.reply_document(
