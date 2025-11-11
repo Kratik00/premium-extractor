@@ -320,11 +320,39 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                 if hash_match:
                     token = hash_match.group(1)
                     
-                    async with session.get(f"https://api.classplusapp.com/v2/course/preview/similar/{token}?limit=100", headers=headers) as response:
+                    async with session.get(
+                        f"https://api.classplusapp.com/v2/course/preview/similar/{token}?limit=100",
+                        headers=headers
+                    ) as response:
                         if response.status == 200:
                             res_json = await response.json()
-                            courses = res_json.get('data', {}).get('coursesData', [])
-                            App_Name = res_json['data']['name']
+                            data = res_json.get("data") or {}
+                            courses = data.get("coursesData") or res_json.get("coursesData") or []
+                            if not courses:
+                                await m.reply_text("❌ No batches found for this org.")
+                                return
+                            else:
+                                raise Exception(f"Error fetching course list: {response.status}")
+
+# 2️⃣ for each batch, fetch org info (App Name + Token)
+                    for course in courses:
+                        course_id = course.get("id")
+                        course_name = course.get("name", "Unknown Batch")
+                        batch_params = {"courseId": course_id}
+                        async with session.get(
+                            "https://api.classplusapp.com/v2/course/preview/org/info",
+                            params=batch_params,
+                            headers=batch_headers
+                        ) as info_response:
+                            if info_response.status == 200:
+                                info_json = await info_response.json()
+                                info_data = info_json.get("data") or {}
+                                App_Name = info_data.get("name", "Unknown App")
+                                Batch_Token = info_data.get("hash", "N/A")
+                                print(f"📚 App: {App_Name} | 🧾 Batch: {course_name}")
+                            else:
+                                print(f"⚠️ Failed to fetch org info for {course_name}")
+
                             if courses:
                                 filename = f"batches.txt"
                                 all_indices = []
