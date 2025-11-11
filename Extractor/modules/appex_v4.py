@@ -79,25 +79,38 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     lines = []
     
     try:
-        r4 = await fetch(session, f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0", hdr1)
+        url = f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0"
+        r4 = await fetch(session, url, hdr1)
         
-        if not r4 or not r4.get("data"):
-            print(f"Skipping video ID {vi}: No data found.")
-            return None
+        if not r4 or "data" not in r4:
+            print(f"Skipping {vi}: No data found.")
+            return
 
-        vt = r4.get("data", {}).get("Title", "")
-        vl = r4.get("data", {}).get("download_link", "")
-        fl = r4.get("data", {}).get("video_id", "")
-        
+        data = r4["data"]
+        vt = data.get("Title", "Untitled")
+
+        # Pick correct fields from real API
+        vl = data.get("download_url_higher_version") or data.get("download_url_lower_version")
+        fl = data.get("video_player_token")
+
         if fl:
-            dfl = decrypt(fl)
-            final_link = f"https://youtu.be/{dfl}"
-            lines.append(f"{vt}:{final_link}\n")
+            try:
+                dfl = decrypt(fl)
+                final_link = f"https://youtu.be/{dfl}"
+                lines.append(f"{vt}:{final_link}\n")
+            except Exception as e:
+                print(f"Decrypt fail (fl): {e}")
 
         if vl:
-            dvl = decrypt(vl)
-            if ".pdf" not in dvl: 
-                lines.append(f"{vt}:{dvl}\n")
+            try:
+                dvl = decrypt(vl)
+                if ".pdf" not in dvl:
+                    lines.append(f"{vt}:{dvl}\n")
+            except Exception as e:
+                print(f"Decrypt fail (vl): {e}")
+
+    # except Exception as e:
+    #     print(f"Error processing video {vi}: {e}")
                  
         else:
             encrypted_links = r4.get("data", {}).get("encrypted_links", [])
@@ -270,7 +283,7 @@ async def appex_v5_txt(app, message, api, name):
         
     scraper = cloudscraper.create_scraper() 
     try:
-        mc1 = scraper.get(f"{api_base}/get/mycoursev2?userid={userid}", headers=hdr1).json()
+        mc1 = scraper.get(f"{api_base}/get/get_all_purchasesv2?userid={userid}", headers=hdr1).json()
         
         
         

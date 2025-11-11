@@ -34,7 +34,7 @@ async def subscribe(app, message):
             photo="https://graph.org/file/2fbd9fda0f646b1422f05-218a2421d48d601d10.jpg",
             caption=script.FORCE_MSG.format(message.from_user.mention),
             reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("🔗 Join Channel", url="https://t.me/URS_LUCIFER")
+                InlineKeyboardButton("🔗 Join Channel", url="https://t.me/lucifer_update01")
             ]])
         )
         return 1
