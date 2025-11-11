@@ -355,16 +355,14 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                 processed_batches = 0
                                 
                                 # Process each batch separately
+                                # download thumbnail once before processing batches
+                                thumb_path = await download_thumbnail(session)
                                 for batch_index in batch_indices:
-                                    batch_index = batch_index.strip()
-                                    start_time = time.time()  # Reset timer for each batch
-                                    thumb_path = None  # Reset thumbnail path for each batch
-                                    
-                                    # Download thumbnail for this batch
-                                    if config.THUMB_URL:
-                                        thumb_path = await download_thumbnail(session, config.THUMB_URL)
-                                    
-                                    if batch_index.isdigit() and int(batch_index) <= len(courses):
+                                     batch_index = batch_index.strip()
+                                     start_time = time.time()  # Reset timer per batch
+                                     # Use the same thumbnail for all batches
+                                     # # your rest of code here using thumb_path
+                                     if batch_index.isdigit() and int(batch_index) <= len(courses):
                                         selected_course_index = int(batch_index)
                                         course = courses[selected_course_index - 1]
                                         selected_batch_id = course['id']
