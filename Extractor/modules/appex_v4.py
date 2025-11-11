@@ -283,7 +283,7 @@ async def appex_v5_txt(app, message, api, name):
         
     scraper = cloudscraper.create_scraper() 
     try:
-        mc1 = scraper.get(f"{api_base}/get/get_all_purchasesv2?userid={userid}", headers=hdr1).json()
+        mc1 = scraper.get(f"{api_base}/get/get_all_purchasesv2?userid={userid}&item_type=1", headers=hdr1).json()
         
         
         
@@ -315,19 +315,23 @@ async def appex_v5_txt(app, message, api, name):
                 
                 valid_ids = []
                 if"data" in j1 and j1["data"]:
-                    for ct in j1["data"]:
-                    	i = ct.get("id")
-                    	cn = ct.get("course_name")
-                    	start = ct.get("start_date")
-                    	end = ct.get("end_date")
-                    	pricing = ct.get("price")
-                    	thumbnail = ct.get("course_thumbnail")
-                    	
-                    	FFF += f"**{i}   -   {cn}**\n\n"
-                    	valid_ids.append(i)
+                    for ct in mc1["data"]:
+                        course_dt = ct.get("coursedt", [])
+                        if not course_dt:
+                            continue
+                        course_info = course_dt[0]  # each purchase has one course detail
+                        ci = course_info.get("id")
+                        cn = course_info.get("course_name")
+                        cp = course_info.get("course_thumbnail")
+                        start = course_info.get("start_date")
+                        end = course_info.get("end_date")
+                        pricing = course_info.get("price")
+                        if ci and cn:  # only add if both exist
+                            FFF += f"**`{ci}`   -   `{cn}`**\n\n"
+                            valid_ids.append(str(ci))  # make sure it’s a string
+
                 else:
-                	
-                	await message.reply_text("No course found in ID")
+                    await message.reply_text("No course found in ID")
                 return
         except json.JSONDecodeError as e:
             print(f"JSON decode error: {str(e)}")
