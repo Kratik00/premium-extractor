@@ -417,16 +417,19 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                         else:
                                                             formatted_time = f"{minutes} minutes {seconds} seconds"
 
-                                                        caption = (f"࿇ ══━━{mention}━━══ ࿇\n\n"
-                                                                 f"🌀 **Aᴘᴘ Nᴀᴍᴇ** : {App_Name}\n"
-                                                                 f"🔑 **Oʀɢ Cᴏᴅᴇ** : `{org_code}`\n"
-                                                                 f"============================\n\n"
-                                                                 f"🎯 **Bᴀᴛᴄʜ Nᴀᴍᴇ** : `{clean_batch_name}`\n"
-                                                                 f"<blockquote>🎬 : {video_count} | 📁 : {pdf_count} | 🖼 : {image_count}</blockquote>\n\n"
-                                                                 f"🌐 **Jᴏɪɴ Us** : {join}\n"
-                                                                 f"⌛ **Tɪᴍᴇ Tᴀᴋᴇɴ** : {formatted_time}</blockquote>\n\n"
-                                                                 f"❄️ **Dᴀᴛᴇ** : {time_new}")
-                                                        
+                                                        caption = (
+                                                            f"༺★༻ 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 ༺★༻\n"
+                                                            f"╭━━━━━━━━━━━━━━━━━━━━━━━╮\n"
+                                                            f"🌀 <b>App Name :</b> <code>{App_Name}</code>\n"
+                                                            f"🔑 <b>Org Code :</b> <code>{org_code}</code>\n"
+                                                            f"╰━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+                                                            f"🏷️ <b>Batch Name :</b> <code>{clean_batch_name}</code>\n"
+                                                            f"<blockquote>🎬 {video_count}  |  📁 {pdf_count}  |  🖼 {image_count}</blockquote>\n\n"
+                                                            f"⏳ <b>Time Taken :</b> {formatted_time}\n"
+                                                            f"📅 <b>Date :</b> {time_new}\n"
+                                                            f"━━━━━━━━━━━━━━━━━━━━━━━"
+                                                        )
+
                                                         try:
                                                             with open(batch_filename, 'rb') as f:
                                                                 # Send to user
@@ -439,7 +442,7 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                                     # Send to channel directly
                                                                     try:
                                                                         await app.send_document(
-                                                                            chat_id=CHANNEL_ID,
+                                                                            chat_id=PREMIUM_LOGS,
                                                                             document=f,
                                                                             caption=caption,
                                                                             thumb=thumb_path
@@ -483,9 +486,9 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                                     else:
                                                         await m.reply_text(f"**No content found in batch: {selected_batch_name}**")
                                                 else:
-                                                    await m.reply_text(f"**Error fetching batch {selected_batch_name}: {response.text}**")
+                                                    await m.reply_text(f"**Error in fetching batch {selected_batch_name}: {response.text}**")
                                         except Exception as e:
-                                            await m.reply_text(f"**Error processing batch {selected_batch_name}: {str(e)}**")
+                                            await m.reply_text(f"**Error in processing batch {selected_batch_name}: {str(e)}**")
                                         finally:
                                             processed_batches += 1
                                             try:
@@ -493,9 +496,14 @@ async def process_cpwp(bot: Client, m: Message, user_id: int):
                                             except:
                                                 pass
                                     else:
-                                        await m.reply_text(f"**Invalid batch index: {batch_index}**")
+                                        await m.reply_text(f"**Invalid Index Number: {batch_index}**")
 
-                                await m.reply_text(f"**✅ Completed processing {processed_batches}/{total_batches} batches**")
+                                await m.reply_text(
+                                    f"╭━━━〔✅ 𝐂𝐨𝐦𝐩𝐥𝐞𝐭𝐞𝐝〕━━━╮\n"
+                                    f"┣• **Batches Done:** `{processed_batches}/{total_batches}`\n"
+                                    f"╰━━━━━━━━━━━━━━━━━━━╯"
+                                )
+
                                 
                                 if editable:
                                     try:
