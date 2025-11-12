@@ -105,52 +105,37 @@ async def fetch_item_details(session, api_base, course_id, item, headers):
         
 async def fetch_folder_contents(session, api_base, course_id, folder_id, headers):
     outputs = []
-    endpoints = [
-        "get/folder_contentsv3",
-        "get/folder_contentsv2",
-        "get/folder_contentsv4",
-        "get/folder_contents"
-    ]
+    url = f"{api_base}/get/folder_contentsv3?course_id={course_id}&parent_id={folder_id}&windowsapp=false&start=0"
 
-    for ep in endpoints:
-        url = f"{api_base}/{ep}?course_id={course_id}&parent_id={folder_id}"
-        try:
-            async with session.get(url, headers=headers) as response:
-                if response.status == 403:
-                    # forbidden access — maybe wrong endpoint, try next
-                    print(f"⚠️ 403 Forbidden for {ep} — trying next")
-                    continue
-                if response.content_type != "application/json":
-                    text = await response.text()
-                    if "<html" in text.lower():
-                        print(f"⚠️ {ep} returned HTML, skipping...")
-                        continue
-                j = await response.json()
-                if not j.get("data"):
-                    print(f"⚠️ No data for {ep} — trying next")
-                    continue
+    try:
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                text = await response.text()
+                print(f"⚠️ Folder {folder_id} failed ({response.status})\n{text[:200]}")
+                return []
 
-                # ✅ Success, process recursively
-                tasks = []
-                for item in j["data"]:
-                    mt = item.get("material_type")
-                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
-                    if mt == "FOLDER":
-                        tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers))
+            j = await response.json()
+            if "data" not in j:
+                print(f"⚠️ Folder {folder_id} returned no data.")
+                return []
 
-                if tasks:
-                    results = await asyncio.gather(*tasks)
-                    for res in results:
-                        if res:
-                            outputs.extend(res)
+            tasks = []
+            for item in j["data"]:
+                mt = item.get("material_type")
+                tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
+                if mt == "FOLDER":
+                    tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers))
 
-                return outputs  # stop after success
+            if tasks:
+                results = await asyncio.gather(*tasks)
+                for res in results:
+                    if res:
+                        outputs.extend(res)
 
-        except Exception as e:
-            print(f"💣 Error fetching {ep} for folder {folder_id}: {str(e)}")
+    except Exception as e:
+        print(f"💣 Error fetching folder {folder_id}: {e}")
+        outputs.append(f"Error fetching folder {folder_id}: {e}")
 
-    print(f"❌ All folder endpoints failed for folder {folder_id}")
-    outputs.append(f"Error fetching folder {folder_id}: No valid endpoint.")
     return outputs
 
 
