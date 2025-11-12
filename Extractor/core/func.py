@@ -31,7 +31,7 @@ async def subscribe(app, message):
         return 0
     except UserNotParticipant:
         await message.reply_photo(
-            photo="https://graph.org/file/2fbd9fda0f646b1422f05-218a2421d48d601d10.jpg",
+            photo="https://graph.org/file/499d881b10bfef5497dee-bd8dc33d7559107334.jpg",
             caption=script.FORCE_MSG.format(message.from_user.mention),
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton("🔗 Join Channel", url="https://t.me/lucifer_update01")
