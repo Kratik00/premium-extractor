@@ -271,7 +271,7 @@ async def appex_v2_txt(app, message, api, name):
         c_text = (
             f"╭━━━━━━━『 <b>🚀 COURSE INFO</b> 』━━━━━━━╮\n"
             f"📦 <b>App Name:</b> <code>{app_name}</code>\n"
-            f"🎓 <b>Batch Name:</b> <code>{raw_text2}_{txtn}</code>\n"
+            f"🎓 <b>Batch Name:</b> <code>{sanitized_course_name}</code>\n"
             f"🕒 <b>Validity:</b> <code>{start}</code> ➜ <code>{end}</code>\n"
             f"💰 <b>Price:</b> <code>{pricing}</code>\n"
             f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
