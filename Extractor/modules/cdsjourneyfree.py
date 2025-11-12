@@ -17,8 +17,21 @@ HEADERS = {
     "authority": "www.cdsjourney.com",
     "method": "GET",
     "scheme": "https",
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+    "cookie": "_gid=GA1.2.980171571.1761951418; _ga=GA1.2.1653714809.1760266297; _ga_8ZGD76QEP3=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; _ga_66NQGZ7KP9=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; csrftoken=8BdZImygCi5IilEl1fl8gtHcaUNDV30NFeuy8i3PEfVyqHHNp5LIjSPOtD3VWi0R; sessionid=lw2ryog1sxywl86xx6gozazfm2nqggma; AWSALB=ja/SNHhZ5w9SSNad5typfLrUzVSM1c4IZ1SNXp2+4u/ifK+1jDoSMv2L7XMwmR/oL0dQvGjqcD75hHnaNsBTmc5XH62COgeoxKq5PbaEvt213X3uAlr6weFpi5N0",
+    "priority": "u=0, i",
+    "referer": "https://www.cdsjourney.com/",
+    "sec-ch-ua": "\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "same-origin",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 }
 
 COURSES = {

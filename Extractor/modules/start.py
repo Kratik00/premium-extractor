@@ -88,7 +88,7 @@ custom_button = [[
                 ],[
                   InlineKeyboardButton("🪄 SelectionWay", callback_data="selectionway_")
                 ],[
-                  InlineKeyboardButton("🖼️ CDS JOURNEY", callback_data="cdsjourney_")
+                  InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_")
                 ],[
                   InlineKeyboardButton("🌪️Back", callback_data="modes_")
                 ]]
