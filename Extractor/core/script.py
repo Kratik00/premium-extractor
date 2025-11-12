@@ -2,11 +2,9 @@ import config
 from config import ADMIN_BOT_USERNAME
 
 IMG = [
-    "https://graph.org/file/d81baf8451cf1627ae3f6-c819d31887f32db07d.jpg",
-    "https://graph.org/file/b29c2581eab59309d72cf-86cea750f2e54d6798.jpg",
-    "https://graph.org/file/37eae141246f30803c113-f2a0774fc851ca0562.jpg",
-    "https://graph.org/file/4afaa8ad4b2f757bdf9d7-47d5f883ea944a498d.jpg",
-    "https://graph.org/file/153308ce2d6f968e25965-d310556f3d191bcc62.jpg",
+    "https://graph.org/file/17bada96db91f3c4ce486-ff1127c0c65a059f04.jpg",
+    "https://graph.org/file/0b988a4a0e9dd4647026b-ffabe40b6085866928.jpg",
+    "https://graph.org/file/499d881b10bfef5497dee-bd8dc33d7559107334.jpg"
 ]
 
 
@@ -19,7 +17,7 @@ Using advanced automation, it simplifies the process of accessing structured cou
 </blockquote>
 
 <blockquote>
-🌿 <b>Maintained by:</b> <a href="https://t.me/urs_lucifer">Admin</a>
+🌿 <b>Developer:</b> <a href="https://t.me/urs_lucifer">Admin</a>
 </blockquote>
 """
 
@@ -33,7 +31,7 @@ Please join to continue using the extractor and stay informed about future updat
 </blockquote>
 
 <blockquote>
-🌿 <b>Maintained by:</b> <a href="https://t.me/urs_lucifer">Admin</a>
+🌿 <b>Developer:</b> <a href="https://t.me/urs_lucifer">Admin</a>
 </blockquote>
 """
 
