@@ -28,6 +28,7 @@ from Extractor.modules.rg_vikramjeet import rgvikram_txt
 from Extractor.modules.adda import adda_command_handler
         
 from Extractor.modules.freecp import *
+from Extractor.modules.selectionwayfree import *
 from Extractor.modules.freeappx import *
 from Extractor.modules.freepw import *
 
@@ -83,6 +84,8 @@ custom_button = [[
                   InlineKeyboardButton("🛰️APPX", callback_data="appxwp"),
                 ],[
                   InlineKeyboardButton("🎯Classplus", callback_data="cpwp")
+                ],[
+                  InlineKeyboardButton("🪄 SelectionWay", callback_data="selectionway_")
                 ],[
                   InlineKeyboardButton("🌪️Back", callback_data="modes_")
                 ]]
@@ -573,6 +576,44 @@ async def appxwp_callback(client, callback_query):
         print(f"Error in appxwp_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
 
+@app.on_callback_query(filters.regex("^selectionway_$"))
+async def selectionway_callback(client, callback_query):
+    try:
+        # Send processing message
+        processing_msg = await callback_query.message.reply_text(
+            "⚙️ <b>Handling SelectionWay Extractor...</b>\n\nPlease wait a few seconds 💫"
+        )
+
+        user_id = callback_query.from_user.id
+
+        try:
+            # Run the SelectionWay extractor process with timeout
+            result = await process_with_timeout(process_selectionway, client, callback_query.message, user_id)
+
+            if result == "timeout":
+                await processing_msg.edit_text(
+                    "⚠️ <b>Process timed out!</b>\n"
+                    "Please try again.\n\n"
+                    "💡 Tip: Respond within <b>60 seconds</b> when prompted."
+                )
+            elif result and result.startswith("error:"):
+                await processing_msg.edit_text(
+                    f"❌ <b>An error occurred:</b> {result[6:]}\n\nPlease try again."
+                )
+            else:
+                await processing_msg.delete()
+
+        except Exception as e:
+            await processing_msg.edit_text(
+                "❌ <b>Process failed.</b>\n\n"
+                f"Error: <code>{str(e)}</code>\n"
+                "Please retry after a moment."
+            )
+
+    except Exception as e:
+        print(f"Error in selectionway_callback: {e}")
+        await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
+
 @app.on_callback_query(filters.regex("^cpwp$"))
 async def cpwp_callback(client, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
@@ -623,6 +664,14 @@ async def cpwp_callback(client, callback_query):
     except Exception as e:
         print(f"Error in cpwp_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
+
+@app.on_callback_query(filters.regex("^selectionway_$"))
+async def handle_selectionway(client, callback_query):
+    await selectionway_callback(client, callback_query)
+
+@app.on_callback_query(filters.regex("^sw_batch_"))
+async def handle_sw_batch(client, callback_query):
+    await selectionway_batch_callback(client, callback_query)
 
 @app.on_callback_query(filters.regex("^cw$"))
 async def career_will_callback(app: Client, callback_query: CallbackQuery):
