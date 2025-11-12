@@ -124,17 +124,17 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
 
             for item in data:
                 title = item.get("Title", "Untitled").strip()
-                mtype = item.get("material_type")
+                mtype = item.get("material_type", "")
                 current_path = f"{parent_path} < {title}"
 
                 if mtype == "FOLDER":
                     print(f"📂 {current_path}")
-                    # recursively call same function, passing updated path
-                    tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers, current_path))
+                    # recursive call with correct arg name
+                    tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers, parent_path=current_path))
                 else:
                     print(f"📄 {mtype}: {current_path}")
-                    # pass the full path for file naming clarity
-                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers, current_path))
+                    # pass path to fetch_item_details (for breadcrumb output)
+                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers, path=current_path))
 
             if tasks:
                 results = await asyncio.gather(*tasks)
@@ -147,9 +147,6 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
         outputs.append(f"Error fetching folder {folder_id}: {e}")
 
     return outputs
-
-
-
 
 async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2):
   async with aiohttp.ClientSession() as session:
