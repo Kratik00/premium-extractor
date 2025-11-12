@@ -134,7 +134,7 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
                 else:
                     print(f"📄 {mtype}: {current_path}")
                     # pass path to fetch_item_details (for breadcrumb output)
-                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers, path=current_path))
+                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers, parent_path=current_path))
 
             if tasks:
                 results = await asyncio.gather(*tasks)
