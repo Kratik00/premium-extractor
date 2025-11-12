@@ -103,7 +103,7 @@ async def fetch_item_details(session, api_base, course_id, item, headers):
     
                     
         
-async def fetch_folder_contents(session, api_base, course_id, folder_id, headers):
+async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, parent_path="Home"):
     outputs = []
     url = f"{api_base}/get/folder_contentsv3?course_id={course_id}&parent_id={folder_id}&windowsapp=false&start=0"
 
@@ -123,15 +123,18 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
             tasks = []
 
             for item in data:
-                title = item.get("Title")
+                title = item.get("Title", "Untitled").strip()
                 mtype = item.get("material_type")
+                current_path = f"{parent_path} < {title}"
 
                 if mtype == "FOLDER":
-                    print(f"📂 Found folder → {title} ({item['id']})")
-                    tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers))
+                    print(f"📂 {current_path}")
+                    # recursively call same function, passing updated path
+                    tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers, current_path))
                 else:
-                    print(f"📄 Found {mtype} → {title}")
-                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
+                    print(f"📄 {mtype}: {current_path}")
+                    # pass the full path for file naming clarity
+                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers, current_path))
 
             if tasks:
                 results = await asyncio.gather(*tasks)
@@ -144,6 +147,7 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
         outputs.append(f"Error fetching folder {folder_id}: {e}")
 
     return outputs
+
 
 
 
