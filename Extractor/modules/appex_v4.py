@@ -424,7 +424,7 @@ async def appex_v5_txt(app, message, api, name):
                     f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
                     f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
                     f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
-                    f"🖼️ <b>Thumbnail:</b> <a href='{cp}'>Click Here</a>\n"
+                    f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHISIR'>LUCIFER ⚡</a>\n"
                     f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
                     f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
                 )

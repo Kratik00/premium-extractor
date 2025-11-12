@@ -619,22 +619,26 @@ async def login(app, user_id, m, all_urls, start_time, bname, batch_id, progress
         
         # Prepare modern caption with emojis and formatting
         caption = (
-            f"🎓 <b>COURSE EXTRACTED</b> 🎓\n\n"
-            f"📱 <b>APP:</b> {app_name}\n"
-            f"📚 <b>BATCH:</b> {bname} (ID: {batch_id})\n"
-            f"⏱ <b>EXTRACTION TIME:</b> {int(minutes):02d}:{int(seconds):02d}\n"
-            f"📅 <b>DATE:</b> {formatted_time} IST\n\n"
-            f"📊 <b>CONTENT STATS</b>\n"
-            f"├─ 📁 Total Links: {len(all_urls)}\n"
-            f"├─ 🎬 Videos: {video_count}\n"
-            f"├─ 📄 PDFs: {pdf_count}\n"
-            f"├─ 🖼 Images: {image_count}\n"
-            f"├─ 📑 Documents: {doc_count}\n"
-            f"├─ 📦 Others: {other_count}\n"
-            f"└─ 🔐 Protected: {drm_count}\n\n"
-            f"🚀 <b>Extracted by</b>: @{(await app.get_me()).username}\n\n"
-            f"<code>╾───•𝐏𝐑𝐎 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 🫵 •───╼</code>"
+            f"╭━━━━━━━『 <b>⚡ LUCIFER EXTRACTOR</b> 』━━━━━━━╮\n"
+            f"📱 <b>App Name:</b> <code>{app_name}</code>\n"
+            f"📚 <b>Batch:</b> <code>{bname}</code> | 🆔 <code>{batch_id}</code>\n"
+            f"🕒 <b>Extraction Time:</b> <code>{int(minutes):02d}:{int(seconds):02d}</code>\n"
+            f"📅 <b>Date:</b> <code>{formatted_time} IST</code>\n"
+            f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+            f"╭━━━━━━━『 <b>📊 CONTENT STATS</b> 』━━━━━━━╮\n"
+            f"📁 <b>Total Links:</b> <code>{len(all_urls)}</code>\n"
+            f"🎬 <b>Videos:</b> <code>{video_count}</code>\n"
+            f"📄 <b>PDFs:</b> <code>{pdf_count}</code>\n"
+            f"🖼 <b>Images:</b> <code>{image_count}</code>\n"
+            f"📑 <b>Documents:</b> <code>{doc_count}</code>\n"
+            f"📦 <b>Others:</b> <code>{other_count}</code>\n"
+            f"🔐 <b>Protected:</b> <code>{drm_count}</code>\n"
+            f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+            f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
+            f"👑 <b>Admin:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER ⚡</a>\n"
+            f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         )
+
         
         # Send file with thumbnail
         await safe_edit_message(progress_msg, "📤 Uploading file with extracted links...")

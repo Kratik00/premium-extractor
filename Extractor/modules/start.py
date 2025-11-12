@@ -94,7 +94,7 @@ button1 = [
                 ],
                 [
                     InlineKeyboardButton(" 🕹️CLASSPLUS", callback_data="classplus_"),
-                    InlineKeyboardButton(" 🕹️ADDA", callback_data="adda_")
+                    InlineKeyboardButton(" 🕹️UTKARSH", callback_data="utkarsh_")
                 ],
                 [
                     InlineKeyboardButton(" 🕹️KHAN GS", callback_data="khan_"),   
@@ -106,7 +106,7 @@ button1 = [
                 # ],
                 # [
                 #     InlineKeyboardButton("👑 Cᴀʀᴇᴇʀᴡɪʟʟ", callback_data="cw_"),   
-                #     InlineKeyboardButton("👑 Uᴛᴋᴀʀsʜ", callback_data="utkarsh_")              
+                #     InlineKeyboardButton("👑 Uᴛᴋᴀʀsʜ", callback_data="adda_")              
                 # ],
                 # [
                 #    # InlineKeyboardButton("CʟᴀssPʟᴜs", callback_data="classplus_"),
