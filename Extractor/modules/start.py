@@ -433,13 +433,13 @@ async def app(_, message):
             reply_markup=buttons
         )
 @app.on_callback_query(filters.regex("^close_$"))
-async def close_menu(_, query):
+async def close_menu(client, query):
     try:
         await query.message.delete()  
     except Exception:
         await query.answer("Already closed 💫", show_alert=False)
 @app.on_callback_query(filters.regex("^help_$"))
-async def help_menu(_, query):
+async def help_menu(client, query):
     help_text = (
         "💡 <b>Help Menu</b>\n\n"
         "• Use <b>Login / Without Login</b> to access extraction modes.\n"
@@ -450,7 +450,7 @@ async def help_menu(_, query):
 
     keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🔙 Back", callback_data="apps"),
+            InlineKeyboardButton("🔙 Back", callback_data="modes_"),
             InlineKeyboardButton("🚨 Close", callback_data="close_")
         ]
     ])
