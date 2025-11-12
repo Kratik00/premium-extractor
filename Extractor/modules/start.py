@@ -90,6 +90,8 @@ custom_button = [[
                 ],[
                   InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_")
                 ],[
+                  InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
+                ],[
                   InlineKeyboardButton("🌪️Back", callback_data="modes_")
                 ]]
 
@@ -1182,7 +1184,7 @@ async def handle_callback(client, query):  # <- client यहाँ होना
 
     elif query.data == "purchase_":
             button = [[
-                          InlineKeyboardButton('ᴘᴀʏᴍᴇɴᴛ ꜱᴄʀᴇᴇɴꜱʜᴏᴛ', user_id=int(OWNER_ID))
+                          InlineKeyboardButton('CONTACT ADMIN', url="https://t.me/noobhusir")
 
                       ],[
                           InlineKeyboardButton('𝐁 𝐀 𝐂 𝐊', callback_data='premium_')

@@ -100,7 +100,7 @@ BRONZE_TXT = """
 <b>
 🥉 <u>Bronze Membership</u>  
 ⏰ Validity: 7 Days  
-💸 Price: ₹300
+💸 Price: ₹200
 </b>
 """
 
@@ -110,7 +110,7 @@ SILVER_TXT = """
 <b>
 🥈 <u>Silver Membership</u>  
 ⏰ Validity: 15 Days  
-💸 Price: ₹500
+💸 Price: ₹300
 </b>
 """
 
@@ -120,7 +120,7 @@ GOLD_TXT = """
 <b>
 🥇 <u>Gold Membership</u>  
 ⏰ Validity: 30 Days  
-💸 Price: ₹800
+💸 Price: ₹500
 </b>
 """
 
@@ -139,13 +139,6 @@ OTHER_TXT = """
 
 PAYMENT_TXT = """
 <b>
-⚜️ <u>Payment Instructions</u>
-
-Please complete the payment based on your selected plan to activate premium features.  
-
-📸 Scan QR Code → <a href='https://graph.org/file/2fbd9fda0f646b1422f05-218a2421d48d601d10.jpg'>View Payment QR</a>  
-
-After payment, send a screenshot for confirmation.  
-Processing may take a few minutes.
+CONTACT ADMIN FOR MORE DETAILS. UPLOADERS ARE FREE WITH THESE PLANS.
 </b>
 """
