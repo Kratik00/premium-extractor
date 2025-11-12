@@ -3,7 +3,7 @@ import json
 import random
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from pyrogram import filters
+from pyrogram import Client, filters
 from Extractor import app
 from config import OWNER_ID
 from Extractor.core import script

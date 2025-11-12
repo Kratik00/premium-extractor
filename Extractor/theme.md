@@ -4,7 +4,7 @@
 
 ### Login Prompt
 ```
-🔹 <b>𝐏𝐑𝐎 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 🫵</b> 🔹
+"<b>💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠</b>"
 
 Send **ID & Password** in this format: <code>ID*Password</code>
 
@@ -65,8 +65,6 @@ Example:
 📊 𝗙𝗶𝗻𝗮𝗹 𝗦𝘁𝗮𝘁𝘂𝘀:
 📚 Processed {total} items
 📤 File has been uploaded
-
-Thank you for using 𝐏𝐑𝐎 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 🫵! 🌟
 ```
 
 ## Document Formatting
@@ -91,7 +89,7 @@ Thank you for using 𝐏𝐑𝐎 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 🫵! 🌟
 
 🚀 <b>Extracted by</b>: @{bot_username}
 
-<code>╾───•𝐏𝐑𝐎 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 🫵 •───╼</code>
+<code>╾───•💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 •───╼</code>
 ```
 
 ## Error Messages
