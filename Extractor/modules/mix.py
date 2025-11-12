@@ -103,7 +103,7 @@ async def fetch_item_details(session, api_base, course_id, item, headers):
     
                     
         
-async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, parent_path="Home"):
+async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, path="Home"):
     outputs = []
     url = f"{api_base}/get/folder_contentsv3?course_id={course_id}&parent_id={folder_id}&windowsapp=false&start=0"
 
@@ -125,16 +125,24 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
             for item in data:
                 title = item.get("Title", "Untitled").strip()
                 mtype = item.get("material_type", "")
-                current_path = f"{parent_path} < {title}"
+                current_path = f"{path} < {title}"
 
                 if mtype == "FOLDER":
                     print(f"📂 {current_path}")
-                    # recursive call with correct arg name
-                    tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers, parent_path=current_path))
+                    # recursive call: passing updated breadcrumb
+                    tasks.append(
+                        fetch_folder_contents(
+                            session, api_base, course_id, item["id"], headers, path=current_path
+                        )
+                    )
                 else:
                     print(f"📄 {mtype}: {current_path}")
-                    # pass path to fetch_item_details (for breadcrumb output)
-                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers, parent_path=current_path))
+                    # send breadcrumb path to item details
+                    tasks.append(
+                        fetch_item_details(
+                            session, api_base, course_id, item, headers, path=current_path
+                        )
+                    )
 
             if tasks:
                 results = await asyncio.gather(*tasks)
@@ -147,6 +155,7 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
         outputs.append(f"Error fetching folder {folder_id}: {e}")
 
     return outputs
+
 
 async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2):
   async with aiohttp.ClientSession() as session:
