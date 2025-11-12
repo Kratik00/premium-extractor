@@ -1,42 +1,40 @@
-import asyncio  
-import io  
-import re 
-import json
+import asyncio
+import io
+import re
 import aiohttp
-from urllib.parse import quote  
-from datetime import datetime  
-import requests  
-from config import PREMIUM_LOGS 
-from Extractor.core.func import subscribe, chk_user
-from pyrogram import Client  
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup  
+import requests
+from datetime import datetime
+from urllib.parse import quote
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from Extractor import app
+from Extractor.core.func import chk_user
+from config import PREMIUM_LOGS
 
-# ---------------- LOG CHANNEL -----------------  
-LOG_CHANNEL = PREMIUM_LOGS # 👈 replace with your real log channel id
 
-# ---------------- TRACKED MESSAGES -----------------  
-user_messages = {}  # chat_id: list of dicts {id, type}  
+# ===================== HELPERS ===================== #
+def sanitize_filename(name: str) -> str:
+    return re.sub(r'[\\/*?:"<>|₹]', "", name).strip() + ".txt"
 
-# ---------------- HELPERS -----------------  
-def sanitize_filename(name: str) -> str:  
-    return re.sub(r'[\\/*?:"<>|₹]', "", name).strip() + ".txt"  
 
-def encode_url(url: str) -> str:  
-    if not url:  
-        return url  
-    parts = url.split('/', 3)  
-    if len(parts) < 4:  
-        return url  
-    return parts[0] + '//' + parts[2] + '/' + quote(parts[3])  
+def encode_url(url: str) -> str:
+    if not url:
+        return url
+    parts = url.split('/', 3)
+    if len(parts) < 4:
+        return url
+    return parts[0] + '//' + parts[2] + '/' + quote(parts[3])
 
-def fetch_json(url: str):  
-    try:  
-        r = requests.get(url, timeout=15)  
-        r.raise_for_status()  
-        return r.json()  
-    except Exception as e:  
-        print(f"⚠️ Failed to fetch {url}: {e}")  
-        return None  
+
+def fetch_json(url: str):
+    try:
+        r = requests.get(url, timeout=15)
+        r.raise_for_status()
+        return r.json()
+    except Exception as e:
+        print(f"⚠️ Failed to fetch {url}: {e}")
+        return None
+
 
 async def scrape_batch(batch_id: str):
     """Fetch video and PDF URLs + counts for a batch"""
@@ -55,7 +53,7 @@ async def scrape_batch(batch_id: str):
                 url = None
                 if cls.get("mp4Recordings"):
                     recs = cls["mp4Recordings"]
-                    preferred = next((r for r in recs if r.get("quality")=="720p" and r.get("url")), None)
+                    preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
                     url = preferred["url"] if preferred else recs[0].get("url")
                 else:
                     url = cls.get("class_link")
@@ -79,41 +77,9 @@ async def scrape_batch(batch_id: str):
 
     return all_results, video_count, pdf_count
 
-async def track_message(chat_id: int, message_id: int, msg_type="generic"):  
-    if chat_id not in user_messages:  
-        user_messages[chat_id] = []  
-    user_messages[chat_id].append({"id": message_id, "type": msg_type})  
 
-async def delete_tracked_messages(client: Client, chat_id: int, exclude_types=["persistent"]):  
-    if chat_id in user_messages:  
-        remaining = []  
-        for msg in user_messages[chat_id]:  
-            if msg["type"] in exclude_types:  
-                remaining.append(msg)  
-                continue  
-            try:  
-                await client.delete_messages(chat_id, msg["id"])  
-            except:  
-                pass  
-        user_messages[chat_id] = remaining  
-
-# ===== Helper to fetch thumbnail =====
-async def fetch_thumbnail(url):
-    if not url:
-        return None
-    try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                if resp.status == 200:
-                    data = await resp.read()
-                    thumb_file = io.BytesIO(data)
-                    thumb_file.name = "thumb.jpg"
-                    return thumb_file
-    except Exception as e:
-        print(f"⚠️ Failed to fetch thumbnail: {e}")
-        return None
-
-
+# ===================== MAIN CALLBACK ===================== #
+@app.on_callback_query(filters.regex("^selectionway_$"))
 async def selectionway_callback(client, callback_query):
     """Triggered when user clicks SelectionWay"""
     lol = await chk_user(callback_query, callback_query.from_user.id)
@@ -123,72 +89,76 @@ async def selectionway_callback(client, callback_query):
             "You don’t have access to use this feature yet.\n"
             "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
             reply_markup=InlineKeyboardMarkup(
-                [
-                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
-                ]
+                [[InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]]
             )
         )
         return
 
     try:
         processing_msg = await callback_query.message.reply_text(
-            "**⚙️ Fetching available batches... please wait 💫**"
+            "⚙️ <b>Initializing SelectionWay Extractor...</b>\n\n"
+            "Please wait while I fetch available batches 💫"
         )
 
-        await process_selectionway(client, callback_query.message, callback_query.from_user.id)
+        await process_selectionway(client, callback_query.message)
         await processing_msg.delete()
 
     except Exception as e:
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
 
-# ===== CALLBACK ENTRY POINT =====
-async def process_selectionway(app: Client, message, user_id: int):
+
+# ===================== FETCH BATCH LIST ===================== #
+async def process_selectionway(app: Client, message):
     """Main button logic — fetch and display available batches"""
-    await message.reply_text("📡 Fetching all available batches... please wait")
-    
+    waiting_msg = await message.reply_text("📡 <b>Fetching all available batches...</b> Please wait ⚡")
+
     url_info = "https://backend.multistreaming.site/api/courses/active?userId=2054598"
     data_info = fetch_json(url_info)
     batches = data_info.get("data", []) if data_info else []
 
     if not batches:
-        await message.reply_text("😕 No active batches found right now.")
+        await waiting_msg.edit_text("😕 <b>No active batches found right now.</b>")
         return
 
     keyboard = [
-        [InlineKeyboardButton(batch["title"], callback_data=f"sw_batch_{batch['id']}")]
+        [InlineKeyboardButton(f"📘 {batch['title']}", callback_data=f"sw_batch_{batch['id']}")]
         for batch in batches
     ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
 
-    await message.reply_text(
-        "💠 <b>Select a Batch to Extract:</b>",
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await waiting_msg.edit_text(
+        "💠 <b>Select a Batch to Extract:</b>\n\nEach button corresponds to a live course batch ⚡",
         reply_markup=reply_markup
     )
 
 
-# ===== CALLBACK FOR BATCH SELECTION =====
+# ===================== EXTRACT BATCH ===================== #
+@app.on_callback_query(filters.regex("^sw_batch_"))
 async def selectionway_batch_callback(app: Client, callback_query):
     await callback_query.answer("⏳ Extracting... please wait")
-    batch_id = callback_query.data.replace("sw_batch_", "")
 
+    batch_id = callback_query.data.replace("sw_batch_", "")
     all_results, video_count, pdf_count = await scrape_batch(batch_id)
 
-    # Fetch batch info
+    # Fetch batch info for caption
     url_info = "https://backend.multistreaming.site/api/courses/active?userId=2054598"
     data_info = fetch_json(url_info)
     batch_data = next((b for b in (data_info.get("data", []) if data_info else []) if b["id"] == batch_id), {})
+
     batch_name = batch_data.get("title", "Unknown Batch")
     thumbnail_url = batch_data.get("banner") or batch_data.get("bannerSquare") or ""
 
     if not all_results:
-        await callback_query.message.edit_text("😕 No content found in this batch.")
+        await callback_query.message.edit_text("😕 <b>No content found in this batch.</b>")
         return
 
+    # Build output file
     file_content = "\n".join(all_results)
     file_bytes = io.BytesIO(file_content.encode("utf-8"))
     file_bytes.name = sanitize_filename(batch_name)
 
+    # Create caption
     caption = (
         f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
         f"📦 <b>Platform:</b> SelectionWay\n"
@@ -197,20 +167,21 @@ async def selectionway_batch_callback(app: Client, callback_query):
         f"📄 <b>PDFs:</b> {pdf_count}\n"
         f"🕒 <b>Extracted:</b> {datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
         f"╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-        f"<code>💫 Extracted by Lucifer Extractor</code>"
+        f"<b>👑 Maintained by:</b> <a href='https://t.me/URS_LUCIFER'>Lucifer</a>"
     )
 
-    # send to user
+    # Send to user
     await app.send_document(
         chat_id=callback_query.message.chat.id,
         document=file_bytes,
         caption=caption
     )
 
-    # send to channel too 🔥
+    # Also log to channel
     try:
+        file_bytes.seek(0)
         await app.send_document(
-            chat_id=LOG_CHANNEL,
+            chat_id=PREMIUM_LOGS,
             document=file_bytes,
             caption=f"📡 <b>SelectionWay Extract</b>\n\n{caption}"
         )
