@@ -76,11 +76,7 @@ Subscribers enjoy enhanced features, faster extraction speeds, and priority supp
 </blockquote>
 
 <blockquote>
-⚠️ After sending your payment screenshot, please allow some time for verification and activation.
-</blockquote>
-
-<blockquote>
-🌿 <b>Maintained by:</b> <a href="https://t.me/urs_lucifer">Admin</a>
+🌿 <b>Managed by:</b> <a href="https://t.me/urs_lucifer">Admin</a>
 </blockquote>
 """
 
