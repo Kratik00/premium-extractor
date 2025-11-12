@@ -131,11 +131,10 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
 async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2):
   async with aiohttp.ClientSession() as session:
         
-        async with session.get(f"{api_base}/get/folder_contentsv2?course_id={raw_text2}&parent_id=-1", headers=hdr1) as res2:
+        async with session.get(f"{api_base}/get/folder_contentsv3?course_id={raw_text2}&parent_id=-1", headers=hdr1) as res2:
             j2 = await res2.json()
         if not j2.get("data"):
             return await message.reply_text("No data found in the response. Try switching to v3 and retry.")
-        
         
         filename = f"{sanitized_course_name}.txt"
 

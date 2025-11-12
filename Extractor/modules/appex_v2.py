@@ -222,7 +222,7 @@ async def appex_v2_txt(app, message, api, name):
         await message.reply_text("wait extracting your batch")
         start_time = time.time()
         
-        async with session.get(f"{api_base}/get/folder_contentsv2?course_id={raw_text2}&parent_id=-1", headers=hdr1) as res2:
+        async with session.get(f"{api_base}/get/folder_contentsv3?course_id={raw_text2}&parent_id=-1", headers=hdr1) as res2:
             j2 = await res2.json()
         if not j2.get("data"):
             return await message.reply_text("No data found in the response. Try switching to v3 and retry.")
