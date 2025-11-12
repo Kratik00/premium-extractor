@@ -3,7 +3,7 @@ import json
 import random
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from pyrogram import Client, filters
+from pyrogram import filters
 from Extractor import app
 from config import OWNER_ID
 from Extractor.core import script
@@ -432,7 +432,7 @@ async def app(_, message):
             script.START_TXT.format(message.from_user.mention),
             reply_markup=buttons
         )
-        
+
 @app.on_callback_query(filters.regex("^appxlist$"))
 async def show_alphabet(client, query):
     keyboard = get_alphabet_keyboard()
