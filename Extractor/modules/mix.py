@@ -110,21 +110,28 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
     try:
         async with session.get(url, headers=headers) as response:
             if response.status != 200:
-                text = await response.text()
-                print(f"⚠️ Folder {folder_id} failed ({response.status})\n{text[:200]}")
+                print(f"⚠️ Folder {folder_id} failed ({response.status})")
+                print(await response.text())
                 return []
 
             j = await response.json()
-            if "data" not in j:
-                print(f"⚠️ Folder {folder_id} returned no data.")
+            data = j.get("data", [])
+            if not data:
+                print(f"⚠️ Folder {folder_id} is empty")
                 return []
 
             tasks = []
-            for item in j["data"]:
-                mt = item.get("material_type")
-                tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
-                if mt == "FOLDER":
+
+            for item in data:
+                title = item.get("Title")
+                mtype = item.get("material_type")
+
+                if mtype == "FOLDER":
+                    print(f"📂 Found folder → {title} ({item['id']})")
                     tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers))
+                else:
+                    print(f"📄 Found {mtype} → {title}")
+                    tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
 
             if tasks:
                 results = await asyncio.gather(*tasks)
@@ -137,6 +144,7 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
         outputs.append(f"Error fetching folder {folder_id}: {e}")
 
     return outputs
+
 
 
 async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2):
