@@ -185,7 +185,7 @@ async def appex_v5_txt(app, message, api, name):
     input1 = await app.ask(message.chat.id, (f"SEND MOBILE NUMBER AND PASSWORD IN THIS FORMAT\n\n MOBILE*PASSWORD\n\nᴄᴏᴀᴄʜɪɴɢ ɴᴀᴍᴇ:- {app_name}\n\n OR SEND TOKEN"))
     
     raw_text = input1.text.strip()
-    
+    token, userid = None, "-2"
     
     if '*' in raw_text:
         
@@ -416,14 +416,19 @@ async def appex_v5_txt(app, message, api, name):
                 np = filename1
             
                 c_text = (
-                    f"**APP NAME: <b>{app_name}</b>**\n"
-                    f"**BatchName:** {raw_text2}_{txtn}\n"
-                    f"**Validity Start:**{start}\n"
-                    f"**Validity Ends:**{end}\n"
-                    f"Elapsed time: {elapsed_time:.1f} seconds\n"
-                    f"**Batch Price:** {pricing}\n"
-                    f"**course_thumbnail:** <a href={cp}>Thumbnail</a>"
+                    f"╭━━━━━━━『 <b>🚀 COURSE INFO</b> 』━━━━━━━╮\n"
+                    f"📦 <b>App Name:</b> <code>{app_name}</code>\n"
+                    f"🎓 <b>Batch Name:</b> <code>{raw_text2}_{txtn}</code>\n"
+                    f"🕒 <b>Validity:</b> <code>{start}</code> ➜ <code>{end}</code>\n"
+                    f"💰 <b>Price:</b> <code>{pricing}</code>\n"
+                    f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
+                    f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+                    f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
+                    f"🖼️ <b>Thumbnail:</b> <a href='{cp}'>Click Here</a>\n"
+                    f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
+                    f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
                 )
+
             
                 try:
                     await input2.delete(True)
