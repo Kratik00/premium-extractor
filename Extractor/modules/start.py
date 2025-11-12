@@ -28,6 +28,7 @@ from Extractor.modules.rg_vikramjeet import rgvikram_txt
 from Extractor.modules.adda import adda_command_handler
         
 from Extractor.modules.freecp import *
+from Extractor.modules.cdsjourneyfree import *
 from Extractor.modules.selectionwayfree import *
 from Extractor.modules.freeappx import *
 from Extractor.modules.freepw import *
@@ -86,6 +87,8 @@ custom_button = [[
                   InlineKeyboardButton("🎯Classplus", callback_data="cpwp")
                 ],[
                   InlineKeyboardButton("🪄 SelectionWay", callback_data="selectionway_")
+                ],[
+                  InlineKeyboardButton("🖼️ CDS JOURNEY", callback_data="cdsjourney_")
                 ],[
                   InlineKeyboardButton("🌪️Back", callback_data="modes_")
                 ]]
