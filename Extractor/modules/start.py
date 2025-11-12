@@ -1169,7 +1169,7 @@ async def handle_callback(client, query):  # <- client यहाँ होना
       
     elif query.data == "other_":
             button = [[
-              InlineKeyboardButton('☎️ ᴄᴏɴᴛᴀᴄᴛ ', user_id=int(OWNER_ID))
+              InlineKeyboardButton('☎️ ᴄᴏɴᴛᴀᴄᴛ ', url="https://t.me/noobhusir")
             ],[
               InlineKeyboardButton('⋞', callback_data='gold_'),
               InlineKeyboardButton('ʙ ᴀ ᴄ ᴋ', callback_data='premium_'),
