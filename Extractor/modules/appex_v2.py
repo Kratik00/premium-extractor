@@ -99,7 +99,7 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
     outputs = []  
 
     try:
-        async with session.get(f"{api_base}/get/folder_contentsv2?course_id={course_id}&parent_id={folder_id}", headers=headers) as response:
+        async with session.get(f"{api_base}/get/folder_contentsv3?course_id={course_id}&parent_id={folder_id}", headers=headers) as response:
             j = await response.json()
             tasks = []
             if "data" in j:

@@ -107,7 +107,7 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
     outputs = []  
 
     try:
-        async with session.get(f"{api_base}/get/folder_contentsv2?course_id={course_id}&parent_id={folder_id}", headers=headers) as response:
+        async with session.get(f"{api_base}/get/folder_contentsv3?course_id={course_id}&parent_id={folder_id}", headers=headers) as response:
             j = await response.json()
             tasks = []
             if "data" in j:
@@ -137,7 +137,6 @@ async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_bas
             return await message.reply_text("No data found in the response. Try switching to v3 and retry.")
         
         filename = f"{sanitized_course_name}.txt"
-
         all_outputs = []        
         tasks = []
         if "data" in j2:
