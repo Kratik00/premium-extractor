@@ -66,7 +66,7 @@ buttons = InlineKeyboardMarkup([
     [
         InlineKeyboardButton("🚀 Help", callback_data="help_"),
         InlineKeyboardButton("💻 Developer", url="https://t.me/URS_LUCIFER"),
-        InlineKeyboardButton("🚨 Close", callback_data="close_")
+        InlineKeyboardButton("🚨 Close", callback_data="close_data")
     ]
 ])
 modes_button = [[
@@ -432,35 +432,7 @@ async def app(_, message):
             script.START_TXT.format(message.from_user.mention),
             reply_markup=buttons
         )
-@app.on_callback_query(filters.regex("^close_$"))
-async def close_menu(client, query):
-    try:
-        await query.message.delete()  
-    except Exception:
-        await query.answer("Already closed 💫", show_alert=False)
-@app.on_callback_query(filters.regex("^help_$"))
-async def help_menu(client, query):
-    help_text = (
-        "💡 <b>Help Menu</b>\n\n"
-        "• Use <b>Login / Without Login</b> to access extraction modes.\n"
-        "• Tap <b>Developer</b> to contact support.\n"
-        "• Use <b>Close</b> to exit this menu.\n\n"
-        "🚀 <i>Simple. Fast. Classy.</i>"
-    )
-
-    keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("🔙 Back", callback_data="modes_"),
-            InlineKeyboardButton("🚨 Close", callback_data="close_")
-        ]
-    ])
-
-    await query.message.edit_text(
-        help_text,
-        reply_markup=keyboard,
-        disable_web_page_preview=True
-    )
-
+        
 @app.on_callback_query(filters.regex("^appxlist$"))
 async def show_alphabet(client, query):
     keyboard = get_alphabet_keyboard()
@@ -1044,7 +1016,22 @@ async def handle_callback(client, query):  # <- client यहाँ होना
                     InlineKeyboardButton("Mobile No.", callback_data='mobile_'),
                     InlineKeyboardButton("Token", callback_data='token_'),
                 ]]))
-
+    elif query.data == "help_":
+        help_text = (
+            "💡 <b>Help Menu</b>\n\n"
+            "• Use <b>Login / Without Login</b> to access extraction modes.\n"
+            "• Tap <b>Developer</b> to contact support.\n"
+            "• Use <b>Close</b> to exit this menu.\n\n"
+            "🚀 <i>Simple. Fast. Classy.</i>"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🔙 Back", callback_data="modes_"),
+                InlineKeyboardButton("🚨 Close", callback_data="close_data")
+            ]
+        ])
+        await query.message.edit_text(help_text, reply_markup=keyboard)
+    
     elif query.data == 'mobile_':
         await pw_mobile(app, query.message)
 
