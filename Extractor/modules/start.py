@@ -61,8 +61,8 @@ buttons = InlineKeyboardMarkup([
         InlineKeyboardButton("📇 Login / Without Login", callback_data="modes_")
     ],
     [
-        InlineKeyboardButton("🔍 Find API", callback_data="findapi_"),
-    ]
+        InlineKeyboardButton("🔍 Find API", callback_data="findapi_")
+    ],
     [
         InlineKeyboardButton("🚀 Help", callback_data="help_"),
         InlineKeyboardButton("💻 Developer", url="https://t.me/URS_LUCIFER"),
@@ -532,7 +532,7 @@ async def pwwp_callback(client, callback_query):
     try:
         # Send initial processing message
         processing_msg = await callback_query.message.reply_text(
-            "⏳ Starting process... Please wait  - **DONT LOGIN WITH PHONE NUMBER, It Leads to ban your account of PW**"
+            "ENTER YOUR TOKEN"
         )
         
         user_id = callback_query.from_user.id
