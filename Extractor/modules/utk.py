@@ -7,7 +7,7 @@ from Crypto.Util.Padding import pad, unpad
 from base64 import b64decode
 from pyrogram import filters
 from Extractor import app
-from config import CHANNEL_ID, THUMB_URL
+from config import PREMIUM_LOGS, THUMB_URL
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from colorama import Fore, Style, init
 from termcolor import colored
@@ -22,7 +22,7 @@ from datetime import timedelta
 init(autoreset=True)
 
 appname = "Utkarsh"
-txt_dump = CHANNEL_ID
+txt_dump = PREMIUM_LOGS
 MAX_CONCURRENT_REQUESTS = 1000  # Increased concurrency for faster processing
 MAX_RETRIES = 15  # For request retry logic
 TIMEOUT = 90  # Increased timeout for large batches
@@ -106,9 +106,14 @@ async def handle_utk_logic(app, m):
     session_manager = SessionManager(app)
     start_time = time.time()
     editable = await m.reply_text(
-        "🔹 <b>UTK EXTRACTOR PRO</b> 🔹\n\n"
-        "Send **ID & Password** in this format: <code>ID*Password</code>"
+        f"╭━━━━━━━『 <b>⚡ LUCIFER EXTRACTOR</b> 』━━━━━━━╮\n"
+        f"👤 <b>Authentication Required</b>\n"
+        f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+        f"🪄 <b>Send your credentials below:</b>\n"
+        f"➡️ Format → <code>ID*Password</code>\n\n"
+        f"💡 <i>Example:</i> <code>UTK12345*mysecurepass</code>"
     )
+
     
     input1 = await app.listen(chat_id=m.chat.id)
     raw_text = input1.text
@@ -154,7 +159,7 @@ async def handle_utk_logic(app, m):
             status = dec_logs['status']
             
             if status:
-                await safe_edit_message(editable, "✅ <b>Authentication successful!</b>")
+                await safe_edit_message(editable, "✅ <b>Login successful!</b>")
                 print(colored("✅ Login successful!", "green"))
             else:
                 await safe_edit_message(editable, f'❌ Login Failed - {error_message}')
@@ -199,7 +204,7 @@ async def handle_utk_logic(app, m):
             Batch_ids += str(id) + '&'
         Batch_ids = Batch_ids.rstrip('&')
         
-        login_msg = f'<b>✅ {appname} Login Successful</b>\n'    
+        login_msg = f'<b>✅ {appname} Authentication Successful</b>\n'    
         login_msg += f'\n<b>🆔 Credentials:</b> <code>{raw_text}</code>\n\n'
         login_msg += f'\n\n<b>📚 Available Batches</b>\n\n{cool}'    
         
@@ -318,10 +323,13 @@ async def process_single_subject(app, subject_id, subject_list, batch_id, header
     
     # Initial progress update
     progress_text = (
-        f"🔄 <b>Processing Large Batch</b>\n"
-        f"├─ Subject: {current_subject}/{total_subjects}\n"
-        f"└─ Current: <code>{topicName}</code>"
+        f"╭━━━━━━━『 ⚙️ <b>LUCIFER EXTRACTOR</b> 』━━━━━━━╮\n"
+        f"🔄 <b>Processing Large Batch...</b>\n"
+        f"📚 <b>Subject:</b> <code>{current_subject}/{total_subjects}</code>\n"
+        f"🧩 <b>Now Extracting:</b> <code>{topicName}</code>\n"
+        f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
     )
+
     last_update_time = await update_progress_safely(progress_msg, progress_text, last_update_time, 5)
     
     try:
@@ -570,12 +578,15 @@ async def process_batch_subjects(app, subject_ids, subject_list, batch_id, heade
                 eta = (elapsed / idx) * (total_subjects - idx) if idx > 0 else 0
                 
                 progress_text = (
-                    f"📦 <b>Large Batch Progress</b>\n"
-                    f"├─ Completed: {idx}/{total_subjects} subjects\n"
-                    f"├─ Total Links: {len(all_urls)}\n"
-                    f"├─ Time: {str(timedelta(seconds=int(elapsed)))}\n"
-                    f"└─ ETA: {str(timedelta(seconds=int(eta)))}"
+                    f"╭━━━━━━━『 ⚡ <b>LUCIFER EXTRACTOR</b> 』━━━━━━━╮\n"
+                    f"📦 <b>Batch Progress:</b>\n"
+                    f"├─ ✅ <b>Completed:</b> <code>{idx}/{total_subjects}</code> subjects\n"
+                    f"├─ 🔗 <b>Total Links:</b> <code>{len(all_urls)}</code>\n"
+                    f"├─ ⏱️ <b>Elapsed:</b> <code>{str(timedelta(seconds=int(elapsed)))}</code>\n"
+                    f"└─ 🕒 <b>ETA:</b> <code>{str(timedelta(seconds=int(eta)))}</code>\n"
+                    f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
                 )
+
                 last_update_time = await update_progress_safely(progress_msg, progress_text, last_update_time)
             
             # Small delay between subjects
@@ -619,7 +630,7 @@ async def login(app, user_id, m, all_urls, start_time, bname, batch_id, progress
         
         # Prepare modern caption with emojis and formatting
         caption = (
-            f"╭━━━━━━━『 <b>⚡ LUCIFER EXTRACTOR</b> 』━━━━━━━╮\n"
+            f"╭━━━━━━━『 <b>⚡LUCIFER EXTRACTOR</b> 』━━━━━━━╮\n"
             f"📱 <b>App Name:</b> <code>{app_name}</code>\n"
             f"📚 <b>Batch:</b> <code>{bname}</code> | 🆔 <code>{batch_id}</code>\n"
             f"🕒 <b>Extraction Time:</b> <code>{int(minutes):02d}:{int(seconds):02d}</code>\n"
@@ -635,7 +646,7 @@ async def login(app, user_id, m, all_urls, start_time, bname, batch_id, progress
             f"🔐 <b>Protected:</b> <code>{drm_count}</code>\n"
             f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
             f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
-            f"👑 <b>Admin:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER ⚡</a>\n"
+            f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHUSIR'>LUCIFER ⚡</a>\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         )
 

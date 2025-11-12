@@ -1,126 +1,131 @@
-# Universal Extractor Theme
+# 💠 LUCIFER EXTRACTOR — Universal Theme
 
-## Welcome Messages
+## ⚙️ LOGIN PROMPTS
 
-### Login Prompt
-```
-"<b>💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠</b>"
+### 🔐 LOGIN MENU
+<b>⚡ 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 ⚡</b>
 
-Send **ID & Password** in this format: <code>ID*Password</code>
+<blockquote>Authenticate yourself to access the extraction core.</blockquote>
 
-Example:
-- ID*Pass: <code>6969696969*password123</code>
-- Token: <code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code>
-```
+📜 <b>Send Credentials:</b>  
+<code>ID*Password</code> or Token directly.
 
-### Login Success
-```
-✅ <b>{app_name} Login Successful</b>
+🧩 <b>Example:</b>  
+<code>9876543210*password123</code>  
+or  
+<code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</code>
 
-🆔 <b>Credentials:</b> <code>{credentials}</code>
+---
 
-📚 <b>Available Batches</b>
+### ✅ LOGIN SUCCESSFUL
+<b>🔓 ACCESS GRANTED</b>
 
+🪪 <b>App:</b> {app_name}  
+🆔 <b>User:</b> <code>{credentials}</code>
+
+📚 <b>Detected Batches:</b>  
 {batch_list}
-```
 
-### Batch Format
-```
-<code>{batch_id}</code> - <b>{batch_name}</b> 💰 ₹{price}
-```
+<code>⚙️ Extraction Core Activated.</code>
 
-## Progress Messages
+---
 
-### Initialization
-```
-🔄 <b>Processing Large Batch</b>
-├─ Subject: {current}/{total}
-└─ Current: <code>{topic_name}</code>
-```
+### 📦 BATCH FORMAT
+🔹 <code>{batch_id}</code> — <b>{batch_name}</b> 💰 ₹{price}
 
-### Processing Update
-```
-📦 <b>Large Batch Progress</b>
-├─ Completed: {current}/{total} subjects
-├─ Total Links: {total_links}
-├─ Time: {elapsed_time}
-└─ ETA: {estimated_time}
-```
+---
 
-### Content Processing
-```
-🔄 <b>Processing Large Batch</b>
-├─ Subject: {current}/{total}
-├─ Name: <code>{subject_name}</code>
-├─ Topics: {processed}/{total}
-├─ Links: {total_links}
-├─ Time: {elapsed_time}
-└─ ETA: {estimated_time}
-```
+## 🚀 PROGRESS & EXTRACTION
 
-### Completion
-```
-✅ <b>Extraction completed successfully!</b>
+### ⚙️ INITIALIZATION
+<b>🔄 Initializing Extraction Engine...</b>
 
-📊 𝗙𝗶𝗻𝗮𝗹 𝗦𝘁𝗮𝘁𝘂𝘀:
-📚 Processed {total} items
-📤 File has been uploaded
-```
+📁 Subject {current}/{total}  
+🧠 Processing → <code>{topic_name}</code>
 
-## Document Formatting
+---
 
-### File Caption
-```
-🎓 <b>COURSE EXTRACTED</b> 🎓
+### 📊 PROGRESS UPDATE
+<b>📦 Extraction Progress</b>
 
-📱 <b>APP:</b> {app_name}
-📚 <b>BATCH:</b> {batch_name} (ID: {batch_id})
-⏱ <b>EXTRACTION TIME:</b> {duration}
-📅 <b>DATE:</b> {date} IST
+├─ ✅ Completed: <code>{current}/{total}</code>  
+├─ 🔗 Total Links: <code>{total_links}</code>  
+├─ ⏱ Elapsed: <code>{elapsed_time}</code>  
+└─ ⚡ ETA: <code>{estimated_time}</code>
 
-📊 <b>CONTENT STATS</b>
-├─ 📁 Total Links: {total_links}
-├─ 🎬 Videos: {video_count}
-├─ 📄 PDFs: {pdf_count}
-├─ 🖼 Images: {image_count}
-├─ 📑 Documents: {doc_count}
-├─ 📦 Others: {other_count}
-└─ 🔐 Protected: {drm_count}
 
-🚀 <b>Extracted by</b>: @{bot_username}
+---
 
-<code>╾───•💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 •───╼</code>
-```
+### 🧩 DETAILED SUBJECT PROCESSING
+<b>🧠 Processing Batch Segments...</b>
 
-## Error Messages
+📘 Subject {current}/{total}  
+├─ Topic: <code>{subject_name}</code>  
+├─ Items: {processed}/{total}  
+├─ Links: {total_links}  
+├─ ⏱ Elapsed: {elapsed_time}  
+└─ 🕒 ETA: {estimated_time}
 
-### Login Failed
-```
-❌ <b>Login Failed</b>
+---
 
-Error: {error_message}
+### 🏁 EXTRACTION COMPLETE
+<b>✅ Extraction Completed Successfully!</b>
 
-Please check your credentials and try again.
-```
+📊 <b>Summary:</b>  
+📚 Processed: {total} items  
+📤 File uploaded to server  
+🕹 <i>Lucifer Core Execution Finished</i>
 
-### Extraction Error
-```
-❌ <b>An error occurred during extraction</b>
+---
 
-Error details: <code>{error_message}</code>
+## 📁 DOCUMENT CAPTION (FINAL OUTPUT)
 
-Please try again or contact support.
-```
+╭━━━━━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━━━━━╮  
+📱 <b>APP:</b> <code>{app_name}</code>  
+🎓 <b>BATCH:</b> <code>{batch_name}</code> (ID: {batch_id})  
+🕒 <b>DURATION:</b> <code>{duration}</code>  
+📅 <b>DATE:</b> <code>{date} IST</code>  
+━━━━━━━━━━━━━━━━━━━━━━━━━━  
+📊 <b>STATS</b>  
+├─ 🎬 Videos: <code>{video_count}</code>  
+├─ 📄 PDFs: <code>{pdf_count}</code>  
+├─ 🖼 Images: <code>{image_count}</code>  
+├─ 📑 Docs: <code>{doc_count}</code>  
+├─ 📦 Others: <code>{other_count}</code>  
+└─ 🔐 DRM-Protected: <code>{drm_count}</code>  
+━━━━━━━━━━━━━━━━━━━━━━━━━━  
+👑 <b>Maintained By:</b> <a href='https://t.me/URS_LUCIFER'>Lucifer</a>  
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━╯
 
-### Invalid Input
-```
-❌ <b>Invalid format!</b>
+---
 
-Please send ID and password in this format: <code>ID*Password</code>
-```
+## ⚠️ ERROR & VALIDATION MESSAGES
 
-### Progress Updates
-```
-💾 Creating file with extracted URLs...
-📤 Uploading file with extracted links...
-``` 
+### ❌ LOGIN FAILED
+<b>❌ AUTHENTICATION FAILED</b>
+
+Error: <code>{error_message}</code>  
+💡 Check your credentials and retry.
+
+---
+
+### 💣 EXTRACTION ERROR
+<b>💥 EXTRACTION INTERRUPTED</b>
+
+⚠️ Reason: <code>{error_message}</code>  
+Try again or contact <a href='https://t.me/URS_LUCIFER'>Lucifer</a> for assistance.
+
+---
+
+### ⚠️ INVALID INPUT
+<b>🚫 INVALID FORMAT</b>
+
+Send your credentials in this format:  
+<code>ID*Password</code>  
+Example: <code>9876543210*yourpass</code>
+
+---
+
+### 🧾 FILE PROGRESS
+💾 Generating Course Data File...  
+📤 Uploading Extracted URLs...

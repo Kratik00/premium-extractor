@@ -184,7 +184,7 @@ async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_bas
             f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
             f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
             f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
-            f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHISIR'>LUCIFER ⚡</a>\n"
+            f"👑 <b>Admin:</b> <a href='https://t.me/NOOBHUSIR'>LUCIFER ⚡</a>\n"
             f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
             f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
         )
