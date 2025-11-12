@@ -40,69 +40,84 @@ import config
 THREADPOOL = ThreadPoolExecutor(max_workers=2000)
 TIMEOUT = 300  # 5 minutes timeout
 
-buttons = InlineKeyboardMarkup([
-                [
-                  InlineKeyboardButton("Lᴏɢɪɴ/Wɪᴛʜᴏᴜᴛ Lᴏɢɪɴ", callback_data="modes_")
-                ],[
-                  InlineKeyboardButton("🔍 Fɪɴᴅ Aᴘɪ", callback_data="findapi_"),
-                  InlineKeyboardButton("📓 Aᴘᴘx Lɪsᴛ", callback_data="appxlist")
-                ],
-                [
-                   InlineKeyboardButton("🕹ᴄʜᴀɴɴᴇʟ", url="https://t.me/urs_lucifer")
-                ]
+# buttons = InlineKeyboardMarkup([
+#                 [
+#                   InlineKeyboardButton("📇Login/without login", callback_data="modes_")
+#                 ],
+#                 [
+#                  # InlineKeyboardButton("🔍 Fɪɴᴅ Aᴘɪ", callback_data="findapi_"),
+#                   #InlineKeyboardButton("📓 Aᴘᴘx Lɪsᴛ", callback_data="appxlist")
+#                 #],
+#                 #[
+#                    InlineKeyboardButton("🚀help", callback_data="help_")
+#                    InlineKeyboardButton("🚨Close", callback_data="close_")
+#                    InlineKeyboardButton("💻Developer", url="https://t.me/urs_lucifer")
+#                 ]
                 
-                ])
+#                 ])
 
-
+buttons = InlineKeyboardMarkup([
+    [
+        InlineKeyboardButton("📇 Login / Without Login", callback_data="modes_")
+    ],
+    [
+        InlineKeyboardButton("🔍 Find API", callback_data="findapi_"),
+    ]
+    [
+        InlineKeyboardButton("🚀 Help", callback_data="help_"),
+        InlineKeyboardButton("💻 Developer", url="https://t.me/URS_LUCIFER"),
+        InlineKeyboardButton("🚨 Close", callback_data="close_")
+    ]
+])
 modes_button = [[
-                  InlineKeyboardButton("🔏 Wɪᴛʜᴏᴜᴛ Lᴏɢɪɴ", callback_data="custom_")
+                  InlineKeyboardButton("🔏Without login", callback_data="custom_")
                 ],[
-                  InlineKeyboardButton("🔑 Lᴏɢɪɴ", callback_data="manual_"),
+                  InlineKeyboardButton("🔑Login", callback_data="manual_"),
                 ],[
-                  InlineKeyboardButton("𝐁 𝐀 𝐂 𝐊", callback_data="home_")
+                  InlineKeyboardButton("Back", callback_data="home_")
                 ]]
 
 
 custom_button = [[
-                  InlineKeyboardButton("⚡ Pᴡ ⚡", callback_data="pwwp"),
-                  InlineKeyboardButton("🔮 Aᴘᴘx 🔮", callback_data="appxwp"),
+                  InlineKeyboardButton("🧩Physics Wallah", callback_data="pwwp"),
+                  InlineKeyboardButton("🛰️APPX", callback_data="appxwp"),
                 ],[
-                  InlineKeyboardButton("🎯 CʟᴀssPʟᴜs 🎯", callback_data="cpwp")
+                  InlineKeyboardButton("🎯Classplus", callback_data="cpwp")
                 ],[
-                  InlineKeyboardButton("𝐁 𝐀 𝐂 𝐊", callback_data="modes_")
+                  InlineKeyboardButton("🌪️Back", callback_data="modes_")
                 ]]
 
 button1 = [              
                 [
-                    InlineKeyboardButton("👑 Aᴘᴘx", callback_data="appx_"),
-                    InlineKeyboardButton("👑 Aᴘᴘx Oᴛᴘ", callback_data="appxotp_")
+                    InlineKeyboardButton(" 🕹️APPX", callback_data="appx_"),
+                    InlineKeyboardButton(" 🕹️APPX OTP", callback_data="appxotp_")
                 ],
                 [
-                    InlineKeyboardButton("👑 CʟᴀssPʟᴜs", callback_data="classplus_"),
-                    InlineKeyboardButton("👑 Aᴅᴅᴀ 𝟸𝟺𝟽", callback_data="adda_")
+                    InlineKeyboardButton(" 🕹️CLASSPLUS", callback_data="classplus_"),
+                    InlineKeyboardButton(" 🕹️ADDA", callback_data="adda_")
                 ],
                 [
-                    InlineKeyboardButton("👑 Kʜᴀɴ Gs", callback_data="khan_"),   
-                    InlineKeyboardButton("👑 Pʜʏsɪᴄs Wᴀʟʟᴀʜ", callback_data="pw_")    
+                    InlineKeyboardButton(" 🕹️KHAN GS", callback_data="khan_"),   
+                    InlineKeyboardButton(" 🕹️PHYSICS WALLAH", callback_data="pw_")    
                 ],
-                [
-                    InlineKeyboardButton("👑 Sᴛᴜᴅʏ IQ", callback_data="iq_"),
-                    InlineKeyboardButton("👑 Kᴅ Cᴀᴍᴘᴜs", callback_data="kdlive_")         
-                ],
-                [
-                    InlineKeyboardButton("👑 Cᴀʀᴇᴇʀᴡɪʟʟ", callback_data="cw_"),   
-                    InlineKeyboardButton("👑 Uᴛᴋᴀʀsʜ", callback_data="utkarsh_")              
-                ],
-                [
-                   # InlineKeyboardButton("CʟᴀssPʟᴜs", callback_data="classplus_"),
-                    InlineKeyboardButton("👑 Mʏ Pᴀᴛʜsʜᴀʟᴀ", callback_data="my_pathshala_") ,
-                    InlineKeyboardButton("👑 ExamPur", callback_data="exampur_txt") 
+                # [
+                #     InlineKeyboardButton("👑 Sᴛᴜᴅʏ IQ", callback_data="iq_"),
+                #     InlineKeyboardButton("👑 Kᴅ Cᴀᴍᴘᴜs", callback_data="kdlive_")         
+                # ],
+                # [
+                #     InlineKeyboardButton("👑 Cᴀʀᴇᴇʀᴡɪʟʟ", callback_data="cw_"),   
+                #     InlineKeyboardButton("👑 Uᴛᴋᴀʀsʜ", callback_data="utkarsh_")              
+                # ],
+                # [
+                #    # InlineKeyboardButton("CʟᴀssPʟᴜs", callback_data="classplus_"),
+                #     InlineKeyboardButton("👑 Mʏ Pᴀᴛʜsʜᴀʟᴀ", callback_data="my_pathshala_") ,
+                #     InlineKeyboardButton("👑 ExamPur", callback_data="exampur_txt") 
 
 
-                ],
+                # ],
                 [
                   #  InlineKeyboardButton("﹤", callback_data="next_4"),
-                    InlineKeyboardButton("ʙ ᴀ ᴄ ᴋ", callback_data="modes_"),
+                    InlineKeyboardButton("🌪️Back", callback_data="modes_"),
                   #  InlineKeyboardButton("﹥", callback_data="next_1")
                 ]
                 ]
@@ -357,7 +372,7 @@ button6 = [
 
 
 back_button  = [[
-                    InlineKeyboardButton("ʙᴀᴄᴋ", callback_data="modes_"),                    
+                    InlineKeyboardButton("🤍BACK", callback_data="modes_"),                    
                 ]]
 
 
@@ -387,8 +402,20 @@ def photo():
         return config.thumb_url
     """
 
-@app.on_message(filters.command("start"))  # & filters.user(SUDO_USERS))
+@app.on_message(filters.command("start"))
 async def start(_, message):
+    await message.reply_photo(
+        photo="https://graph.org/file/0b988a4a0e9dd4647026b-ffabe40b6085866928.jpg",
+        caption="**Hey dear click /apps for more info **",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("📢CHANNEl", url="https://t.me/URS_LUCIFER")]
+            ]
+        )
+    )
+                
+@app.on_message(filters.command("apps"))  # & filters.user(SUDO_USERS))
+async def app(_, message):
     join = await subscribe(_, message)
     if join == 1:
         return
@@ -405,6 +432,34 @@ async def start(_, message):
             script.START_TXT.format(message.from_user.mention),
             reply_markup=buttons
         )
+@app.on_callback_query(filters.regex("^close_$"))
+async def close_menu(_, query):
+    try:
+        await query.message.delete()  
+    except Exception:
+        await query.answer("Already closed 💫", show_alert=False)
+@app.on_callback_query(filters.regex("^help_$"))
+async def help_menu(_, query):
+    help_text = (
+        "💡 <b>Help Menu</b>\n\n"
+        "• Use <b>Login / Without Login</b> to access extraction modes.\n"
+        "• Tap <b>Developer</b> to contact support.\n"
+        "• Use <b>Close</b> to exit this menu.\n\n"
+        "🚀 <i>Simple. Fast. Classy.</i>"
+    )
+
+    keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("🔙 Back", callback_data="apps"),
+            InlineKeyboardButton("🚨 Close", callback_data="close_")
+        ]
+    ])
+
+    await query.message.edit_text(
+        help_text,
+        reply_markup=keyboard,
+        disable_web_page_preview=True
+    )
 
 @app.on_callback_query(filters.regex("^appxlist$"))
 async def show_alphabet(client, query):
@@ -553,14 +608,19 @@ async def cpwp_callback(client, callback_query):
         await callback_query.message.reply_text(
             "🔒 <b>Premium Feature Locked!</b>\n\n"
             "You don’t have access to use this feature yet.\n"
-            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan."
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")
+                ]
+            )
         )
         return
 
     try:
         # Send initial processing message
         processing_msg = await callback_query.message.reply_text(
-            "HANDLING CLASSPLUS....... PLEASE WAIT"
+            "**⚙️Handling classplus....... Please Wait💫**"
         )
         
         user_id = callback_query.from_user.id
@@ -649,19 +709,19 @@ async def handle_callback(client, query):  # <- client यहाँ होना
     elif query.data=="v4_":
         user_id = query.from_user.id
         user = await client.get_users(user_id)
-        api = await app.ask(query.message.chat.id, text="**SEND APPX API\n\n✅ Example:\ntcsexamzoneapi.classx.co.in**")
+        api = await app.ask(query.message.chat.id, text = "`>_` **Enter AppX API (skip https://)** → `tcsexamzoneapi.classx.co.in` ⚙️")
         api_txt = api.text
         name = api_txt.split('.')[0].replace("api", "") if api else api_txt.split('.')[0]
         await appex_v2_txt(app, query.message, api, name, user)
       
     elif query.data=="v2_": 
-        api = await app.ask(query.message.chat.id, text="**SEND APPX API\n\n✅ Example:\ntcsexamzoneapi.classx.co.in**")
+        api = await app.ask(query.message.chat.id, text = "`>_` **Enter AppX API (skip https://)** → `tcsexamzoneapi.classx.co.in` ⚙️")
         api_txt = api.text
         name = api_txt.split('.')[0].replace("api", "") if api else api_txt.split('.')[0]
         await appex_v2_txt(app, query.message, api_txt, name)
 
     elif query.data=="v3_": 
-        api = await app.ask(query.message.chat.id, text="**SEND APPX API\n\n✅ Example:\ntcsexamzoneapi.classx.co.in**")
+        api = await app.ask(query.message.chat.id, text = "`>_` **Enter AppX API (skip https://)** → `tcsexamzoneapi.classx.co.in` ⚙️")
         api_txt = api.text
         name = api_txt.split('.')[0].replace("api", "") if api else api_txt.split('.')[0]
         await appex_v3_txt(app, query.message, api_txt, name)

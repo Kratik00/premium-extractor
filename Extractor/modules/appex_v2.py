@@ -50,7 +50,7 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path=N
 
                 if vl:
                     dvl = decrypt(vl)
-                    outputs.append(f"{vt}:{dvl}")
+                    outputs.append(f"🗂️{vt}:{dvl}")
                 else:
                     encrypted_links = data.get("encrypted_links", [])
                     for link in encrypted_links:
@@ -61,11 +61,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path=N
                             k1 = decrypt(k)
                             k2 = decode_base64(k1)
                             da = decrypt(a)
-                            outputs.append(f"{vt}:{da}*{k2}")
+                            outputs.append(f"🗂️{vt}:{da}*{k2}")
                             break
                         elif a:
                             da = decrypt(a)
-                            outputs.append(f"{vt}:{da}")
+                            outputs.append(f"🗂️{vt}:{da}")
                             break
 
                 if "material_type" in data:
@@ -78,11 +78,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path=N
                         if p1:
                             dp1 = decrypt(p1)
                             depk1 = decrypt(pk1)
-                            outputs.append(f"{vt}:{dp1}*{depk1}")
+                            outputs.append(f"📄{vt}:{dp1}*{depk1}")
                         if p2:
                             dp2 = decrypt(p2)
                             depk2 = decrypt(pk2)
-                            outputs.append(f"{vt}:{dp2}*{depk2}")
+                            outputs.append(f"📄{vt}:{dp2}*{depk2}")
             else:
                 error_page = await response.text()
                 print(f"Error: Unexpected response for video ID {fi}:\n{error_page}")
@@ -268,16 +268,23 @@ async def appex_v2_txt(app, message, api, name):
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        c_text = (f"**AppName:** {app_name}\n"
-                  f"**BatchName:** {sanitized_course_name}\n"
-                  f"**Batch Start Date:** {start}\n"
-                  f"**Validity Ends On:** {end}\n"
-                  f"Elapsed time: {elapsed_time:.1f} seconds\n"
-                  f"**Batch Purchase At:** {pricing}")
+        c_text = (
+            f"╭━━━━━━━『 <b>🚀 COURSE INFO</b> 』━━━━━━━╮\n"
+            f"📦 <b>App Name:</b> <code>{app_name}</code>\n"
+            f"🎓 <b>Batch Name:</b> <code>{raw_text2}_{txtn}</code>\n"
+            f"🕒 <b>Validity:</b> <code>{start}</code> ➜ <code>{end}</code>\n"
+            f"💰 <b>Price:</b> <code>{pricing}</code>\n"
+            f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
+            f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+            f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
+            f"🖼️ <b>Thumbnail:</b> <a href='{cp}'>Click Here</a>\n"
+            f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
+            f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
+        )
         await app.send_document(message.chat.id, filename, caption=c_text)
         await app.send_document(log_channel, filename, caption = c_text)
         os.remove(filename)
-        await message.reply_text("Done✅")
+        await message.reply_text("Done Bruh✅")
 
 
     

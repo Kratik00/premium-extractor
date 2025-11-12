@@ -175,13 +175,19 @@ async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_bas
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        c_text = (f"**AppName:** {app_name}\n"
-                  f"**BatchName:** {sanitized_course_name}\n"
-                  f"**Batch Start Date:** {start}\n"
-                  f"**Validity Ends On:** {end}\n"
-                  f"Elapsed time: {elapsed_time:.1f} seconds\n"
-                  f"**Batch Purchase At:** {pricing}")
-
+        c_text = (
+            f"╭━━━━━━━『 <b>🚀 COURSE INFO</b> 』━━━━━━━╮\n"
+            f"📦 <b>App Name:</b> <code>{app_name}</code>\n"
+            f"🎓 <b>Batch Name:</b> <code>{raw_text2}_{txtn}</code>\n"
+            f"🕒 <b>Validity:</b> <code>{start}</code> ➜ <code>{end}</code>\n"
+            f"💰 <b>Price:</b> <code>{pricing}</code>\n"
+            f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
+            f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
+            f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
+            f"🖼️ <b>Thumbnail:</b> <a href='{cp}'>Click Here</a>\n"
+            f"⚙️ <b>Extractor:</b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
+            f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
+        )
         await input2.delete(True)
         await m1.delete(True)
         await m2.delete(True)
