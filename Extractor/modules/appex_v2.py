@@ -96,29 +96,54 @@ async def fetch_item_details(session, api_base, course_id, item, headers):
                     
         
 async def fetch_folder_contents(session, api_base, course_id, folder_id, headers):
-    outputs = []  
+    outputs = []
+    endpoints = [
+        "get/folder_contentsv3",
+        "get/folder_contentsv2",
+        "get/folder_contents"
+    ]
 
-    try:
-        async with session.get(f"{api_base}/get/folder_contentsv3?course_id={course_id}&parent_id={folder_id}", headers=headers) as response:
-            j = await response.json()
-            tasks = []
-            if "data" in j:
+    for ep in endpoints:
+        url = f"{api_base}/{ep}?course_id={course_id}&parent_id={folder_id}"
+        try:
+            async with session.get(url, headers=headers) as response:
+                if response.status == 403:
+                    # forbidden access — maybe wrong endpoint, try next
+                    print(f"⚠️ 403 Forbidden for {ep} — trying next")
+                    continue
+                if response.content_type != "application/json":
+                    text = await response.text()
+                    if "<html" in text.lower():
+                        print(f"⚠️ {ep} returned HTML, skipping...")
+                        continue
+                j = await response.json()
+                if not j.get("data"):
+                    print(f"⚠️ No data for {ep} — trying next")
+                    continue
+
+                # ✅ Success, process recursively
+                tasks = []
                 for item in j["data"]:
                     mt = item.get("material_type")
                     tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
                     if mt == "FOLDER":
                         tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers))
 
-            if tasks:
-                results = await asyncio.gather(*tasks)
-                for res in results:
-                    if res:  
-                        outputs.extend(res)
-    except Exception as e:
-        print(f"Error fetching folder contents for folder {folder_id}: {str(e)}")
-        outputs.append(f"Error fetching folder contents for folder {folder_id}. Error: {e}")
+                if tasks:
+                    results = await asyncio.gather(*tasks)
+                    for res in results:
+                        if res:
+                            outputs.extend(res)
 
+                return outputs  # stop after success
+
+        except Exception as e:
+            print(f"💣 Error fetching {ep} for folder {folder_id}: {str(e)}")
+
+    print(f"❌ All folder endpoints failed for folder {folder_id}")
+    outputs.append(f"Error fetching folder {folder_id}: No valid endpoint.")
     return outputs
+
 
 async def appex_v2_txt(app, message, api, name):
     api_base = api if api.startswith(("http://", "https://")) else f"https://{api}"
