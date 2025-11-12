@@ -31,7 +31,7 @@ def decode_base64(encoded_str):
     except Exception as e:
         return f"Error decoding string: {e}"
 
-async def fetch_item_details(session, api_base, course_id, item, headers):
+async def fetch_item_details(session, api_base, course_id, item, headers, path=None):
     fi = item.get("id")
     vt = item.get("Title", "")
     outputs = []  
