@@ -24,7 +24,7 @@ async def gen_link(app,chat_id):
 
 async def subscribe(app, message):
     try:
-        user = await app.get_chat_member("URS_LUCIFER", message.from_user.id)
+        user = await app.get_chat_member("lucifer_update01", message.from_user.id)
         if user.status == "kicked":
             await message.reply_text("Sorry Sir, You are Banned.")
             return 1
