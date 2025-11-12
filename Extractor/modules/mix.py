@@ -111,7 +111,6 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
         async with session.get(url, headers=headers) as response:
             if response.status != 200:
                 print(f"⚠️ Folder {folder_id} failed ({response.status})")
-                print(await response.text())
                 return []
 
             j = await response.json()
@@ -120,39 +119,30 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
                 print(f"⚠️ Folder {folder_id} is empty")
                 return []
 
-            tasks = []
-
+            # Sequential folder recursion (prevents skipped folders)
             for item in data:
                 title = item.get("Title", "Untitled").strip()
                 mtype = item.get("material_type", "")
                 current_path = f"{path} < {title}"
 
                 if mtype == "FOLDER":
-                    print(f"📂 {current_path}")
-                    # recursive call: passing updated breadcrumb
-                    tasks.append(
-                        fetch_folder_contents(
-                            session, api_base, course_id, item["id"], headers, path=current_path
-                        )
+                    print(f"📂 Entering {current_path}")
+                    sub_outputs = await fetch_folder_contents(
+                        session, api_base, course_id, item["id"], headers, path=current_path
                     )
+                    outputs.extend(sub_outputs)
                 else:
-                    print(f"📄 {mtype}: {current_path}")
-                    # send breadcrumb path to item details
-                    tasks.append(
-                        fetch_item_details(
+                    print(f"📄 Found {mtype}: {current_path}")
+                    try:
+                        item_outputs = await fetch_item_details(
                             session, api_base, course_id, item, headers, path=current_path
                         )
-                    )
-
-            if tasks:
-                results = await asyncio.gather(*tasks)
-                for res in results:
-                    if res:
-                        outputs.extend(res)
+                        outputs.extend(item_outputs)
+                    except Exception as e:
+                        print(f"💣 Error in {current_path}: {e}")
 
     except Exception as e:
         print(f"💣 Error fetching folder {folder_id}: {e}")
-        outputs.append(f"Error fetching folder {folder_id}: {e}")
 
     return outputs
 
