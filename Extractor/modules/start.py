@@ -402,20 +402,20 @@ def photo():
         return config.thumb_url
     """
 
-@app.on_message(filters.command("start"))
-async def start(_, message):
-    await message.reply_photo(
-        photo="https://graph.org/file/0b988a4a0e9dd4647026b-ffabe40b6085866928.jpg",
-        caption="**Hey dear click /apps for more info **",
-        reply_markup=InlineKeyboardMarkup(
-            [
-                [InlineKeyboardButton("📢CHANNEl", url="https://t.me/URS_LUCIFER")]
-            ]
-        )
-    )
+# @app.on_message(filters.command("start"))
+# async def start(_, message):
+#     await message.reply_photo(
+#         photo="https://graph.org/file/0b988a4a0e9dd4647026b-ffabe40b6085866928.jpg",
+#         caption="**Hey dear click /apps for more info **",
+#         reply_markup=InlineKeyboardMarkup(
+#             [
+#                 [InlineKeyboardButton("📢CHANNEl", url="https://t.me/URS_LUCIFER")]
+#             ]
+#         )
+#     )
                 
-@app.on_message(filters.command("apps"))  # & filters.user(SUDO_USERS))
-async def app(_, message):
+@app.on_message(filters.command("start"))  # & filters.user(SUDO_USERS))
+async def start(_, message):
     join = await subscribe(_, message)
     if join == 1:
         return
