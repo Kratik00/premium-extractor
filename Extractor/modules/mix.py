@@ -108,6 +108,7 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
     endpoints = [
         "get/folder_contentsv3",
         "get/folder_contentsv2",
+        "get/folder_contentsv4",
         "get/folder_contents"
     ]
 
