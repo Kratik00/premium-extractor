@@ -38,6 +38,7 @@ def decode_base64(encoded_str):
         return decoded_str
     except Exception as e:
         return f"Error decoding string: {e}"
+
 async def fetch(session, url, headers):
     try:
         async with session.get(url, headers=headers) as response:
@@ -53,15 +54,16 @@ async def fetch(session, url, headers):
         return {}
 
 headers = {
-            "Auth-Key": "appxapi",
-            "User-Id": "-2",
-            "Authorization": "",
-            "User_app_category": "",
-            "Language": "en",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Accept-Encoding": "gzip, deflate",
-            "User-Agent": "okhttp/4.9.1"
-        }
+    "Auth-Key": "appxapi",
+    "User-Id": "-2",
+    "Authorization": "",
+    "User_app_category": "",
+    "Language": "en",
+    "Content-Type": "application/x-www-form-urlencoded",
+    "Accept-Encoding": "gzip, deflate",
+    "User-Agent": "okhttp/4.9.1"
+}
+
 async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
@@ -70,7 +72,6 @@ async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     r3 = await fetch(session, url, hdr1)
     video_data = sorted(r3.get("data", []), key=lambda x: x.get("id"))  
 
-    
     tasks = [process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1) for video in video_data]
     results = await asyncio.gather(*tasks)
     
@@ -101,7 +102,6 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
             dvl = decrypt(vl)
             if ".pdf" not in dvl: 
                 lines.append(f"🗂️{vt}:{dvl}\n")
-                 
         else:
             encrypted_links = r4.get("data", {}).get("encrypted_links", [])
             if encrypted_links:
@@ -140,7 +140,6 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                     else:
                         lines.append(f"📄{vt}:{dp2}*{depk2}\n")
 
-        
         if "material_type" in r4.get("data", {}):
             mt = r4["data"]["material_type"]
             if mt == "VIDEO":
@@ -170,15 +169,18 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
         print(f"An error occurred while processing video ID {vi}: {str(e)}")
         return None
 
-            
-            
-THREADPOOL = ThreadPoolExecutor(max_workers=1000) 
-async def yesofficer_callback(app, message):
-   
+THREADPOOL = ThreadPoolExecutor(max_workers=1000)
+
+# NOTE: signature updated to accept both message (pyrogram.types.Message) and callback_query (pyrogram.types.CallbackQuery)
+async def yesofficer_callback(app, message, callback_query):
+    """
+    app: pyrogram.Client
+    message: pyrogram.types.Message  (the original message object - use message.chat.id, message.reply_text etc.)
+    callback_query: pyrogram.types.CallbackQuery  (if you need data from the callback, use callback_query.data or callback_query.from_user)
+    """
     api_base = "https://yesofficerapi.classx.co.in"
     app_name = api_base.replace("http://", " ").replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("apinew.teachx.in", " ").replace("api.cloudflare.net.in", " ").replace("api.appx.co.in", " ").replace("/", " ")
     
-        
     userid = "extracted_userid_from_token"
     token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjY2MTYxIiwiZW1haWwiOiJzdWJoYXNpc2dhcmFpOTlAZ21haWwuY29tIiwidGltZXN0YW1wIjoxNzYwMTkyNzc1LCJ0ZW5hbnRUeXBlIjoidXNlciIsInRlbmFudE5hbWUiOiJ5ZXNvZmZpY2VyX2RiIiwidGVuYW50SWQiOiIiLCJkaXNwb3NhYmxlIjpmYWxzZX0.P6xupnCewq3YgVBxkT_h5y5JoAMr3HLQZGIdjtHl-Jo"
     hdr1 = {
@@ -187,21 +189,19 @@ async def yesofficer_callback(app, message):
         "Auth-Key": "appxapi",
         "Authorization": token,
         "User-ID": userid
-        }
-        
+    }
         
     scraper = cloudscraper.create_scraper() 
     try:
         mc1 = scraper.get(f"{api_base}/get/mycoursev2?userid={userid}", headers=hdr1).json()
-        
-        
-        
     except json.JSONDecodeError as e:
         print(f"JSON decode error: {str(e)}")
-        return await message.reply_text("Error decoding response from server. Please try again later.{e}")
+        # message is a Message object, so message.reply_text works
+        return await message.reply_text("Error decoding response from server. Please try again later.")
     except Exception as e:
         print(f"An error occurred: {str(e)}")
-        return await message.reply_text("An error occurred while fetching your courses. Please try again later.{e}")
+        return await message.reply_text("An error occurred while fetching your courses. Please try again later.")
+    
     FFF = "𝗕𝗔𝗧𝗖𝗛 𝗜𝗗 ➤ 𝗕𝗔𝗧𝗖𝗛 𝗡𝗔𝗠𝗘\n\n"
     valid_ids = []
 
@@ -216,28 +216,29 @@ async def yesofficer_callback(app, message):
             FFF += f"**`{ci}`   -   `{cn}`**\n\n"
             valid_ids.append(ci)
     else:
+        # fallback: try using aiohttp session (async)
         try:
-            async with session.get(f"{api_base}/get/mycoursev2?userid={userid}", headers=hdr1) as res1:
-                j1 = await res1.json()
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{api_base}/get/mycoursev2?userid={userid}", headers=hdr1) as res1:
+                    j1 = await res1.json()
 
                 FFF = "COURSE-ID  -  COURSE NAME\n\n"
                 
                 valid_ids = []
-                if"data" in j1 and j1["data"]:
+                if "data" in j1 and j1["data"]:
                     for ct in j1["data"]:
-                    	i = ct.get("id")
-                    	cn = ct.get("course_name")
-                    	start = ct.get("start_date")
-                    	end = ct.get("end_date")
-                    	pricing = ct.get("price")
-                    	thumbnail = ct.get("course_thumbnail")
-                    	
-                    	FFF += f"**{i}   -   {cn}**\n\n"
-                    	valid_ids.append(i)
+                        i = ct.get("id")
+                        cn = ct.get("course_name")
+                        start = ct.get("start_date")
+                        end = ct.get("end_date")
+                        pricing = ct.get("price")
+                        thumbnail = ct.get("course_thumbnail")
+                        
+                        FFF += f"**{i}   -   {cn}**\n\n"
+                        valid_ids.append(i)
                 else:
-                	
-                	await message.reply_text("No course found in ID")
-                return
+                    await message.reply_text("No course found in ID")
+                    return
         except json.JSONDecodeError as e:
             print(f"JSON decode error: {str(e)}")
             return await message.reply_text("Error decoding response from server. Please try again later.")
@@ -245,9 +246,9 @@ async def yesofficer_callback(app, message):
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("NO BATCH PURCHASED")    
 
-    dl = (f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for 🔑{app_name} \n\n 🧬{api_base}\n\\n\n`{token}`\n🛡️{FFF}")
+    # use userid for raw_text replacement (raw_text was undefined)
+    dl = (f"𝗔𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for 🔑{app_name} \n\n 🧬{api_base}\n\n`{userid}`\n🛡️{FFF}")
     if len(FFF) <= 4096:
-        #await app.send_message(log_channel2, f"`{token}`")
         editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`{token}`\n{FFF}")      
     else:
         plain_FFF = FFF.replace("**", "").replace("`", "")
@@ -262,13 +263,14 @@ async def yesofficer_callback(app, message):
         )
         editable1 = None
 
-# Ask for multiple batch IDs separated by '&'
+    # Ask for multiple batch IDs separated by '&'
+    # app.ask expects chat id and returns a Message (depends on your pyrogram helper). Using message.chat.id is correct.
     input2 = await app.ask(message.chat.id, "**Send multiple Course IDs separated by '&' to Download or copy below text to download all batches**\n\n`" + "&".join(valid_ids) + "`")
 
-# Split the input into individual batch IDs
+    # Split the input into individual batch IDs
     batch_ids = input2.text.strip().split("&")
 
-# Trim whitespace and filter invalid batch IDs
+    # Trim whitespace and filter invalid batch IDs
     batch_ids = [batch.strip() for batch in batch_ids if batch.strip() in valid_ids]
 
     if not batch_ids:
@@ -280,10 +282,10 @@ async def yesofficer_callback(app, message):
 
     m1 = await message.reply_text("Processing your requested batches...")
 
-# Process each batch ID one by one
+    # Process each batch ID one by one
     for raw_text2 in batch_ids:
         m2 = await message.reply_text(f"Extracting batch `{raw_text2}`...")
-        start_time =time.time()
+        start_time = time.time()
         try:
             r = scraper.get(f"{api_base}/get/course_by_id?id={raw_text2}", headers=hdr1).json()
         except json.JSONDecodeError as e:
@@ -296,7 +298,8 @@ async def yesofficer_callback(app, message):
             continue
 
         if not r.get("data"):
-            course_name = next((ct.get("course_name") for ct in mc1["data"] if ct.get("id") == raw_text2), "Course")
+            # try to find course_name from mc1 data
+            course_name = next((ct.get("course_name") for ct in mc1.get("data", []) if ct.get("id") == raw_text2), "Course")
             sanitized_course_name = course_name.replace(':', '_').replace('/', '_')
         
             await v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2)
@@ -354,21 +357,24 @@ async def yesofficer_callback(app, message):
                     f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
                 )
 
-            
                 try:
                     await input2.delete(True)
                     await m1.delete(True)
                     await m2.delete(True)
                     await app.send_document(message.chat.id, filename1, caption=c_text)
                     await app.send_document(log_channel, filename1, caption=c_text)
-                    
-            
                 except Exception as e:
                     print(f"An error occurred while sending the document: {str(e)}")
-                
-                    course_name = next((ct.get("course_name") for ct in mc1["data"] if ct.get("id") == raw_text2), "Course")
+                    course_name = next((ct.get("course_name") for ct in mc1.get("data", []) if ct.get("id") == raw_text2), "Course")
                     sanitized_course_name = course_name.replace(':', '_').replace('/', '_')
                     await v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2)
                 finally:
                     if os.path.exists(filename1):
                         os.remove(filename1)
+
+
+# Handler that calls the logic function with both message and callback_query
+@app.on_callback_query(filters.regex("^yesofficer$"))
+async def yesofficer_handler(client, callback_query):
+    # pass the Message object and the CallbackQuery object to the logic function
+    await yesofficer_callback(client, callback_query.message, callback_query)
