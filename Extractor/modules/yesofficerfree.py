@@ -265,7 +265,7 @@ async def yesofficer_callback(app, message, callback_query):
 
     # Ask for multiple batch IDs separated by '&'
     # app.ask expects chat id and returns a Message (depends on your pyrogram helper). Using message.chat.id is correct.
-    #input2 = await app.ask(message.chat.id, "**Send Course ID separated by '&' to Download or copy below text to download all batches**\n\n`" + "&".join(valid_ids) + "`")
+    input2 = await app.ask(message.chat.id, "**Send Course ID to extract**")
 
     # Split the input into individual batch IDs
     batch_ids = input2.text.strip().split("&")
