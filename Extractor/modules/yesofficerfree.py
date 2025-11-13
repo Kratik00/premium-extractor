@@ -359,6 +359,7 @@ async def yesofficer_callback(app, message, callback_query):
 
                 try:
                     await input2.delete(True)
+                    await dl.delete(True)
                     await m1.delete(True)
                     await m2.delete(True)
                     await app.send_document(message.chat.id, filename1, caption=c_text)
