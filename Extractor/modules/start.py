@@ -91,7 +91,7 @@ custom_button = [[
                 ],[
                   InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_")
                 ],[
-                  InlineKeyboardButton("🟣 YesOfficer", callback_data="yesofficer")
+                  InlineKeyboardButton("🚀 YesOfficer", callback_data="yesofficerfree")
                 ],[
                   InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
                 ],[
@@ -622,7 +622,7 @@ async def selectionway_callback(client, callback_query):
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
 
-@app.on_callback_query(filters.regex("^yesofficer$"))
+@app.on_callback_query(filters.regex("^yesofficerfree$"))
 async def yesofficer_handler(client, callback_query):
 
     # 1. Premium check
