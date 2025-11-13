@@ -623,8 +623,8 @@ async def selectionway_callback(client, callback_query):
         await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
 
 @app.on_callback_query(filters.regex("^yesofficer$"))
-async def yo(client, cq):
-    await yesofficer_callback(client, cq)
+async def yesofficer_callback(client, callbackquery):
+        await yesofficer_callback(client, callback_query)
 @app.on_callback_query(filters.regex("^cpwp$"))
 async def cpwp_callback(client, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
