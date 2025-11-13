@@ -28,6 +28,7 @@ from Extractor.modules.rg_vikramjeet import rgvikram_txt
 from Extractor.modules.adda import adda_command_handler
         
 from Extractor.modules.freecp import *
+from Extractor.modules.yesofficerfree import *
 from Extractor.modules.cdsjourneyfree import *
 from Extractor.modules.selectionwayfree import *
 from Extractor.modules.freeappx import *
@@ -89,6 +90,8 @@ custom_button = [[
                   InlineKeyboardButton("🪄 SelectionWay", callback_data="selectionway_")
                 ],[
                   InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_")
+                ],[
+                  InlineKeyboardButton("🟣 YesOfficer", callback_data="yesofficer")
                 ],[
                   InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
                 ],[
@@ -619,6 +622,9 @@ async def selectionway_callback(client, callback_query):
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
 
+@app.on_callback_query(filters.regex("^yesofficer$"))
+async def _yesofficer(client, cq):
+    await yesofficer_callback(client, cq)
 @app.on_callback_query(filters.regex("^cpwp$"))
 async def cpwp_callback(client, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
