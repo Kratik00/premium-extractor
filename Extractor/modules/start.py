@@ -624,7 +624,8 @@ async def selectionway_callback(client, callback_query):
 
 @app.on_callback_query(filters.regex("^yesofficer$"))
 async def yo(client, cq):
-    await yesofficer_callback(client, cq)@app.on_callback_query(filters.regex("^cpwp$"))
+    await yesofficer_callback(client, cq)
+@app.on_callback_query(filters.regex("^cpwp$"))
 async def cpwp_callback(client, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
     if lol == 1:
