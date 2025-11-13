@@ -5,6 +5,7 @@ import cloudscraper
 from pyrogram import filters
 from Extractor import app
 import os
+import io
 import asyncio
 import aiohttp
 import base64
