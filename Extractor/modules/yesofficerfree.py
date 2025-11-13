@@ -173,7 +173,7 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
             
             
 THREADPOOL = ThreadPoolExecutor(max_workers=1000) 
-async def yesofficer_callback(app, message, api, name):
+async def yesofficer_callback(app, message):
    
     api_base = "https://yesofficerapi.classx.co.in"
     app_name = api_base.replace("http://", " ").replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("apinew.teachx.in", " ").replace("api.cloudflare.net.in", " ").replace("api.appx.co.in", " ").replace("/", " ")
