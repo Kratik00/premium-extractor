@@ -249,7 +249,8 @@ async def quantezy_callback(app, message, callback_query):
     # use userid for raw_text replacement (raw_text was undefined)
     dl = (f"𝗔𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for 🔑{app_name} \n\n 🧬{api_base}\n\n`{userid}`\n🛡️{FFF}")
     if len(FFF) <= 4096:
-        editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`\n{FFF}")      
+        plain_FFF = FFF.replace("**", "").replace("`", "")
+        editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`\n{plain_FFF}")      
     else:
         plain_FFF = FFF.replace("**", "").replace("`", "")
         file_path = f"{app_name}.txt"
