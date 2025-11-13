@@ -1,197 +1,231 @@
-import io
+import requests
+import threading
 import json
+import cloudscraper
+from pyrogram import filters
+from Extractor import app
+import os
 import asyncio
 import aiohttp
-from pyromod import listen   
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
-from Extractor import app
+import base64
+from Crypto.Cipher import AES
+from Extractor.modules.mix import v2_new
+from Crypto.Util.Padding import unpad
+from base64 import b64decode
+from bs4 import BeautifulSoup
+from concurrent.futures import ThreadPoolExecutor
+import time
 from config import PREMIUM_LOGS
 from Extractor.core.func import chk_user
 
-# ---------------- STATIC CONFIG ----------------
+log_channel = PREMIUM_LOGS
+log_channel2 = PREMIUM_LOGS
+
+# STATIC API + TOKEN
 API_BASE = "https://yesofficerapi.classx.co.in"
 TOKEN = (
 "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9."
-"eyJpZCI6IjY2MTYxIiwiZW1haWwiOiJzdWJoYXNp"
-"c2dhcmFpOTlAZ21haWwuY29tIiwidGltZXN0YW1w"
-"IjoxNzYwMTkyNzc1LCJ0ZW5hbnRUeXBlIjoidXNl"
-"ciIsInRlbmFudE5hbWUiOiJ5ZXNvZmZpY2VyX2Ri"
-"IiwidGVuYW50SWQiOiIiLCJkaXNwb3NhYmxlIjpm"
-"YWxzZX0.P6xupnCewq3YgVBxkT_h5y5JoAMr3HLQZGIdjtHl-Jo"
+"eyJpZCI6IjY2MTYxIiwiZW1haWwiOiJzdWJoYXNpc2dhcmFpOTlAZ21haWwuY29tIiwidGltZXN0YW1wIjoxNzYwMTkyNzc1LCJ0ZW5hbnRUeXBlIjoidXNlciIsInRlbmFudE5hbWUiOiJ5ZXNvZmZpY2VyX2RiIiwidGVuYW50SWQiOiIiLCJkaXNwb3NhYmxlIjpmYWxzZX0.P6xupnCewq3YgVBxkT_h5y5JoAMr3HLQZGIdjtHl-Jo"
 )
 
-HDR = {
-    "Auth-Key": "appxapi",
+STATIC_HDR = {
     "Client-Service": "Appx",
+    "source": "website",
+    "Auth-Key": "appxapi",
     "Authorization": TOKEN,
     "User-ID": "-2"
 }
 
-LOG = PREMIUM_LOGS
+# SAME DECRYPT FUNCTION
+def decrypt(enc):
+    enc = b64decode(enc.split(':')[0])
+    key = '638udh3829162018'.encode('utf-8')
+    iv = 'fedcba9876543210'.encode('utf-8')
+    if len(enc) == 0:
+        return ""
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    plaintext = unpad(cipher.decrypt(enc), AES.block_size)
+    return plaintext.decode('utf-8')
 
-# ---------------------------------------------------
-# BUTTON ENTRY (call from start.py)
-# ---------------------------------------------------
+
+def decode_base64(encoded_str):
+    try:
+        return base64.b64decode(encoded_str).decode('utf-8')
+    except:
+        return encoded_str
+
+
+# SAME FETCH
+async def fetch(session, url, headers):
+    try:
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                return {}
+            content = await response.text()
+            soup = BeautifulSoup(content, 'html.parser')
+            return json.loads(str(soup))
+    except:
+        return {}
+
+
+# SAME PROCESSING
+async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
+    ti = topic.get("topicid")
+    url = f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3?courseid={bi}&subjectid={si}&topicid={ti}&conceptid=&start=-1"
+    r3 = await fetch(session, url, hdr1)
+    videos = sorted(r3.get("data", []), key=lambda x: x.get("id"))
+
+    tasks = [
+        process_video(session, api_base, bi, si, sn, ti, topic.get("topic_name"), v, hdr1)
+        for v in videos
+    ]
+    results = await asyncio.gather(*tasks)
+    return [x for block in results if block for x in block]
+
+
+async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
+    vi = video.get("id")
+    lines = []
+    try:
+        r4 = await fetch(
+            session,
+            f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0",
+            hdr1
+        )
+
+        if not r4.get("data"):
+            return None
+
+        d = r4["data"]
+        title = d.get("Title", "")
+
+        # direct download
+        if d.get("download_link"):
+            dec = decrypt(d["download_link"])
+            lines.append(f"{title}:{dec}\n")
+
+        # encrypted video_id → YouTube
+        if d.get("video_id"):
+            yid = decrypt(d["video_id"])
+            lines.append(f"{title}:https://youtu.be/{yid}\n")
+
+        # encrypted links fallback
+        enc = d.get("encrypted_links", [])
+        if enc:
+            a = enc[0].get("path")
+            k = enc[0].get("key")
+            if a:
+                da = decrypt(a)
+                dk = decrypt(k) if k else ""
+                dk2 = decode_base64(dk)
+                if dk2:
+                    lines.append(f"{title}:{da}*{dk2}\n")
+                else:
+                    lines.append(f"{title}:{da}\n")
+
+        # PDF handling
+        for p, pk in [
+            (d.get("pdf_link"), d.get("pdf_encryption_key")),
+            (d.get("pdf_link2"), d.get("pdf2_encryption_key"))
+        ]:
+            if p:
+                dp = decrypt(p)
+                dk = decrypt(pk) if pk else ""
+                if dk and dk != "abcdefg":
+                    lines.append(f"{title}:{dp}*{dk}\n")
+                else:
+                    lines.append(f"{title}:{dp}\n")
+
+        return lines
+
+    except Exception:
+        return None
+
+
+# ======================================
+# MAIN CALLBACK — CALL FROM start.py
+# ======================================
 async def yesofficer_callback(client, callback_query):
 
-    # premium check
     lol = await chk_user(callback_query, callback_query.from_user.id)
     if lol == 1:
         return
 
-    chat_id = callback_query.message.chat.id
+    await callback_query.message.reply_text("📡 Fetching YesOfficer batches...")
 
-    # separate new message (don't reply to callback)
-    msg = await client.send_message(chat_id, "⏳ Fetching YesOfficer batches...")
+    scraper = cloudscraper.create_scraper()
+    mc = scraper.get(f"{API_BASE}/get/mycoursev2?userid=-2", headers=STATIC_HDR).json()
 
-    async with aiohttp.ClientSession() as ses:
-        async with ses.get(f"{API_BASE}/get/mycoursev2?userid=-2", headers=HDR) as r:
-            js = await r.json()
-
-    data = js.get("data", [])
-
+    data = mc.get("data", [])
     if not data:
-        return await client.send_message(chat_id, "❌ No batches found.")
+        return await callback_query.message.reply_text("❌ No batches found.")
 
-    # ---------- CREATE BATCH LIST TEXT ----------
-    txt = "📚 YESOFFICER — ALL BATCHES\n\n"
+    # MAKE TXT LIST
+    txt = "𝗕𝗔𝗧𝗖𝗛 𝗜𝗗 ➤ 𝗕𝗔𝗧𝗖𝗛 𝗡𝗔𝗠𝗘\n\n"
     valid_ids = []
 
     for c in data:
-        cid = c["id"]
-        name = c["course_name"]
-        txt += f"{cid} — {name}\n"
-        valid_ids.append(str(cid))
+        cid = str(c["id"])
+        cn = c["course_name"]
+        txt += f"`{cid}` — `{cn}`\n"
+        valid_ids.append(cid)
 
-    # prepare file
-    file_bytes = io.BytesIO(txt.encode())
-    file_bytes.name = "yesofficer_batches.txt"
+    buf = io.BytesIO(txt.encode())
+    buf.name = "yesofficer_batches.txt"
 
-    # send file
-    await client.send_document(
-        chat_id=chat_id,
-        document=file_bytes,
-        caption=(
-            "📦 **All batches fetched!**\n"
-            "➡️ Now send the Batch ID you want to extract.\n"
-            f"`Example: {valid_ids[0]}`"
-        )
+    await callback_query.message.reply_document(
+        buf,
+        caption="📦 All YesOfficer batches fetched.\n➡ Send ONE Batch ID to extract."
     )
 
-    # ask for batch ID (pyromod)
-    ask = await client.ask(
-        chat_id,
-        "📥 **Send any 1 Batch ID to extract:**"
-    )
+    # ASK ONE BATCH
+    ask = await app.ask(callback_query.message.chat.id, "📥 Send Batch ID:")
 
     bid = ask.text.strip()
-
     if bid not in valid_ids:
-        return await client.send_message(chat_id, "❌ Invalid batch ID.")
+        return await callback_query.message.reply_text("❌ Invalid batch id.")
 
-    await extract_yesofficer_batch(client, msg, bid)
+    await extract_yesofficer_batch(app, callback_query.message, bid)
 
 
-
-# ---------------------------------------------------
-# EXTRACTION FUNCTION
-# ---------------------------------------------------
+# =================================================
+# FINAL EXTRACTION (ONE BATCH) — SAME AS YOUR CODE
+# =================================================
 async def extract_yesofficer_batch(app, message, batch_id):
 
-    await app.send_message(message.chat.id, f"⏳ Extracting batch `{batch_id}`...")
+    m1 = await message.reply_text(f"⏳ Extracting `{batch_id}`...")
 
-    async with aiohttp.ClientSession() as ses:
-        # subjects
-        async with ses.get(
-            f"{API_BASE}/get/allsubjectfrmlivecourseclass?courseid={batch_id}&start=-1",
-            headers=HDR
-        ) as r:
-            s_json = await r.json()
+    filename = f"yesofficer_{batch_id}.txt"
 
-        subjects = s_json.get("data", [])
+    async with aiohttp.ClientSession() as session:
+        with open(filename, "w", encoding="utf-8") as f:
 
-        if not subjects:
-            return await app.send_message(message.chat.id, "❌ No subjects found in this batch.")
+            sub = await fetch(session, f"{API_BASE}/get/allsubjectfrmlivecourseclass?courseid={batch_id}&start=-1", STATIC_HDR)
+            subjects = sub.get("data", [])
 
-        final_lines = []
+            for s in subjects:
+                si = s["subjectid"]
+                sn = s["subject_name"]
 
-        # LOOP SUBJECTS
-        for sub in subjects:
-            sid = sub["subjectid"]
+                top = await fetch(session, f"{API_BASE}/get/alltopicfrmlivecourseclass?courseid={batch_id}&subjectid={si}&start=-1", STATIC_HDR)
+                topics = sorted(top.get("data", []), key=lambda x: x["topicid"])
 
-            # fetch topics
-            async with ses.get(
-                f"{API_BASE}/get/alltopicfrmlivecourseclass?courseid={batch_id}&subjectid={sid}&start=-1",
-                headers=HDR
-            ) as r2:
-                t_json = await r2.json()
+                tasks = [handle_course(session, API_BASE, batch_id, si, sn, t, STATIC_HDR) for t in topics]
+                results = await asyncio.gather(*tasks)
 
-            topics = t_json.get("data", [])
-
-            # LOOP TOPICS
-            for t in topics:
-                tid = t["topicid"]
-
-                # classes
-                async with ses.get(
-                    f"{API_BASE}/get/livecourseclassbycoursesubtopconceptapiv3?"
-                    f"courseid={batch_id}&subjectid={sid}&topicid={tid}&conceptid=&start=-1",
-                    headers=HDR
-                ) as r3:
-                    vc_json = await r3.json()
-
-                classes = vc_json.get("data", [])
-                for cls in classes:
-                    title = cls.get("Title", "Untitled")
-                    cid = cls.get("id")
-
-                    # video details
-                    async with ses.get(
-                        f"{API_BASE}/get/fetchVideoDetailsById?course_id={batch_id}&video_id={cid}&ytflag=0",
-                        headers=HDR
-                    ) as r4:
-                        vd = await r4.json()
-
-                    if not vd.get("data"):
-                        continue
-
-                    link = vd["data"].get("download_link")
-                    if link:
-                        final_lines.append(f"{title}: {link}\n")
-
-    # WRITE FILE
-    out = "".join(final_lines)
-    buf = io.BytesIO(out.encode())
-    buf.name = f"yesofficer_{batch_id}.txt"
+                for block in results:
+                    if block:
+                        f.writelines(block)
 
     caption = (
-        f"╭━━━━━━━『 <b>🚀 COURSE INFO</b> 』━━━━━━━╮\n"
-        f"📱 <b>App Name:</b> <code>YES OFFICER</code>\n"
-        f"🎓 <b>Batch Name:</b> <code>{batch_name}</code>\n"
-        f"🕒 <b>Validity:</b> <code>{start}</code> ➜ <code>{end}</code>\n"
-        f"💰 <b>Price:</b> <code>{pricing}</code>\n"
-        f"⏱️ <b>Extracted In:</b> <code>{elapsed_time:.1f}s</code>\n"
-        f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-  
-        f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO</b> 』━━━━━━━╮\n"
-        f"🖼️ <b>Thumbnail:</b> <a href='{thumbnail_url}'>Click Here</a>\n"
-        f"⚡ <b>Extractor:</b> <code>LUCIFER EXTRACTOR</code>\n"
-        f"👑 <b>Admin:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a>\n"
-        f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
+        f"╭━━━『 💠 𝐘𝐞𝐬𝐎𝐟𝐟𝐢𝐜𝐞𝐫 💠 』━━━╮\n"
+        f"📚 Batch ID: `{batch_id}`\n"
+        f"⚙️ Extractor: LUCIFER EXTRACTOR\n"
+        f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
     )
 
-    # send to user
-    await app.send_document(
-        chat_id=message.chat.id,
-        document=buf,
-        caption=caption
-    )
+    await app.send_document(message.chat.id, filename, caption=caption)
+    await app.send_document(log_channel, filename, caption=caption)
 
-    # send to log
-    await app.send_document(
-        LOG,
-        document=buf,
-        caption=f"📡 YesOfficer Extract Log\n\n{caption}"
-    )
-
-    await app.send_message(message.chat.id, "✅ Extraction complete!")
+    await m1.delete()
+    os.remove(filename)
