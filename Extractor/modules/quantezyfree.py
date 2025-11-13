@@ -172,7 +172,7 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
 THREADPOOL = ThreadPoolExecutor(max_workers=1000)
 
 # NOTE: signature updated to accept both message (pyrogram.types.Message) and callback_query (pyrogram.types.CallbackQuery)
-async def _callback(app, message, callback_query):
+async def quantezy_callback(app, message, callback_query):
     """
     app: pyrogram.Client
     message: pyrogram.types.Message  (the original message object - use message.chat.id, message.reply_text etc.)
