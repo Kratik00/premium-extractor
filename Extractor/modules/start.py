@@ -96,7 +96,7 @@ custom_button = [[
                   InlineKeyboardButton("🚀 YesOfficer", callback_data="yesofficerfree")
                 ],[
                     InlineKeyboardButton("🌸 SACHIN ACADEMY", callback_data="sachinacademyfree"),
-                    InlineKeyboardButton("🗽⃢⃢🗿 EXAMTUNE", callback_data="quantezyfree")
+                    InlineKeyboardButton("♕ EXAMTUNE", callback_data="quantezyfree")
                 ],[
                   InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
                 ],[
