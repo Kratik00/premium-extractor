@@ -33,6 +33,8 @@ from Extractor.modules.cdsjourneyfree import *
 from Extractor.modules.selectionwayfree import *
 from Extractor.modules.freeappx import *
 from Extractor.modules.freepw import *
+from Extractor.modules.sachinacademyfree import *
+from Extractor.modules.quantezyfree import *
 
 from Extractor.core.mongo import plans_db
 from telegram import Update
@@ -92,6 +94,9 @@ custom_button = [[
                   InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_")
                 ],[
                   InlineKeyboardButton("🚀 YesOfficer", callback_data="yesofficerfree")
+                ],[
+                    InlineKeyboardButton("🌸 SACHIN ACADEMY", callback_data="sachinacademyfree"),
+                    InlineKeyboardButton("🗽⃢⃢🗿 EXAMTUNE", callback_data="quantezyfree")
                 ],[
                   InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
                 ],[
@@ -657,6 +662,82 @@ async def yesofficer_handler(client, callback_query):
 
     except Exception as e:
         print(f"Error in yesofficer_handler: {e}")
+        await callback_query.message.reply_text(
+            f"❌ An error occurred.\n\n<code>{str(e)}</code>"
+            )
+@app.on_callback_query(filters.regex("^quantezyfree$"))
+async def quantezy_handler(client, callback_query):
+
+    # 1. Premium check
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don’t have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
+                ]
+            )
+        )
+        return
+
+    try:
+        # 2. Initial processing message
+        processing_msg = await callback_query.message.reply_text(
+            "**⚙️ Handling EXAMTUNE academy... Please Wait 💫**"
+        )
+
+        # 3. Directly call your extractor logic (NO TIMEOUT)
+        await quantezy_callback(client, callback_query.message, callback_query)
+
+        # 4. Delete the “processing...” message after success
+        try:
+            await processing_msg.delete()
+        except:
+            pass
+
+    except Exception as e:
+        print(f"Error in quantezy_handler: {e}")
+        await callback_query.message.reply_text(
+            f"❌ An error occurred.\n\n<code>{str(e)}</code>"
+            )
+@app.on_callback_query(filters.regex("^sachinacademyfree$"))
+async def sachinacademy_handler(client, callback_query):
+
+    # 1. Premium check
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don’t have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
+                ]
+            )
+        )
+        return
+
+    try:
+        # 2. Initial processing message
+        processing_msg = await callback_query.message.reply_text(
+            "**⚙️ Handling Sachin academy... Please Wait 💫**"
+        )
+
+        # 3. Directly call your extractor logic (NO TIMEOUT)
+        await sachinacademy_callback(client, callback_query.message, callback_query)
+
+        # 4. Delete the “processing...” message after success
+        try:
+            await processing_msg.delete()
+        except:
+            pass
+
+    except Exception as e:
+        print(f"Error in sachinacademy_handler: {e}")
         await callback_query.message.reply_text(
             f"❌ An error occurred.\n\n<code>{str(e)}</code>"
             )
