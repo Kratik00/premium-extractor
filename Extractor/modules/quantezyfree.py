@@ -178,7 +178,7 @@ async def quantezy_callback(app, message, callback_query):
     message: pyrogram.types.Message  (the original message object - use message.chat.id, message.reply_text etc.)
     callback_query: pyrogram.types.CallbackQuery  (if you need data from the callback, use callback_query.data or callback_query.from_user)
     """
-    api_base = "https://sachinacademyapi.classx.co.in"
+    api_base = "https://quantezyapi.classx.co.in"
     app_name = api_base.replace("http://", " ").replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("apinew.teachx.in", " ").replace("api.cloudflare.net.in", " ").replace("api.appx.co.in", " ").replace("/", " ")
     
     userid = "extracted_userid_from_token"
