@@ -124,17 +124,30 @@ def txt_to_html(txt_path, html_path):
   a:hover {{ color:#ff9fdc; text-decoration:underline; }}
 
   .float-name {{
-    position:fixed; font-size:40px;
-    color:{theme}; border:2px solid #ff9fdc;
-    padding:5px 10px; z-index:9999;
-    background:rgba(0,0,0,0.6);
-    border-radius:10px; animation:floatName 10s ease-in-out infinite alternate;
+    position: fixed;
+    top: 65%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 32px;
+    color: #ff76c8;
+    font-weight: 600;
+    padding: 8px 20px;
+    background: rgba(0, 0, 0, 0.30);
+    border-radius: 16px;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 118, 200, 0.30);
+    box-shadow: 0 0 18px rgba(255, 118, 200, 0.40);
+    animation: liquidFloat 16s cubic-bezier(.37,0,.63,1) infinite;
+    z-index: 9999;
+    pointer-events: none;
   }}
-
-  @keyframes floatName {{
-    0% {{ top:5%; left:5%; }}
-    50% {{ top:90%; left:90%; }}
-    100% {{ top:5%; left:5%; }}
+  @keyframes liquidFloat {{
+    0%   {{ transform: translate(-50%, 0px) rotate(0deg); }}
+    20%  {{ transform: translate(-48%, -12px) rotate(0.5deg); }}
+    40%  {{ transform: translate(-46%, 10px) rotate(-0.5deg); }}
+    60%  {{ transform: translate(-52%, 14px) rotate(0.6deg); }}
+    80%  {{ transform: translate(-54%, -10px) rotate(-0.6deg); }}
+    100% {{ transform: translate(-50%, 0px) rotate(0deg); }}
   }}
 
   .footer {{
@@ -145,7 +158,7 @@ def txt_to_html(txt_path, html_path):
 
 </head><body>
 
-<div class="float-name">✦ LUCIFER ✦</div>
+<div class="float-name">✦ LUCIFER</div>
 
 <div class="player-box">
   <video id="player" controls autoplay playsinline>
