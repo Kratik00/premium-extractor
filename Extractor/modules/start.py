@@ -35,6 +35,7 @@ from Extractor.modules.freeappx import *
 from Extractor.modules.freepw import *
 from Extractor.modules.sachinacademyfree import *
 from Extractor.modules.quantezyfree import *
+from Extractor.modules.htmlconverter import *
 
 from Extractor.core.mongo import plans_db
 from telegram import Update
@@ -67,6 +68,9 @@ buttons = InlineKeyboardMarkup([
     ],
     [
         InlineKeyboardButton("🔍 Find API", callback_data="findapi_")
+    ],
+    [
+        InlineKeyboardButton("📝 TXT ➜ HTML", callback_data="htmlconvert")
     ],
     [
         InlineKeyboardButton("🚀 Help", callback_data="help_"),
@@ -626,6 +630,17 @@ async def selectionway_callback(client, callback_query):
     except Exception as e:
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
+from Extractor.modules.htmlconverter import html_converter_callback
+
+@app.on_message(filters.command("html"))
+async def html_cmd(client, message):
+    await message.reply_text("📄 Send the TXT file you want to convert.")
+
+@app.on_message(filters.document)
+async def html_file_handler(client, message):
+    # Only handle TXT files for this converter
+    if message.document and message.document.file_name.endswith(".txt"):
+        await html_converter_callback(client, message)
 
 @app.on_callback_query(filters.regex("^yesofficerfree$"))
 async def yesofficer_handler(client, callback_query):
@@ -795,6 +810,10 @@ async def cpwp_callback(client, callback_query):
 @app.on_callback_query(filters.regex("^selectionway_$"))
 async def handle_selectionway(client, callback_query):
     await selectionway_callback(client, callback_query)
+
+@app.on_callback_query(filters.regex("^htmlconvert$"))
+async def html_button(client, cq):
+    await cq.message.reply_text("📄 Send your TXT file to convert.")
 
 @app.on_callback_query(filters.regex("^sw_batch_"))
 async def handle_sw_batch(client, callback_query):

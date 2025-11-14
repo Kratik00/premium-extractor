@@ -61,7 +61,7 @@ async def khan_login(app: Client, message: Message):
         
         # Login
         try:
-            login_url = "https://khanglobalstudies.com/api/login-with-password"
+            login_url = "https://api.khanglobalstudies.com/cms/login"
             data = {
                 "phone": user_id,
                 "password": password,
@@ -84,7 +84,7 @@ async def khan_login(app: Client, message: Message):
             headers["authorization"] = f"Bearer {token}"
             
             # Fetch courses
-            courses_url = "https://khanglobalstudies.com/api/user/v2/courses"
+            courses_url = "https://api.khanglobalstudies.com/v1/courses/paid?medium=0"
             async with aiohttp.ClientSession() as session:
                 async with session.get(courses_url, headers=headers, timeout=TIMEOUT) as response:
                     if response.status != 200:
