@@ -809,9 +809,20 @@ async def cpwp_callback(client, callback_query):
 async def handle_selectionway(client, callback_query):
     await selectionway_callback(client, callback_query)
 
+html_waiting = set()   # to track which users clicked htmlconvert
+
+
 @app.on_callback_query(filters.regex("^htmlconvert$"))
 async def html_button(client, cq):
-    await cq.message.reply_text("📄 Send your TXT file to convert.")
+    uid = cq.from_user.id
+
+    # mark user as waiting for txt
+    html_waiting.add(uid)
+
+    await cq.message.reply_text(
+        "📄 <b>Send your TXT file now, I will convert it into HTML (Pink Theme)</b>",
+    )
+
 
 @app.on_callback_query(filters.regex("^sw_batch_"))
 async def handle_sw_batch(client, callback_query):

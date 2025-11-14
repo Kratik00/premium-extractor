@@ -1,13 +1,16 @@
 import os
 import re
 import html
-import asyncio
+from config import PREMIUM_LOGS
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+HTML_LOG_CHANNEL = PREMIUM_LOGS   # <-- change if needed
+
+STATIC_THEME_COLOR = "#ff76c8"  # 💖 PINK THEME
 
 
 def txt_to_html(txt_path, html_path):
-    # Read input file
+    # Read file
     with open(txt_path, 'r', encoding='utf-8') as f:
         lines = f.read().splitlines()
 
@@ -20,65 +23,77 @@ def txt_to_html(txt_path, html_path):
         'other': {"items": []}
     }
 
-    # Function to categorize links
+    # Categorize links
     def categorize(name, url):
         if (
             re.search(r'\.(mp4|mkv|avi|mov|flv|wmv|m3u8)$', url, re.IGNORECASE)
             or 'youtube.com' in url
             or 'youtu.be' in url
         ):
-            return 'video'
+            return "video"
         elif url.lower().endswith('.pdf'):
-            return 'pdf'
-        else:
-            return 'other'
+            return "pdf"
+        return "other"
 
-    # Extract name + URL lines
     for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-
-        match = re.match(r'^(.*?)(https?://\S+)$', line)
-        if not match:
-            continue
-
-        name, url = match.groups()
-        cat = categorize(name, url)
-        sections[cat]["items"].append((name.strip(), url.strip()))
+        match = re.match(r'^(.*?)(https?://\S+)$', line.strip())
+        if match:
+            name, url = match.groups()
+            cat = categorize(name, url)
+            sections[cat]["items"].append((name.strip(), url.strip()))
 
     # Build HTML blocks
     html_blocks = ""
-
     for key in ['video', 'pdf', 'other']:
-        links = []
-
-        for name, url in sections[key]["items"]:
-            safe_name = html.escape(name)
-            if key == "video":
-                links.append(f"<a href='{url}' target='_blank'><div class='video'>{safe_name}</div></a>")
-            else:
-                links.append(f"<a href='{url}' target='_blank'><div class='video'>{safe_name}</div></a>")
-
-        content = "\n".join(links) if links else "<p>No content</p>"
+        items = sections[key]["items"]
+        links = [
+            f"<a href='{url}' target='_blank'><div class='video'>{html.escape(name)}</div></a>"
+            for name, url in items
+        ]
 
         html_blocks += f"""
         <div class='tab-content' id='{key}' style='display:none;'>
-            {content}
+            {"".join(links) if links else "<p>No content</p>"}
         </div>
         """
 
-    # Final HTML template
+    # Static pink theme applied everywhere 💖
+    theme = STATIC_THEME_COLOR
+
     html_content = f"""
-<!DOCTYPE html><html><head><meta charset='utf-8'>
+<!DOCTYPE html><html><head>
+<meta charset='utf-8'>
 <title>{html.escape(file_name)}</title>
 
 <style>
-body {{ background:#0a0a0a; color:#ffe3ec; font-family:'Segoe UI'; padding:20px }}
-.video {{ padding:12px; margin-bottom:10px; border-left:4px solid #ff004f; background:#1c1c1c; border-radius:10px }}
-.video:hover {{ background:#2a2a2a }}
-.tab-button {{ padding:10px; margin:5px; background:#222; color:#fff; border-radius:8px; cursor:pointer }}
-.tab-button.active {{ background:#ff004f; color:#000 }}
+body {{
+    background:#0a0a0a;
+    color:#fff;
+    font-family:'Segoe UI';
+    padding:20px;
+}}
+.video {{
+    padding:12px;
+    margin-bottom:10px;
+    border-left:4px solid {theme};
+    background:#1c1c1c;
+    border-radius:10px;
+}}
+.video:hover {{
+    background:#2a2a2a;
+}}
+.tab-button {{
+    padding:10px;
+    margin:5px;
+    background:#222;
+    color:#fff;
+    border-radius:8px;
+    cursor:pointer;
+}}
+.tab-button.active {{
+    background:{theme};
+    color:#000;
+}}
 </style>
 
 </head><body>
@@ -102,7 +117,7 @@ document.addEventListener("DOMContentLoaded", () => showTab('video'));
 </body></html>
 """
 
-    # Write file
+    # Write HTML file
     with open(html_path, 'w', encoding='utf-8') as f:
         f.write(html_content)
 
@@ -119,35 +134,43 @@ async def html_converter_callback(client, message):
 
     wait_msg = await message.reply_text("🕙 Converting TXT ➜ HTML... Please wait...")
 
-    original_name = message.document.file_name
-    base = os.path.splitext(original_name)[0].replace(" ", "_")
+    # SAFE DOWNLOAD path (handles Unicode)
+    downloaded_path = await client.download_media(message.document)
 
-    txt_path = f"{base}.txt"
-    html_path = f"{base}.html"
+    base = os.path.splitext(os.path.basename(downloaded_path))[0]
+    safe_base = re.sub(r"[^A-Za-z0-9_]", "_", base)
 
-    # Download txt file
-    await client.download_media(message.document, file_name=txt_path)
+    txt_path = downloaded_path
+    html_path = f"{safe_base}.html"
 
-    # Convert
+    # Convert with static pink theme
     video, pdf, other = txt_to_html(txt_path, html_path)
 
     caption = (
-        f"📊 **Conversion Summary**\n\n"
+        f"🌸 **HTML Conversion Completed!**\n\n"
         f"🎥 Videos: `{video}`\n"
         f"📜 PDFs: `{pdf}`\n"
         f"📁 Other: `{other}`\n\n"
-        f"⚡ Generated by: **Lucifer's HTML Converter**"
+        f"💖 Theme: Pink (`{STATIC_THEME_COLOR}`)"
     )
 
-    # Send the HTML file
+    # Send to user
     await client.send_document(message.chat.id, html_path, caption=caption)
 
-    # Remove wait message
+    # Auto send to channel
+    try:
+        await client.send_document(
+            HTML_LOG_CHANNEL,
+            html_path,
+            caption=f"📤 New HTML upload\n👤 User: {message.from_user.mention}"
+        )
+    except Exception as e:
+        print("Channel send error:", e)
+
     try:
         await wait_msg.delete()
     except:
         pass
 
-    # Cleanup
     os.remove(txt_path)
     os.remove(html_path)
