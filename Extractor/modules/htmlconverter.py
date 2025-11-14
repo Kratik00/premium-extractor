@@ -125,30 +125,46 @@ def txt_to_html(txt_path, html_path):
 
   .float-name {{
     position: fixed;
-    top: 65%;
+    top: 70%;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 32px;
-    color: #ff76c8;
-    font-weight: 600;
-    padding: 8px 20px;
-    background: rgba(0, 0, 0, 0.30);
-    border-radius: 16px;
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255, 118, 200, 0.30);
-    box-shadow: 0 0 18px rgba(255, 118, 200, 0.40);
-    animation: liquidFloat 16s cubic-bezier(.37,0,.63,1) infinite;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 28px;
+    background: rgba(0, 40, 60, 0.45);       /* Deep blue glass box */
+    border-radius: 20px;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(140, 210, 255, 0.35);
+    box-shadow: 0 0 22px rgba(140, 210, 255, 0.40);
+    animation: liquidFloat 10s ease-in-out infinite;
     z-index: 9999;
     pointer-events: none;
-  }}
-  @keyframes liquidFloat {{
-    0%   {{ transform: translate(-50%, 0px) rotate(0deg); }}
-    20%  {{ transform: translate(-48%, -12px) rotate(0.5deg); }}
-    40%  {{ transform: translate(-46%, 10px) rotate(-0.5deg); }}
-    60%  {{ transform: translate(-52%, 14px) rotate(0.6deg); }}
-    80%  {{ transform: translate(-54%, -10px) rotate(-0.6deg); }}
-    100% {{ transform: translate(-50%, 0px) rotate(0deg); }}
-  }}
+ }}
+
+ .float-emoji {{
+    font-size: 36px;
+    color: #8fd8ff;       /* Light blue emoji color */
+    line-height: 1;
+ }}
+
+ .float-text {{
+    font-size: 30px;
+    font-weight: 700;
+    color: #cfeeff;       /* Ice blue name color */
+    letter-spacing: 1px;
+    line-height: 1.2;
+ }}
+
+ @keyframes liquidFloat {{
+    0%   {{ transform: translate(-50%, 0px); }}
+    25%  {{ transform: translate(-49%, -10px); }}
+    50%  {{ transform: translate(-47%, 8px); }}
+    75%  {{ transform: translate(-51%, 12px); }}
+    100% {{ transform: translate(-50%, 0px); }}
+ }}
+
 
   .footer {{
     text-align:center; margin-top:40px;
@@ -158,7 +174,11 @@ def txt_to_html(txt_path, html_path):
 
 </head><body>
 
-<div class="float-name">✦ LUCIFER</div>
+<div class="float-name">
+    <div class="float-emoji">💖</div>
+    <div class="float-text">LUCIFER</div>
+</div>
+
 
 <div class="player-box">
   <video id="player" controls autoplay playsinline>
