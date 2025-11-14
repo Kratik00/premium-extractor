@@ -138,7 +138,7 @@ def txt_to_html(txt_path, html_path):
     backdrop-filter: blur(8px);
     border: 1px solid rgba(140, 210, 255, 0.35);
     box-shadow: 0 0 22px rgba(140, 210, 255, 0.40);
-    animation: liquidFloat 10s ease-in-out infinite;
+    animation: liquidFloat 6s ease-in-out infinite;
     z-index: 9999;
     pointer-events: none;
  }}
