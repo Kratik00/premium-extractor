@@ -630,8 +630,6 @@ async def selectionway_callback(client, callback_query):
     except Exception as e:
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
-from Extractor.modules.htmlconverter import html_converter_callback
-
 @app.on_message(filters.command("html"))
 async def html_cmd(client, message):
     await message.reply_text("📄 Send the TXT file you want to convert.")
