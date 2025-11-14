@@ -284,7 +284,7 @@ async def sachinacademy_callback(app, message, callback_query):
 
     # Process each batch ID one by one
     for raw_text2 in batch_ids:
-        m2 = await message.reply_text(f"Extracting batch `{raw_text2}`...")
+        m2 = await message.reply_text(f"Extracting batch...... Please wait `{raw_text2}`...")
         start_time = time.time()
         try:
             r = scraper.get(f"{api_base}/get/course_by_id?id={raw_text2}", headers=hdr1).json()
@@ -362,7 +362,7 @@ async def sachinacademy_callback(app, message, callback_query):
                     if editable1:
                         await editable1.delete(True)
                     await m1.delete(True)
-                    await m2.delete(True)
+                    #await m2.delete(True)
                     await app.send_document(message.chat.id, filename1, caption=c_text)
                     await app.send_document(log_channel, filename1, caption=c_text)
                 except Exception as e:

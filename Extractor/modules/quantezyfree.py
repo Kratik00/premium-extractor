@@ -249,7 +249,8 @@ async def quantezy_callback(app, message, callback_query):
     # use userid for raw_text replacement (raw_text was undefined)
     dl = (f"𝗔𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅for 🔑{app_name} \n\n 🧬{api_base}\n\n`{userid}`\n🛡️{FFF}")
     if len(FFF) <= 4096:
-        editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`\n{FFF}")      
+        plain_FFF = FFF.replace("**", "").replace("`", "")
+        editable1 = await message.reply_text(f"𝗔𝗽𝗽𝘅 𝗟𝗼𝗴𝗶𝗻 𝗦𝘂𝗰𝗲𝘀𝘀✅\n\n`\n{plain_FFF}")      
     else:
         plain_FFF = FFF.replace("**", "").replace("`", "")
         file_path = f"{app_name}.txt"
@@ -284,7 +285,7 @@ async def quantezy_callback(app, message, callback_query):
 
     # Process each batch ID one by one
     for raw_text2 in batch_ids:
-        m2 = await message.reply_text(f"Extracting batch `{raw_text2}`...")
+        m2 = await message.reply_text(f"Extracting batch...... please wait `{raw_text2}`...")
         start_time = time.time()
         try:
             r = scraper.get(f"{api_base}/get/course_by_id?id={raw_text2}", headers=hdr1).json()
@@ -362,7 +363,7 @@ async def quantezy_callback(app, message, callback_query):
                     if editable1:
                         await editable1.delete(True)
                     await m1.delete(True)
-                    await m2.delete(True)
+                    #await m2.delete(True)
                     await app.send_document(message.chat.id, filename1, caption=c_text)
                     await app.send_document(log_channel, filename1, caption=c_text)
                 except Exception as e:
