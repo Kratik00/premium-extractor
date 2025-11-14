@@ -820,7 +820,7 @@ async def html_button(client, cq):
     html_waiting.add(uid)
 
     await cq.message.reply_text(
-        "📄 <b>Send your TXT file now, I will convert it into HTML (Pink Theme)</b>",
+        "📄 <b>Send your TXT file now, I will convert it into HTML</b>",
     )
 
 
