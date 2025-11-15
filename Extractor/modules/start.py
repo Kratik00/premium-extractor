@@ -35,6 +35,10 @@ from Extractor.modules.freeappx import *
 from Extractor.modules.freepw import *
 from Extractor.modules.sachinacademyfree import *
 from Extractor.modules.quantezyfree import *
+from Extractor.modules.rwafree import *
+from Extractor.modules.rgvikramjeetfree import *
+from Extractor.modules.agrifree import *
+from Extractor.modules.gyanbindufree import *
 from Extractor.modules.htmlconverter import *
 
 from Extractor.core.mongo import plans_db
@@ -97,10 +101,16 @@ custom_button = [[
                 ],[
                   InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_")
                 ],[
-                  InlineKeyboardButton("🚀 YesOfficer", callback_data="yesofficerfree")
+                  InlineKeyboardButton("🚀 ROJGAAR WITH ANKIT", callback_data="rwafree")
                 ],[
                     InlineKeyboardButton("🌸 SACHIN ACADEMY", callback_data="sachinacademyfree"),
                     InlineKeyboardButton("♕ EXAMTUNE", callback_data="quantezyfree")
+                ],[
+                    InlineKeyboardButton("🌷 AGRI COACHING", callback_data="agrifree"),
+                    InlineKeyboardButton("🎮 GYANBINDU", callback_data="gyanbindufree")
+                ],[
+                    InlineKeyboardButton("💻 RGVIKRAMJEET", callback_data="rgvikramjeetfree"),
+                    InlineKeyboardButton("🎄 YESOFFICER", callback_data="yesofficerfree")
                 ],[
                   InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
                 ],[
@@ -754,6 +764,161 @@ async def sachinacademy_handler(client, callback_query):
         await callback_query.message.reply_text(
             f"❌ An error occurred.\n\n<code>{str(e)}</code>"
             )
+
+@app.on_callback_query(filters.regex("^agrifree$"))
+async def agrifree_handler(client, callback_query):
+
+    # 1. Premium check
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don’t have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
+                ]
+            )
+        )
+        return
+
+    try:
+        # 2. Initial processing message
+        processing_msg = await callback_query.message.reply_text(
+            "**⚙️ Handling AGRI COACHING... Please Wait 💫**"
+        )
+
+        # 3. Directly call your extractor logic (NO TIMEOUT)
+        await agrifree_callback(client, callback_query.message, callback_query)
+
+        # 4. Delete the “processing...” message after success
+        try:
+            await processing_msg.delete()
+        except:
+            pass
+
+    except Exception as e:
+        print(f"Error in agrifree_handler: {e}")
+        await callback_query.message.reply_text(
+            f"❌ An error occurred.\n\n<code>{str(e)}</code>"
+            )
+@app.on_callback_query(filters.regex("^gyanbindufree$"))
+async def gyanbindufree_handler(client, callback_query):
+
+    # 1. Premium check
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don’t have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
+                ]
+            )
+        )
+        return
+
+    try:
+        # 2. Initial processing message
+        processing_msg = await callback_query.message.reply_text(
+            "**⚙️ Handling GYANBINDU... Please Wait 💫**"
+        )
+
+        # 3. Directly call your extractor logic (NO TIMEOUT)
+        await gyanbindufree_callback(client, callback_query.message, callback_query)
+
+        # 4. Delete the “processing...” message after success
+        try:
+            await processing_msg.delete()
+        except:
+            pass
+
+    except Exception as e:
+        print(f"Error in gyanbindufree_handler: {e}")
+        await callback_query.message.reply_text(
+            f"❌ An error occurred.\n\n<code>{str(e)}</code>"
+            )
+@app.on_callback_query(filters.regex("^rwafree$"))
+async def rwafree_handler(client, callback_query):
+
+    # 1. Premium check
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don’t have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
+                ]
+            )
+        )
+        return
+
+    try:
+        # 2. Initial processing message
+        processing_msg = await callback_query.message.reply_text(
+            "**⚙️ Handling ROJGAAR WITH ANKIT... Please Wait 💫**"
+        )
+
+        # 3. Directly call your extractor logic (NO TIMEOUT)
+        await rwafree_callback(client, callback_query.message, callback_query)
+
+        # 4. Delete the “processing...” message after success
+        try:
+            await processing_msg.delete()
+        except:
+            pass
+
+    except Exception as e:
+        print(f"Error in rwafree_handler: {e}")
+        await callback_query.message.reply_text(
+            f"❌ An error occurred.\n\n<code>{str(e)}</code>"
+            )
+        
+@app.on_callback_query(filters.regex("^rgvikramjeetfree$"))
+async def rgvikramjeetfree_handler(client, callback_query):
+
+    # 1. Premium check
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don’t have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade your plan.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]
+                ]
+            )
+        )
+        return
+
+    try:
+        # 2. Initial processing message
+        processing_msg = await callback_query.message.reply_text(
+            "**⚙️ Handling RANKERS GURUKUL... Please Wait 💫**"
+        )
+
+        # 3. Directly call your extractor logic (NO TIMEOUT)
+        await rgvikramjeetfree_callback(client, callback_query.message, callback_query)
+
+        # 4. Delete the “processing...” message after success
+        try:
+            await processing_msg.delete()
+        except:
+            pass
+
+    except Exception as e:
+        print(f"Error in rgvikramjeetfree_handler: {e}")
+        await callback_query.message.reply_text(
+            f"❌ An error occurred.\n\n<code>{str(e)}</code>"
+            )
+        
 @app.on_callback_query(filters.regex("^cpwp$"))
 async def cpwp_callback(client, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
