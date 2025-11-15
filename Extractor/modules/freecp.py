@@ -123,7 +123,8 @@ async def get_cpwp_course_content(session: aiohttp.ClientSession, headers: Dict[
     folder_tasks: List[Tuple[int, asyncio.Task[List[str]]]] = []
      
     try:
-        content_api = f'https://api.classplusapp.com/v2/course/preview/content/list/{Batch_Token}'
+        content_api = f'https://api.classplusapp.com/mm/v3/video/recordings/{Batch_Token}'
+        #content_api = f'https://api.classplusapp.com/v2/course/preview/content/list/{Batch_Token}'
         params = {'folderId': folder_id, 'limit': limit}
 
         # Add timeout for content API request
