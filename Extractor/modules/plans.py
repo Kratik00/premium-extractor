@@ -4,7 +4,7 @@ import datetime, time
 from Extractor import app
 from config import  PREMIUM_LOGS, OWNER_ID
 from Extractor.core.func import get_seconds
-from Extractor.core.mongo import *  
+from Extractor.core.mongo import plans_db, usersdb
 from pyrogram import filters 
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 
