@@ -118,9 +118,9 @@ async def premium_user(client, message):
     aa = await message.reply_text("<i>ꜰᴇᴛᴄʜɪɴɢ...</i>")
     new = f"⚜️ ᴘʀᴇᴍɪᴜᴍ ᴜꜱᴇʀꜱ ʟɪꜱᴛ :\n\n"
     user_count = 1
-    users = await db.get_all_users()
+    users = await usersdb.get_all_users()
     async for user in users:
-        data = await db.get_user(user['id'])
+        data = await usersdb.get_user(user['id'])
         if data and data.get("expiry_time"):
             expiry = data.get("expiry_time") 
             expiry_ist = expiry.astimezone(pytz.timezone("Asia/Kolkata"))
