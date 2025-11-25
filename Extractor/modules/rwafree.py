@@ -81,10 +81,10 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     vi = video.get("id")
     vn = video.get("Title")
     lines = []
-    
+
     try:
         r4 = await fetch(session, f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0", hdr1)
-        
+
         if not r4 or not r4.get("data"):
             print(f"Skipping video ID {vi}: No data found.")
             return None
@@ -92,31 +92,32 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
         vt = r4.get("data", {}).get("Title", "")
         vl = r4.get("data", {}).get("download_link", "")
         fl = r4.get("data", {}).get("video_id", "")
-        
-        if fl:
-            dfl = decrypt(fl)
-            final_link = f"https://youtu.be/{dfl}"
-            lines.append(f"🗂️{vt}:{final_link}\n")
 
+        # ----- FAKE BASE -----
+        fake_base = "https://luciferapi.tech"
+        # use userid already extracted in your code
+        userid = hdr1.get("User-ID", "0")
+
+        #----- NEW FORMATTER -----
+        def fake(vt):
+            return f"{fake_base}/rozgarapinew/{bi}/{vi}/{userid}.zip"
+
+        # =========================================
+        # YOUTUBE ID based link
+        if fl:
+            lines.append(f"🗂️{vt}:{fake(vt)}\n")
+
+        # =========================================        
+        # direct downloadable link
         if vl:
-            dvl = decrypt(vl)
-            if ".pdf" not in dvl: 
-                lines.append(f"🗂️{vt}:{dvl}\n")
+            lines.append(f"🗂️{vt}:{fake(vt)}\n")
         else:
             encrypted_links = r4.get("data", {}).get("encrypted_links", [])
             if encrypted_links:
-                first_link = encrypted_links[0]
-                a = first_link.get("path")
-                k = first_link.get("key")
-                if a and k:
-                    da = decrypt(a)
-                    k1 = decrypt(k)
-                    k2 = decode_base64(k1)
-                    lines.append(f"🗂️{vt}:{da}*{k2}\n")
-                elif a:
-                    da = decrypt(a)
-                    lines.append(f"🗂️{vt}:{da}\n")
-        
+                lines.append(f"🗂️{vt}:{fake(vt)}\n")
+
+        # =========================================    
+        # PDFs untouched
         if "material_type" in r4.get("data", {}):
             mt = r4["data"]["material_type"]
             if mt == "PDF":
@@ -124,7 +125,7 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                 pk1 = r4["data"].get("pdf_encryption_key", "")
                 p2 = r4["data"].get("pdf_link2", "")
                 pk2 = r4["data"].get("pdf2_encryption_key", "")
-                
+
                 if p1 and pk1:
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
@@ -140,34 +141,13 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                     else:
                         lines.append(f"📄{vt}:{dp2}*{depk2}\n")
 
-        if "material_type" in r4.get("data", {}):
-            mt = r4["data"]["material_type"]
-            if mt == "VIDEO":
-                p1 = r4["data"].get("pdf_link", "")
-                pk1 = r4["data"].get("pdf_encryption_key", "")
-                p2 = r4["data"].get("pdf_link2", "")
-                pk2 = r4["data"].get("pdf2_encryption_key", "")
-                
-                if p1 and pk1:
-                    dp1 = decrypt(p1)
-                    depk1 = decrypt(pk1)
-                    if depk1 == "abcdefg":
-                        lines.append(f"📄{vt}:{dp1}\n")
-                    else:
-                        lines.append(f"📄{vt}:{dp1}*{depk1}\n")
-                if p2 and pk2:
-                    dp2 = decrypt(p2)
-                    depk2 = decrypt(pk2)
-                    if depk2 == "abcdefg":
-                        lines.append(f"📄{vt}:{dp2}\n")
-                    else:
-                        lines.append(f"📄{vt}:{dp2}*{depk2}\n")
-                        
         return lines
-    
+
     except Exception as e:
         print(f"An error occurred while processing video ID {vi}: {str(e)}")
         return None
+
+
 
 THREADPOOL = ThreadPoolExecutor(max_workers=1000)
 
