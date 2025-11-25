@@ -54,46 +54,46 @@ async def fetch(session, url, headers):
 
 
 async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
+async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
 
+    print(f"\n📚 Entering Topic: {ti} | {tn}")
+
     all_lines = []
 
-    # 1) Pehle is topic ke saare concepts nikaal
+    # get concepts
     concept_url = (
         f"{api_base}/get/allconceptfrmlivecourseclass"
         f"?courseid={bi}&subjectid={si}&topicid={ti}&start=-1"
     )
-    r_concept = await fetch(session, concept_url, hdr1)
-    concepts = r_concept.get("data", []) or []
 
-    # Agar concept hi nahi mile toh ek default conceptid=-1 try kar sakte hain
-    if not concepts:
-        concepts = [{"conceptid": "-1", "concept_name": "All"}]
+    rc = await fetch(session, concept_url, hdr1)
+    concepts = rc.get("data", []) or [{"conceptid": "-1"}]
 
-    # 2) Har concept ke andar ke videos sequentially process karo
     for concept in concepts:
         ci = concept.get("conceptid") or "-1"
-        cn = concept.get("concept_name", "")
 
-        # ye wahi URL hai jo tu ne network log mein dikhaya tha:
-        # ...livecourseclassbycoursesubtopconceptapiv3?...&conceptid=1&start=0
+        print(f"   🔹 Concept → {ci}")
+
         url = (
             f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
             f"?courseid={bi}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
         )
 
         r3 = await fetch(session, url, hdr1)
-        video_data = sorted(
-            r3.get("data", []),
-            key=lambda x: int(x.get("id", 0))  # id string ho toh bhi sahi sort ho
-        )
+        vdata = sorted(r3.get("data", []), key=lambda x: int(x.get("id",0)))
 
-        # yahan koi asyncio.gather nahi, ek ek karke:
-        for video in video_data:
+        for video in vdata:
+            vid = video.get("id")
+            print(f"       ▶ processing video {vid}")
+
             lines = await process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1)
+
             if lines:
                 all_lines.extend(lines)
+
+            await asyncio.sleep(0.25)
 
     return all_lines
 async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
