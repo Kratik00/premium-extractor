@@ -54,7 +54,6 @@ async def fetch(session, url, headers):
 
 
 async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
-async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
 
