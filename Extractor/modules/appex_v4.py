@@ -56,17 +56,29 @@ async def fetch(session, url, headers):
 async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
-    
-    url = f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3?courseid={bi}&subjectid={si}&topicid={ti}&conceptid=&start=-1"
-    r3 = await fetch(session, url, hdr1)
-    video_data = sorted(r3.get("data", []), key=lambda x: x.get("id"))  
 
-    
-    tasks = [process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1) for video in video_data]
-    results = await asyncio.gather(*tasks)
-    
-    return [line for lines in results if lines for line in lines]
+    # get concepts
+    url = f"{api_base}/get/allconceptfrmlivecourseclass?courseid={bi}&subjectid={si}&topicid={ti}&start=-1"
+    r_con = await fetch(session, url, hdr1)
+    concepts = r_con.get("data", [])
 
+    outputs = []
+
+    for concept in concepts:
+        cid = concept.get("conceptid")
+
+        url = f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3?courseid={bi}&subjectid={si}&topicid={ti}&conceptid={cid}&start=0"
+        r3 = await fetch(session, url, hdr1)
+        video_data = sorted(r3.get("data", []), key=lambda x: x.get("id"))
+
+        tasks = [process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1) for video in video_data]
+        results = await asyncio.gather(*tasks)
+
+        for r in results:
+            if r:
+                outputs.extend(r)
+
+    return outputs
 async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     vi = video.get("id")
     vn = video.get("Title")
