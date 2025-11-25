@@ -52,9 +52,9 @@ async def fetch(session, url, headers):
         print(f"An error occurred while fetching {url}: {str(e)}")
         return {}
 
-async def handle_course(session, api_base, course_id, subject, topic, headers):
-    si = subject.get("subjectid")
-    sn = subject.get("subject_name")
+async def handle_course(session, api_base, course_id, si, sn, topic, headers):
+    #si = subject.get("subjectid")
+    #sn = subject.get("subject_name")
 
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
@@ -457,10 +457,8 @@ async def appex_v5_txt(app, message, api, name):
                             r2 = await fetch(session, f"{api_base}/get/alltopicfrmlivecourseclass?courseid={raw_text2}&subjectid={si}&start=-1", hdr1)
                             topics = sorted(r2.get("data", []), key=lambda x: x.get("topicid"))
 
-                            tasks = [handle_course(session, api_base, raw_text2, si, sn, t, hdr1) for t in topics]
-                            all_data = await asyncio.gather(*tasks)
-                
-                            for data in all_data:
+                            for topic in topics:
+                                data = await handle_course(session, api_base, raw_text2, si, sn, topic, hdr1)
                                 if data:
                                     f.writelines(data)
         
