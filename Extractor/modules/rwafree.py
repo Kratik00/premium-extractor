@@ -67,16 +67,67 @@ headers = {
 async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
-    
-    url = f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3?courseid={bi}&subjectid={si}&topicid={ti}&conceptid=&start=-1"
-    r3 = await fetch(session, url, hdr1)
-    video_data = sorted(r3.get("data", []), key=lambda x: x.get("id"))  
 
-    tasks = [process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1) for video in video_data]
-    results = await asyncio.gather(*tasks)
-    
-    return [line for lines in results if lines for line in lines]
+    print(f"\n\n➡ ENTER TOPIC: {sn} -> {tn}")
 
+    all_lines = []
+
+    # 1) Fetch concepts
+    concept_url = (
+        f"{api_base}/get/allconceptfrmlivecourseclass"
+        f"?courseid={bi}&subjectid={si}&topicid={ti}&start=-1"
+    )
+
+    r_concept = await fetch(session, concept_url, hdr1)
+    concepts = r_concept.get("data", []) or [{"conceptid":"-1","concept_name":"All"}]
+
+    # --- loop concepts sequentially ---
+    for concept in concepts:
+        ci = concept.get("conceptid") or "-1"
+        cn = concept.get("concept_name", "")
+
+        print(f"  ▶ ENTER CONCEPT: {cn}")
+
+        # 2) fetch videos list for this concept
+        list_url = (
+            f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
+            f"?courseid={bi}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
+        )
+
+        r_list = await fetch(session, list_url, hdr1)
+        videos = r_list.get("data", []) or []
+        videos = sorted(videos, key=lambda x: int(x.get("id", 0)))
+
+        print(f"    🔹 found {len(videos)} videos")
+
+        # --- process videos sequentially too ---
+        for idx, v in enumerate(videos, start=1):
+            vid = v.get("id")
+
+            print(f"      ▶ processing [{idx}/{len(videos)}] video ID={vid}")
+
+            try:
+                lines = await process_video(
+                    session,
+                    api_base,
+                    bi,
+                    si,
+                    sn,
+                    ti,
+                    tn,
+                    v,
+                    hdr1
+                )
+                if lines:
+                    all_lines.extend(lines)
+
+            except Exception as e:
+                print(f"      💥 failed vid {vid}: {e}")
+
+        print(f"  ✔ CONCEPT DONE: {cn}")
+
+    print(f"✔ TOPIC DONE: {tn}\n")
+    return all_lines
 async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     vi = video.get("id")
     lines = []
@@ -340,13 +391,10 @@ async def rwafree_callback(app, message, callback_query):
                             r2 = await fetch(session, f"{api_base}/get/alltopicfrmlivecourseclass?courseid={raw_text2}&subjectid={si}&start=-1", hdr1)
                             topics = sorted(r2.get("data", []), key=lambda x: x.get("topicid"))
 
-                            tasks = [handle_course(session, api_base, raw_text2, si, sn, t, hdr1) for t in topics]
-                            all_data = await asyncio.gather(*tasks)
-                
-                            for data in all_data:
+                            for topic in topics:
+                                data = await handle_course(session, api_base, raw_text2, si, sn, topic, hdr1)
                                 if data:
                                     f.writelines(data)
-        
                     except Exception as e:
                         print(f"An error occurred while processing the course: {str(e)}")
                         await message.reply_text("An error occurred while processing the course. Please try again later.")
