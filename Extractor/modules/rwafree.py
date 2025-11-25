@@ -196,7 +196,7 @@ async def rwafree_callback(app, message, callback_query):
     app_name = api_base.replace("http://", " ").replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("apinew.teachx.in", " ").replace("api.cloudflare.net.in", " ").replace("api.appx.co.in", " ").replace("/", " ")
     
     userid = "extracted_userid_from_token"
-    token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjUxNTU0MyIsImVtYWlsIjoic2F1cmFiaGt1bWFya2hzQGdtYWlsLmNvbSIsInRpbWVzdGFtcCI6MTczNjQwMjc2OCwidGVuYW50VHlwZSI6InVzZXIiLCJ0ZW5hbnROYW1lIjoiIiwidGVuYW50SWQiOiIifQ.NXDbusE5zcYMlyTXrKqgYnm25dtG7Dbuj0yqrxT-eNA"
+    token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU3NzMwNyIsImVtYWlsIjoibmF2ZWVuc2hhcm1hMTAwODE5OTJAZ21haWwuY29tIiwidGltZXN0YW1wIjoxNzYzNzA2NTkzLCJ0ZW5hbnRUeXBlIjoidXNlciIsInRlbmFudE5hbWUiOiJyb3pnYXJfZGIiLCJ0ZW5hbnRJZCI6IiIsImRpc3Bvc2FibGUiOmZhbHNlfQ.FI38ebeuV1qDjYceDBSNOYALrK1VZypBkx4cTztPkR4"
     hdr1 = {
         "Client-Service": "Appx",
         "source": "website",
