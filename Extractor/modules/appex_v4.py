@@ -52,48 +52,79 @@ async def fetch(session, url, headers):
         print(f"An error occurred while fetching {url}: {str(e)}")
         return {}
 
+async def handle_course(session, api_base, course_id, subject, topic, headers):
+    si = subject.get("subjectid")
+    sn = subject.get("subject_name")
 
-async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
 
-    print(f"\n📚 Entering Topic: {ti} | {tn}")
+    print(f"\n\n➡ ENTER TOPIC: {sn} -> {tn}")
 
     all_lines = []
 
-    # get concepts
+    # -------------------------------------------
+    # 1) GET CONCEPTS
+    # -------------------------------------------
     concept_url = (
         f"{api_base}/get/allconceptfrmlivecourseclass"
-        f"?courseid={bi}&subjectid={si}&topicid={ti}&start=-1"
+        f"?courseid={course_id}&subjectid={si}&topicid={ti}&start=-1"
     )
 
-    rc = await fetch(session, concept_url, hdr1)
-    concepts = rc.get("data", []) or [{"conceptid": "-1"}]
+    r_concept = await fetch(session, concept_url, headers)
+    concepts = r_concept.get("data", []) or [{"conceptid": "-1", "concept_name": "All"}]
 
     for concept in concepts:
         ci = concept.get("conceptid") or "-1"
+        cn = concept.get("concept_name", "Unknown")
 
-        print(f"   🔹 Concept → {ci}")
+        print(f"\n  ▶ ENTER CONCEPT: {cn}")
 
-        url = (
+        # -------------------------------------------
+        # 2) GET VIDEOS for this concept
+        # -------------------------------------------
+        list_url = (
             f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
-            f"?courseid={bi}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
+            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
         )
 
-        r3 = await fetch(session, url, hdr1)
-        vdata = sorted(r3.get("data", []), key=lambda x: int(x.get("id",0)))
+        r_list = await fetch(session, list_url, headers)
+        videos = r_list.get("data", []) or []
 
-        for video in vdata:
+        videos = sorted(videos, key=lambda x: int(x.get("id", 0)))
+
+        print(f"    found {len(videos)} videos")
+
+        # -------------------------------------------
+        # 3) process videos 1 by 1 (slow, no 429)
+        # -------------------------------------------
+        for idx, video in enumerate(videos, start=1):
             vid = video.get("id")
-            print(f"       ▶ processing video {vid}")
 
-            lines = await process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1)
+            print(f"      ▶ processing video [{idx}/{len(videos)}] ID={vid}")
 
-            if lines:
-                all_lines.extend(lines)
+            try:
+                lines = await process_video(
+                    session,
+                    api_base,
+                    course_id,
+                    si,
+                    sn,
+                    ti,
+                    tn,
+                    video,
+                    headers
+                )
 
-            await asyncio.sleep(0.25)
+                if lines:
+                    all_lines.extend(lines)
 
+            except Exception as e:
+                print(f"      💣 Video {vid} failed: {e}")
+
+        print(f"  ✔ concept done: {cn}")
+
+    print(f"✔ topic complete: {tn}\n")
     return all_lines
 async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     vi = video.get("id")
