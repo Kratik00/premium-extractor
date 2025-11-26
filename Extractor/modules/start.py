@@ -31,7 +31,6 @@ from Extractor.modules.freecp import *
 from Extractor.modules.yesofficerfree import *
 from Extractor.modules.cdsjourneyfree import *
 from Extractor.modules.selectionwayfree import *
-from Extractor.modules.freeappx import *
 from Extractor.modules.freepw import *
 from Extractor.modules.sachinacademyfree import *
 from Extractor.modules.quantezyfree import *
@@ -93,8 +92,7 @@ modes_button = [[
 
 
 custom_button = [[
-                  InlineKeyboardButton("🧩Physics Wallah", callback_data="pwwp"),
-                  InlineKeyboardButton("🛰️APPX", callback_data="appxwp"),
+                  InlineKeyboardButton("🧩Physics Wallah", callback_data="pwwp")
                 ],[
                   InlineKeyboardButton("🎯Classplus", callback_data="cpwp")
                 ],[
@@ -566,43 +564,6 @@ async def pwwp_callback(client, callback_query):
             
     except Exception as e:
         print(f"Error in pwwp_callback: {e}")
-        await callback_query.answer("An error occurred", show_alert=True)
-
-@app.on_callback_query(filters.regex("^appxwp$"))
-async def appxwp_callback(client, callback_query):
-    try:
-        # Send initial processing message
-        processing_msg = await callback_query.message.reply_text(
-            "⏳ Starting process... Please wait"
-        )
-        
-        user_id = callback_query.from_user.id
-        
-        try:
-            # Process with timeout
-            result = await process_with_timeout(process_appxwp, client, callback_query.message, user_id)
-            
-            if result == "timeout":
-                await processing_msg.edit_text(
-                    "⚠️ Process timed out. Please try again.\n"
-                    "Tip: Make sure to respond within 60 seconds when prompted."
-                )
-            elif result and result.startswith("error:"):
-                await processing_msg.edit_text(
-                    f"❌ An error occurred: {result[6:]}\n"
-                    "Please try again."
-                )
-            else:
-                await processing_msg.delete()
-                
-        except Exception as e:
-            await processing_msg.edit_text(
-                "❌ Process failed. Please try again.\n"
-                f"Error: {str(e)}"
-            )
-            
-    except Exception as e:
-        print(f"Error in appxwp_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
 
 @app.on_callback_query(filters.regex("^selectionway_$"))
