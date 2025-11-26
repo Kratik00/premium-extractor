@@ -38,14 +38,29 @@ HEADERS = {
     "Referer": "https://civilguruji.com/"
 }
 
-def extract_clean_iframe_url(raw: str) -> str:
-    if not raw:
-        return ""
-    # extract value inside src="...":
-    m = re.search(r'src="([^"]+)"', raw)
-    if m:
-        return m.group(1).strip()
-    return raw.strip()
+def extract_clean_iframe_url(video_url):
+    if not video_url:
+        return None
+
+    s = video_url.strip()
+
+    # --- Case 1: Proper or broken iframe (extract src=...) ---
+    # Matches iframe with any attributes (closing tag optional)
+    iframe_match = re.search(r'<iframe[^>]*src=["\']([^"\']+)["\']', s, re.IGNORECASE)
+    if iframe_match:
+        return iframe_match.group(1)
+
+    # --- Case 2: Direct video URL (raw string) ---
+    if s.startswith("http"):
+        return s
+
+    # --- Case 3: URL somewhere inside HTML string ---
+    url_match = re.search(r'(https?://[^\s"<>]+)', s)
+    if url_match:
+        return url_match.group(1)
+
+    return None
+
 
 # ------------------ Helpers ------------------
 async def fetch_json(session: aiohttp.ClientSession, url: str, **kwargs) -> Any:
