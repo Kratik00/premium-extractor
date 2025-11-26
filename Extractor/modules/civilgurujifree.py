@@ -378,14 +378,14 @@ async def civil_course_selected(client, callback_query):
                 f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
             )
             await app.send_document(chat_id=callback_query.message.chat.id, document=fname, caption=caption)
-            # send to logs (best-effort)
-            # try:
-            #     await app.send_document(chat_id=LOG_CHANNEL, document=fname, caption=f"📡 CivilGuruji extract\n\n{caption}")
-            # except Exception as e:
-            #     print("Log channel send failed:", e)
-            finally:
-                os.remove(fname)
-                await callback_query.message.delete()
+            # # send to logs (best-effort)
+            # # try:
+            # #     await app.send_document(chat_id=LOG_CHANNEL, document=fname, caption=f"📡 CivilGuruji extract\n\n{caption}")
+            # # except Exception as e:
+            # #     print("Log channel send failed:", e)
+            # finally:
+            #     os.remove(fname)
+            #     await callback_query.message.delete()
         except Exception as e:
             print("Error extracting course:", e)
             await callback_query.message.edit_text(f"⚠️ Error extracting course: {e}")
