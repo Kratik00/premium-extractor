@@ -182,24 +182,45 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
     def extract_from_obj(obj):
         cc = None
 
-        # common expected nested paths
+        # ALL possible courseContents locations
         paths = [
             ["course", "courseDetail", "courseContents"],
             ["courseDetail", "courseContents"],
             ["data", "course", "courseDetail", "courseContents"],
             ["props", "pageProps", "data", "course", "courseDetail", "courseContents"],
+
+            # 🆕 FIX: Complete Training Course structure
+            # pageProps → packageData → courses → course → courseDetail → courseContents
+            ["packageData", "courses"],
         ]
 
         # try each path
         for path in paths:
             maybe = get_path(obj, path)
+
+            # SPECIAL handling for packageData.courses list
+            if isinstance(maybe, list) and path == ["packageData", "courses"]:
+                merged = []
+                for item in maybe:
+                    course = item.get("course", {})
+                    detail = course.get("courseDetail", {})
+                    contents = detail.get("courseContents")
+                    if isinstance(contents, list):
+                        merged.extend(contents)
+                if merged:
+                    cc = merged
+                    break
+
+            # normal case
             if isinstance(maybe, list):
                 cc = maybe
                 break
 
-        # fallback deep-search
+        # fallback deep-search anywhere in json
         if not cc:
-            cc = find_first_list_of_dicts_with_keys(obj, ["courseContentName", "courseSubContents"])
+            cc = find_first_list_of_dicts_with_keys(
+                obj, ["courseContentName", "courseSubContents"]
+            )
 
         if not cc:
             return []
@@ -224,7 +245,7 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
                 or []
             )
 
-            # handle sub-blocks
+            # handle children
             if isinstance(subs, list) and subs:
                 for s in subs:
                     if not isinstance(s, dict):
@@ -246,15 +267,12 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
                     lines.append(f"[{block_name}]{sub_name}: {video_url}")
 
             else:
-                # block-level video
+                # block-level direct video
                 sub_name = block.get("name") or block.get("title")
                 raw = block.get("videoUrl") or ""
                 if sub_name and raw:
                     video_url = extract_clean_iframe_url(raw)
                     lines.append(f"[{block_name}]{sub_name}: {video_url}")
-
-
-            # END for block
 
         return lines
 
@@ -270,6 +288,7 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
         out_lines.append("No course contents found in _next data or unexpected structure.")
 
     return "\n".join(out_lines)
+
 
 
 # ------------------ UI / Callbacks ------------------
@@ -355,10 +374,10 @@ async def civil_course_selected(client, callback_query):
             )
             await app.send_document(chat_id=callback_query.message.chat.id, document=fname, caption=caption)
             # send to logs (best-effort)
-            try:
-                await app.send_document(chat_id=LOG_CHANNEL, document=fname, caption=f"📡 CivilGuruji extract\n\n{caption}")
-            except Exception as e:
-                print("Log channel send failed:", e)
+            # try:
+            #     await app.send_document(chat_id=LOG_CHANNEL, document=fname, caption=f"📡 CivilGuruji extract\n\n{caption}")
+            # except Exception as e:
+            #     print("Log channel send failed:", e)
             finally:
                 os.remove(fname)
                 await callback_query.message.delete()
