@@ -4,7 +4,7 @@ import datetime, time
 from Extractor import app
 from config import  PREMIUM_LOGS, OWNER_ID
 from Extractor.core.func import get_seconds
-from Extractor.core.mongo import plans_db  
+from Extractor.core.mongo import plans_db, usersdb
 from pyrogram import filters 
 from pyrogram.errors.exceptions.bad_request_400 import MessageTooLong
 
@@ -113,14 +113,14 @@ async def give_premium_cmd_handler(client, message):
 
 
 
-@app.on_message(filters.command("premium_users"))
+"""@app.on_message(filters.command("premium_users"))
 async def premium_user(client, message):
     aa = await message.reply_text("<i>ꜰᴇᴛᴄʜɪɴɢ...</i>")
     new = f"⚜️ ᴘʀᴇᴍɪᴜᴍ ᴜꜱᴇʀꜱ ʟɪꜱᴛ :\n\n"
     user_count = 1
-    users = await db.get_all_users()
+    users = await usersdb.get_users()
     async for user in users:
-        data = await db.get_user(user['id'])
+        data = await usersdb.get_user(user['id'])
         if data and data.get("expiry_time"):
             expiry = data.get("expiry_time") 
             expiry_ist = expiry.astimezone(pytz.timezone("Asia/Kolkata"))
@@ -139,6 +139,54 @@ async def premium_user(client, message):
         await aa.edit_text(new)
     except MessageTooLong:
         with open('usersplan.txt', 'w+') as outfile:
+            outfile.write(new)
+        await message.reply_document('usersplan.txt', caption="Paid Users:")"""
+@app.on_message(filters.command("premium_users"))
+async def premium_user(client, message):
+    aa = await message.reply_text("<i>ꜰᴇᴛᴄʜɪɴɢ...</i>")
+    new = "⚜️ ᴘʀᴇᴍɪᴜᴍ ᴜꜱᴇʀꜱ ʟɪꜱᴛ :\n\n"
+    user_count = 1
+
+    # get all users (returns a normal list, not async iterator)
+    users = await usersdb.get_users()   # e.g. [12345, 67890, ...]
+
+    for user_id in users:  # normal for loop, not async for
+        data = await plans_db.check_premium(user_id)
+
+        # if premium data exists and has expire_date
+        if data and data.get("expire_date"):
+            expiry = data.get("expire_date")
+            expiry_ist = expiry.astimezone(pytz.timezone("Asia/Kolkata"))
+            expiry_str_in_ist = expiry_ist.strftime(
+                "%d-%m-%Y\n⏱️ ᴇxᴘɪʀʏ ᴛɪᴍᴇ : %I:%M:%S %p"
+            )
+
+            current_time = datetime.datetime.now(pytz.timezone("Asia/Kolkata"))
+            time_left = expiry_ist - current_time
+
+            days = time_left.days
+            hours, remainder = divmod(time_left.seconds, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            time_left_str = f"{days} days, {hours} hours, {minutes} minutes"
+
+            tg_user = await client.get_users(user_id)
+
+            new += (
+                f"{user_count}. {tg_user.mention}\n"
+                f"👤 ᴜꜱᴇʀ ɪᴅ : <code>{user_id}</code>\n"
+                f"⏳ ᴇxᴘɪʀʏ ᴅᴀᴛᴇ : {expiry_str_in_ist}\n"
+                f"⏰ ᴛɪᴍᴇ ʟᴇꜰᴛ : {time_left_str}\n\n"
+            )
+            user_count += 1
+
+    # no premium users found
+    if user_count == 1:
+        return await aa.edit_text("ɴᴏ ᴀᴄᴛɪᴠᴇ ᴘʀᴇᴍɪᴜᴍ ᴜꜱᴇʀꜱ ꜰᴏᴜɴᴅ !")
+
+    try:
+        await aa.edit_text(new)
+    except MessageTooLong:
+        with open('usersplan.txt', 'w+', encoding="utf-8") as outfile:
             outfile.write(new)
         await message.reply_document('usersplan.txt', caption="Paid Users:")
 

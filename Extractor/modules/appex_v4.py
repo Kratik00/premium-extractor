@@ -446,4 +446,8 @@ async def appex_v5_txt(app, message, api, name):
                     await v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, sanitized_course_name, start_time, start, end, pricing, input2, m1, m2)
                 finally:
                     if os.path.exists(filename1):
+<<<<<<< HEAD
                         os.remove(filename1)
+=======
+                        os.remove(filename1)
+>>>>>>> 938498815c6dc0063f4b28c61ede75e208a4fd48

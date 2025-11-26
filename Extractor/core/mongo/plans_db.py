@@ -3,8 +3,7 @@ from config import MONGO_URL
 from motor.motor_asyncio import AsyncIOMotorClient as MongoCli
 
 mongo = MongoCli(MONGO_URL)
-db = mongo.premium
-db = db.premium_db
+db = mongo.premium.premium_db
 
 
 
