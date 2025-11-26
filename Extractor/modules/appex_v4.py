@@ -52,21 +52,80 @@ async def fetch(session, url, headers):
         print(f"An error occurred while fetching {url}: {str(e)}")
         return {}
 
+async def handle_course(session, api_base, course_id, si, sn, topic, headers):
+    #si = subject.get("subjectid")
+    #sn = subject.get("subject_name")
 
-async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
-    
-    url = f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3?courseid={bi}&subjectid={si}&topicid={ti}&conceptid=&start=-1"
-    r3 = await fetch(session, url, hdr1)
-    video_data = sorted(r3.get("data", []), key=lambda x: x.get("id"))  
 
-    
-    tasks = [process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1) for video in video_data]
-    results = await asyncio.gather(*tasks)
-    
-    return [line for lines in results if lines for line in lines]
+    print(f"\n\n➡ ENTER TOPIC: {sn} -> {tn}")
 
+    all_lines = []
+
+    # -------------------------------------------
+    # 1) GET CONCEPTS
+    # -------------------------------------------
+    concept_url = (
+        f"{api_base}/get/allconceptfrmlivecourseclass"
+        f"?courseid={course_id}&subjectid={si}&topicid={ti}&start=-1"
+    )
+
+    r_concept = await fetch(session, concept_url, headers)
+    concepts = r_concept.get("data", []) or [{"conceptid": "-1", "concept_name": "All"}]
+
+    for concept in concepts:
+        ci = concept.get("conceptid") or "-1"
+        cn = concept.get("concept_name", "Unknown")
+
+        print(f"\n  ▶ ENTER CONCEPT: {cn}")
+
+        # -------------------------------------------
+        # 2) GET VIDEOS for this concept
+        # -------------------------------------------
+        list_url = (
+            f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
+            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
+        )
+
+        r_list = await fetch(session, list_url, headers)
+        videos = r_list.get("data", []) or []
+
+        videos = sorted(videos, key=lambda x: int(x.get("id", 0)))
+
+        print(f"    found {len(videos)} videos")
+
+        # -------------------------------------------
+        # 3) process videos 1 by 1 (slow, no 429)
+        # -------------------------------------------
+        for idx, video in enumerate(videos, start=1):
+            vid = video.get("id")
+
+            print(f"      ▶ processing video [{idx}/{len(videos)}] ID={vid}")
+
+            try:
+                lines = await process_video(
+                    session,
+                    api_base,
+                    course_id,
+                    si,
+                    sn,
+                    ti,
+                    tn,
+                    video,
+                    headers
+                )
+
+                if lines:
+                    all_lines.extend(lines)
+
+            except Exception as e:
+                print(f"      💣 Video {vid} failed: {e}")
+
+        print(f"  ✔ concept done: {cn}")
+
+    print(f"✔ topic complete: {tn}\n")
+    return all_lines
 async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     vi = video.get("id")
     vn = video.get("Title")
@@ -398,10 +457,8 @@ async def appex_v5_txt(app, message, api, name):
                             r2 = await fetch(session, f"{api_base}/get/alltopicfrmlivecourseclass?courseid={raw_text2}&subjectid={si}&start=-1", hdr1)
                             topics = sorted(r2.get("data", []), key=lambda x: x.get("topicid"))
 
-                            tasks = [handle_course(session, api_base, raw_text2, si, sn, t, hdr1) for t in topics]
-                            all_data = await asyncio.gather(*tasks)
-                
-                            for data in all_data:
+                            for topic in topics:
+                                data = await handle_course(session, api_base, raw_text2, si, sn, topic, hdr1)
                                 if data:
                                     f.writelines(data)
         

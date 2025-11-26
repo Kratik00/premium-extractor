@@ -67,64 +67,121 @@ headers = {
 async def handle_course(session, api_base, bi, si, sn, topic, hdr1):
     ti = topic.get("topicid")
     tn = topic.get("topic_name")
-    
-    url = f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3?courseid={bi}&subjectid={si}&topicid={ti}&conceptid=&start=-1"
-    r3 = await fetch(session, url, hdr1)
-    video_data = sorted(r3.get("data", []), key=lambda x: x.get("id"))  
 
-    tasks = [process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1) for video in video_data]
-    results = await asyncio.gather(*tasks)
-    
-    return [line for lines in results if lines for line in lines]
+    print(f"\n\n➡ ENTER TOPIC: {sn} -> {tn}")
 
+    all_lines = []
+
+    # 1) Fetch concepts
+    concept_url = (
+        f"{api_base}/get/allconceptfrmlivecourseclass"
+        f"?courseid={bi}&subjectid={si}&topicid={ti}&start=-1"
+    )
+
+    r_concept = await fetch(session, concept_url, hdr1)
+    concepts = r_concept.get("data", []) or [{"conceptid":"-1","concept_name":"All"}]
+
+    # --- loop concepts sequentially ---
+    for concept in concepts:
+        ci = concept.get("conceptid") or "-1"
+        cn = concept.get("concept_name", "")
+
+        print(f"  ▶ ENTER CONCEPT: {cn}")
+
+        # 2) fetch videos list for this concept
+        list_url = (
+            f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
+            f"?courseid={bi}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
+        )
+
+        r_list = await fetch(session, list_url, hdr1)
+        videos = r_list.get("data", []) or []
+        videos = sorted(videos, key=lambda x: int(x.get("id", 0)))
+
+        print(f"    🔹 found {len(videos)} videos")
+
+        # --- process videos sequentially too ---
+        for idx, v in enumerate(videos, start=1):
+            vid = v.get("id")
+
+            print(f"      ▶ processing [{idx}/{len(videos)}] video ID={vid}")
+
+            try:
+                lines = await process_video(
+                    session,
+                    api_base,
+                    bi,
+                    si,
+                    sn,
+                    ti,
+                    tn,
+                    v,
+                    hdr1
+                )
+                if lines:
+                    all_lines.extend(lines)
+
+            except Exception as e:
+                print(f"      💥 failed vid {vid}: {e}")
+
+        print(f"  ✔ CONCEPT DONE: {cn}")
+
+    print(f"✔ TOPIC DONE: {tn}\n")
+    return all_lines
 async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
     vi = video.get("id")
-    vn = video.get("Title")
     lines = []
-    
+
     try:
-        r4 = await fetch(session, f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0", hdr1)
+        r4 = await fetch(
+            session,
+            f"{api_base}/get/fetchVideoDetailsById?course_id={bi}&video_id={vi}&ytflag=0&folder_wise_course=0",
+            hdr1
+        )
         
         if not r4 or not r4.get("data"):
-            print(f"Skipping video ID {vi}: No data found.")
             return None
 
-        vt = r4.get("data", {}).get("Title", "")
-        vl = r4.get("data", {}).get("download_link", "")
-        fl = r4.get("data", {}).get("video_id", "")
-        
+        data = r4["data"]
+        vt = data.get("Title", "")
+
+        vl = data.get("download_link", "")
+        fl = data.get("video_id", "")
+        encrypted_links = data.get("encrypted_links", [])
+
+        # ######### FAKE URL #########
+        fake_base = "https://luciferapi.tech"
+        userid    = hdr1.get("User-ID","0")
+        fake_url  = f"{fake_base}/rozgarapinew/{bi}/{vi}/515543.zip"
+
+        # ######### VIDEO EXISTS CONDITIONS #########
+        video_exists = False
+
         if fl:
-            dfl = decrypt(fl)
-            final_link = f"https://youtu.be/{dfl}"
-            lines.append(f"🗂️{vt}:{final_link}\n")
-
-        if vl:
-            dvl = decrypt(vl)
-            if ".pdf" not in dvl: 
-                lines.append(f"🗂️{vt}:{dvl}\n")
-        else:
-            encrypted_links = r4.get("data", {}).get("encrypted_links", [])
-            if encrypted_links:
-                first_link = encrypted_links[0]
-                a = first_link.get("path")
-                k = first_link.get("key")
-                if a and k:
-                    da = decrypt(a)
-                    k1 = decrypt(k)
-                    k2 = decode_base64(k1)
-                    lines.append(f"🗂️{vt}:{da}*{k2}\n")
-                elif a:
-                    da = decrypt(a)
-                    lines.append(f"🗂️{vt}:{da}\n")
+            video_exists = True
         
-        if "material_type" in r4.get("data", {}):
-            mt = r4["data"]["material_type"]
+        if vl:
+            video_exists = True
+        
+        if encrypted_links:
+            video_exists = True
+
+        # ######### PUSH ONLY FAKE #########
+        if video_exists:
+            lines.append(f"🗂️{vt}:{fake_url}\n")
+
+        # ---------------------------------------------------
+        # PDF LOGIC SAME AS OLD — BLOCK 1
+        # ---------------------------------------------------
+        if "material_type" in data:
+            mt = data["material_type"]
+
             if mt == "PDF":
-                p1 = r4["data"].get("pdf_link", "")
-                pk1 = r4["data"].get("pdf_encryption_key", "")
-                p2 = r4["data"].get("pdf_link2", "")
-                pk2 = r4["data"].get("pdf2_encryption_key", "")
-                
+                p1  = data.get("pdf_link","")
+                pk1 = data.get("pdf_encryption_key","")
+                p2  = data.get("pdf_link2","")
+                pk2 = data.get("pdf2_encryption_key","")
+
                 if p1 and pk1:
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
@@ -132,6 +189,7 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                         lines.append(f"📄{vt}:{dp1}\n")
                     else:
                         lines.append(f"📄{vt}:{dp1}*{depk1}\n")
+
                 if p2 and pk2:
                     dp2 = decrypt(p2)
                     depk2 = decrypt(pk2)
@@ -140,14 +198,18 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                     else:
                         lines.append(f"📄{vt}:{dp2}*{depk2}\n")
 
-        if "material_type" in r4.get("data", {}):
-            mt = r4["data"]["material_type"]
-            if mt == "VIDEO":
-                p1 = r4["data"].get("pdf_link", "")
-                pk1 = r4["data"].get("pdf_encryption_key", "")
-                p2 = r4["data"].get("pdf_link2", "")
-                pk2 = r4["data"].get("pdf2_encryption_key", "")
-                
+        # ---------------------------------------------------
+        # PDF LOGIC SAME AS OLD — BLOCK 2
+        # ---------------------------------------------------
+        if "material_type" in data:
+            mt = data["material_type"]
+
+            if mt == "VIDEO":  
+                p1  = data.get("pdf_link","")
+                pk1 = data.get("pdf_encryption_key","")
+                p2  = data.get("pdf_link2","")
+                pk2 = data.get("pdf2_encryption_key","")
+
                 if p1 and pk1:
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
@@ -155,6 +217,7 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                         lines.append(f"📄{vt}:{dp1}\n")
                     else:
                         lines.append(f"📄{vt}:{dp1}*{depk1}\n")
+
                 if p2 and pk2:
                     dp2 = decrypt(p2)
                     depk2 = decrypt(pk2)
@@ -162,12 +225,14 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                         lines.append(f"📄{vt}:{dp2}\n")
                     else:
                         lines.append(f"📄{vt}:{dp2}*{depk2}\n")
-                        
+
         return lines
     
     except Exception as e:
-        print(f"An error occurred while processing video ID {vi}: {str(e)}")
+        print("Err:", e)
         return None
+
+
 
 THREADPOOL = ThreadPoolExecutor(max_workers=1000)
 
@@ -182,7 +247,7 @@ async def rwafree_callback(app, message, callback_query):
     app_name = api_base.replace("http://", " ").replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("apinew.teachx.in", " ").replace("api.cloudflare.net.in", " ").replace("api.appx.co.in", " ").replace("/", " ")
     
     userid = "extracted_userid_from_token"
-    token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjUxNTU0MyIsImVtYWlsIjoic2F1cmFiaGt1bWFya2hzQGdtYWlsLmNvbSIsInRpbWVzdGFtcCI6MTczNjQwMjc2OCwidGVuYW50VHlwZSI6InVzZXIiLCJ0ZW5hbnROYW1lIjoiIiwidGVuYW50SWQiOiIifQ.NXDbusE5zcYMlyTXrKqgYnm25dtG7Dbuj0yqrxT-eNA"
+    token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpZCI6IjU3NzMwNyIsImVtYWlsIjoibmF2ZWVuc2hhcm1hMTAwODE5OTJAZ21haWwuY29tIiwidGltZXN0YW1wIjoxNzYzNzA2NTkzLCJ0ZW5hbnRUeXBlIjoidXNlciIsInRlbmFudE5hbWUiOiJyb3pnYXJfZGIiLCJ0ZW5hbnRJZCI6IiIsImRpc3Bvc2FibGUiOmZhbHNlfQ.FI38ebeuV1qDjYceDBSNOYALrK1VZypBkx4cTztPkR4"
     hdr1 = {
         "Client-Service": "Appx",
         "source": "website",
@@ -326,13 +391,10 @@ async def rwafree_callback(app, message, callback_query):
                             r2 = await fetch(session, f"{api_base}/get/alltopicfrmlivecourseclass?courseid={raw_text2}&subjectid={si}&start=-1", hdr1)
                             topics = sorted(r2.get("data", []), key=lambda x: x.get("topicid"))
 
-                            tasks = [handle_course(session, api_base, raw_text2, si, sn, t, hdr1) for t in topics]
-                            all_data = await asyncio.gather(*tasks)
-                
-                            for data in all_data:
+                            for topic in topics:
+                                data = await handle_course(session, api_base, raw_text2, si, sn, topic, hdr1)
                                 if data:
                                     f.writelines(data)
-        
                     except Exception as e:
                         print(f"An error occurred while processing the course: {str(e)}")
                         await message.reply_text("An error occurred while processing the course. Please try again later.")
