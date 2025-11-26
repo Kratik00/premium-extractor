@@ -78,7 +78,10 @@ def find_first_list_of_dicts_with_keys(obj: Any, required_keys: List[str]) -> Op
             if res:
                 return res
     return None
-
+def slugify(name: str) -> str:
+    s = name.lower()
+    s = re.sub(r"[^a-z0-9]+", "-", s)
+    return s.strip("-") or "course"
 # ------------------ Function: fetch category courses ------------------
 async def fetch_category_courses(session: aiohttp.ClientSession, category_id: str) -> Tuple[str, List[Tuple[str,str]]]:
     url = f"https://civilguruji.com/api/course/category-wise-list/{category_id}"
@@ -366,8 +369,17 @@ async def civil_course_selected(client, callback_query):
                     except Exception:
                         # fallback: ask user to provide the _next/data url or we can try mapping
                         txt = "Unable to find course content via API. If you have the _next/data URL for this course id, please provide it or add mapping in NEXT_DATA_MAP."
-            # save and send file
-            fname = f"civil_{course_id}.txt"
+            course_name = None
+            for name, cid in (await fetch_category_courses(aiohttp.ClientSession(), CATEGORY_COMPLETE_TRAINING))[1] + \
+               (await fetch_category_courses(aiohttp.ClientSession(), CATEGORY_INDIVIDUAL))[1]:
+                if cid == course_id:
+                    course_name = name
+                    break
+            if not course_name:
+                course_name = f"course-{course_id}"
+                slug = slugify(course_name)
+                fname = f"{slug}.txt"
+
             with open(fname, "w", encoding="utf-8") as fh:
                 fh.write(txt)
             caption = (
