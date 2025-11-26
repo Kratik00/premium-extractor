@@ -1,14 +1,3 @@
-NEXT_DATA_MAP = {
-    "652e437e47fad6d3441c0c7e": "https://civilguruji.com/_next/data/kdtZjEnRVjOuVcq0KFlTh/package/bim-professional-course/652e437e47fad6d3441c0c7e.json?id=652e437e47fad6d3441c0c7e&url=bim-professional-course",
-    "6533a1865506cc759b0f0cce": "https://civilguruji.com/_next/data/kdtZjEnRVjOuVcq0KFlTh/package/highway-engineering/6533a1865506cc759b0f0cce.json?id=6533a1865506cc759b0f0cce&url=highway-engineering",
-
-    # Newly added:
-    "660fc509dc19bb67499197f6": "https://civilguruji.com/_next/data/kdtZjEnRVjOuVcq0KFlTh/package/bridge-construction-course/660fc509dc19bb67499197f6.json?id=660fc509dc19bb67499197f6&url=bridge-construction-course",
-    "652e789247fad6d3441ced2b": "https://civilguruji.com/_next/data/kdtZjEnRVjOuVcq0KFlTh/package/construction-management/652e789247fad6d3441ced2b.json?url=construction-management&id=652e789247fad6d3441ced2b",
-    "66617162dde5e1934e395961": "https://civilguruji.com/_next/data/kdtZjEnRVjOuVcq0KFlTh/package/advanced-building-construction-training/66617162dde5e1934e395961.json?url=advanced-building-construction-training&id=66617162dde5e1934e395961",
-    "652e7a9747fad6d3441d0666": "https://civilguruji.com/_next/data/kdtZjEnRVjOuVcq0KFlTh/package/geotechnical-engineering-course/652e7a9747fad6d3441d0666.json?url=geotechnical-engineering-course&id=652e7a9747fad6d3441d0666",
-}
-
 import os
 import re
 import aiohttp
