@@ -298,27 +298,18 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
 
 # ------------------ UI / Callbacks ------------------
 # Entry button (user clicks "Civil Guruji")
-# ------------------ USER STATE STORAGE ------------------
-USER_STATE = {}  # uid : {"mode": "civilguruji", "type": "complete"/"individual", "pairs": [(name, cid)]}
-
-def slugify(name: str) -> str:
-    s = name.lower()
-    s = re.sub(r"[^a-z0-9]+", "-", s)
-    return s.strip("-") or "course"
-
-
-# ENTRY
 @app.on_callback_query(filters.regex("^civilguruji_$"))
 async def civilguruji_entry(client, callback_query):
     uid = callback_query.from_user.id
     ok = await chk_user(callback_query, uid)
     if ok == 1:
         await callback_query.message.reply_text(
-            "🔒 <b>Premium Feature Locked!</b>",
+            "🔒 <b>Premium Feature Locked!</b>\n\nContact admin to upgrade.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]])
         )
         return
 
+    # Ask which course type
     kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("📦 Complete Training Course", callback_data=f"civil_type_complete")],
         [InlineKeyboardButton("🔹 Individual Courses", callback_data=f"civil_type_individual")],
@@ -326,100 +317,77 @@ async def civilguruji_entry(client, callback_query):
     await callback_query.message.reply_text("💠 <b>Select Course Type:</b>", reply_markup=kb)
     await callback_query.answer()
 
-
-# SELECT TYPE → LIST COURSES WITHOUT BUTTONS
+# When user selects course type
 @app.on_callback_query(filters.regex("^civil_type_"))
 async def civil_type_select(client, callback_query):
-    uid = callback_query.from_user.id
     typ = callback_query.data.replace("civil_type_", "")
     await callback_query.answer()
-
     async with aiohttp.ClientSession() as session:
         if typ == "complete":
+            # fetch category courses for complete training
             text, pairs = await fetch_category_courses(session, CATEGORY_COMPLETE_TRAINING)
+            # build keyboard of pairs
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton(name, callback_data=f"civil_course_complete|{cid}")] for name, cid in pairs])
+            await callback_query.message.reply_text(f"<pre>{text}</pre>", reply_markup=kb)
         else:
             text, pairs = await fetch_category_courses(session, CATEGORY_INDIVIDUAL)
+            kb = InlineKeyboardMarkup([[InlineKeyboardButton(name, callback_data=f"civil_course_individual|{cid}")] for name, cid in pairs])
+            await callback_query.message.reply_text(f"<pre>{text}</pre>", reply_markup=kb)
 
-    # SAVE STATE
-    USER_STATE[uid] = {
-        "mode": "civilguruji",
-        "type": typ,
-        "pairs": pairs
-    }
-
-    # DISPLAY TEXT LIST
-    msg = "📚 <b>Available Courses</b>\n\n"
-    msg += "\n".join([f"🔹 <b>{name}</b>\n     ID: <code>{cid}</code>" for name, cid in pairs])
-    msg += "\n\n👉 <b>Send the Course ID to extract</b>"
-
-    await callback_query.message.reply_text(msg)
-
-
-# TEXT HANDLER: USER SENDS COURSE ID
-@app.on_message(filters.text & filters.private)
-async def civilguruji_text_handler(client, message):
-    uid = message.from_user.id
-    if uid not in USER_STATE:
-        return  # not in module
-
-    state = USER_STATE[uid]
-    course_id = message.text.strip()
-
-    # find matching course name
-    course_name = None
-    for name, cid in state["pairs"]:
-        if cid == course_id:
-            course_name = name
-            break
-
-    if not course_name:
-        await message.reply_text("❌ Invalid course ID.\n\nSend a valid ID from the list.")
+# When user clicks a course from keyboard
+@app.on_callback_query(filters.regex(r"^civil_course_(complete|individual)\|"))
+async def civil_course_selected(client, callback_query):
+    data = callback_query.data
+    m = re.match(r"^civil_course_(complete|individual)\|(.+)$", data)
+    if not m:
+        await callback_query.answer("Invalid selection", show_alert=True)
         return
-
-    await message.reply_text("⏳ <b>Extracting course...</b>")
-
+    kind, course_id = m.groups()
+    await callback_query.answer("⏳ Extracting... please wait")
     async with aiohttp.ClientSession() as session:
-        typ = state["type"]
-
-        if typ == "individual":
-            txt = await fetch_prefetched_course_data(session, course_id)
-        else:
-            next_url = NEXT_DATA_MAP.get(course_id)
-            if next_url:
-                txt = await fetch_next_data_and_parse(session, next_url)
+        try:
+            if kind == "individual":
+                # call getPreFetchedCourseData and build txt
+                txt = await fetch_prefetched_course_data(session, course_id)
             else:
-                try:
-                    txt = await fetch_prefetched_course_data(session, course_id)
-                    if "No course contents" in txt:
-                        raise Exception()
-                except:
-                    txt = "Unable to extract. Add this ID to NEXT_DATA_MAP."
-
-    # filename using slug
-    slug = slugify(course_name)
-    fname = f"{slug}.txt"
-
-    with open(fname, "w", encoding="utf-8") as f:
-        f.write(txt)
-
-    caption = (
-        f"╭━━『 💠 CivilGuruji Extractor 』━━╮\n"
-        f"📚 <b>Course:</b> {course_name}\n"
-        f"🆔 <b>ID:</b> <code>{course_id}</code>\n"
-        f"🔗 <b>Type:</b> {typ}\n"
-        f"🕒 <b>Extracted:</b> {datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
-        f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
-    )
-
-    await app.send_document(message.chat.id, fname, caption=caption)
-
-    try:
-        await app.send_document(LOG_CHANNEL, fname, caption=f"📡 CivilGuruji extract\n\n{caption}")
-    except:
-        pass
-
-    os.remove(fname)
-    USER_STATE.pop(uid, None)
-
+                # complete training: try NEXT_DATA_MAP first, else call same category API or try to infer next-data url
+                next_url = NEXT_DATA_MAP.get(course_id)
+                if next_url:
+                    txt = await fetch_next_data_and_parse(session, next_url)
+                else:
+                    # fallback: try to call the category API as you said (same api)
+                    # some 'complete' courses also available via getPreFetchedCourseData
+                    # try getPreFetchedCourseData first
+                    try:
+                        txt = await fetch_prefetched_course_data(session, course_id)
+                        # if empty result, try to attempt _next data guess
+                        if "No course contents" in txt or "No course contents" in txt:
+                            raise Exception("empty prefetched")
+                    except Exception:
+                        # fallback: ask user to provide the _next/data url or we can try mapping
+                        txt = "Unable to find course content via API. If you have the _next/data URL for this course id, please provide it or add mapping in NEXT_DATA_MAP."
+            # save and send file
+            fname = f"civil_{course_id}.txt"
+            with open(fname, "w", encoding="utf-8") as fh:
+                fh.write(txt)
+            caption = (
+                f"╭━━『 💠 CivilGuruji Extractor 』━━╮\n"
+                f"📚 <b>Course ID:</b> <code>{course_id}</code>\n"
+                f"🔗 <b>Type:</b> {kind}\n"
+                f"🕒 <b>Extracted:</b> {datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
+                f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
+            )
+            await app.send_document(chat_id=callback_query.message.chat.id, document=fname, caption=caption)
+            # # send to logs (best-effort)
+            try:
+                await app.send_document(chat_id=LOG_CHANNEL, document=fname, caption=f"📡 CivilGuruji extract\n\n{caption}")
+            except Exception as e:
+                print("Log channel send failed:", e)
+            finally:
+                os.remove(fname)
+                await callback_query.message.delete()
+        except Exception as e:
+            print("Error extracting course:", e)
+            await callback_query.message.edit_text(f"⚠️ Error extracting course: {e}")
 
 # ------------------ end module ------------------
