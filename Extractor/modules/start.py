@@ -22,7 +22,7 @@ from Extractor.modules.mypathshala import my_pathshala_login
 from Extractor.modules.khan import khan_login
 from Extractor.modules.kdlive import kdlive
 from Extractor.modules.iq import handle_iq_logic
-from Extractor.modules.appxotp import send_otpp
+from Extractor.modules.getappxotp import send_otpp
 from Extractor.modules.findapi import findapis_extract
 from Extractor.modules.rg_vikramjeet import rgvikram_txt
 from Extractor.modules.adda import adda_command_handler
