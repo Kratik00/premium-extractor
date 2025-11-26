@@ -36,6 +36,7 @@ from Extractor.modules.freepw import *
 from Extractor.modules.sachinacademyfree import *
 from Extractor.modules.quantezyfree import *
 from Extractor.modules.rwafree import *
+from Extractor.modules.civilgurujifree import *
 from Extractor.modules.rgvikramjeetfree import *
 from Extractor.modules.agrifree import *
 from Extractor.modules.gyanbindufree import *
