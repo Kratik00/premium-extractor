@@ -369,16 +369,20 @@ async def civil_course_selected(client, callback_query):
                     except Exception:
                         # fallback: ask user to provide the _next/data url or we can try mapping
                         txt = "Unable to find course content via API. If you have the _next/data URL for this course id, please provide it or add mapping in NEXT_DATA_MAP."
-            course_name = None
-            for name, cid in (await fetch_category_courses(aiohttp.ClientSession(), CATEGORY_COMPLETE_TRAINING))[1] + \
-               (await fetch_category_courses(aiohttp.ClientSession(), CATEGORY_INDIVIDUAL))[1]:
-                if cid == course_id:
-                    course_name = name
-                    break
-            if not course_name:
-                course_name = f"course-{course_id}"
-                slug = slugify(course_name)
-                fname = f"{slug}.txt"
+                        async with aiohttp.ClientSession() as sfind:
+                            complete_list = (await fetch_category_courses(sfind, CATEGORY_COMPLETE_TRAINING))[1]
+                            individual_list = (await fetch_category_courses(sfind, CATEGORY_INDIVIDUAL))[1]
+                            
+                        course_name = None
+                        for name, cid in complete_list + individual_list:
+                            if cid == course_id:
+                                course_name = name
+                                break
+                        if not course_name:
+                            course_name = f"course-{course_id}"
+                        slug = slugify(course_name)
+                        fname = f"{slug}.txt"
+
 
             with open(fname, "w", encoding="utf-8") as fh:
                 fh.write(txt)
