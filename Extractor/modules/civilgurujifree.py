@@ -38,6 +38,15 @@ HEADERS = {
     "Referer": "https://civilguruji.com/"
 }
 
+def extract_clean_iframe_url(raw: str) -> str:
+    if not raw:
+        return ""
+    # extract value inside src="...":
+    m = re.search(r'src="([^"]+)"', raw)
+    if m:
+        return m.group(1).strip()
+    return raw.strip()
+
 # ------------------ Helpers ------------------
 async def fetch_json(session: aiohttp.ClientSession, url: str, **kwargs) -> Any:
     async with session.get(url, headers=HEADERS, **kwargs) as resp:
@@ -61,12 +70,6 @@ def find_first_list_of_dicts_with_keys(obj: Any, required_keys: List[str]) -> Op
 
 # ------------------ Function: fetch category courses ------------------
 async def fetch_category_courses(session: aiohttp.ClientSession, category_id: str) -> Tuple[str, List[Tuple[str,str]]]:
-    """
-    Calls: https://civilguruji.com/api/course/category-wise-list/{category_id}
-    Returns:
-      - formatted_text (name : _id per line)
-      - pairs list[(name, _id)]
-    """
     url = f"https://civilguruji.com/api/course/category-wise-list/{category_id}"
     j = await fetch_json(session, url)
     # try direct courses key
@@ -97,11 +100,6 @@ async def fetch_category_courses(session: aiohttp.ClientSession, category_id: st
 
 # ------------------ Function: fetch pre-fetched course data (videos) ------------------
 async def fetch_prefetched_course_data(session: aiohttp.ClientSession, course_id: str) -> str:
-    """
-    Calls: https://civilguruji.com/api/course/getPreFetchedCourseData/{course_id}
-    Returns newline-separated lines formatted:
-      [courseContentName]SubContentName: videoUrl
-    """
     url = f"https://civilguruji.com/api/course/getPreFetchedCourseData/{course_id}"
     j = await fetch_json(session, url)
     # Locate 'courseContents' (common shapes)
@@ -137,10 +135,6 @@ async def fetch_prefetched_course_data(session: aiohttp.ClientSession, course_id
 
 # ------------------ Function: fetch _next/data page and parse similar content ------------------
 async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_url: str) -> str:
-    """
-    Fetches a _next/data JSON (as from /_next/data/.../package/<slug>/<id>.json?... )
-    and tries to extract courseContentName / courseSubContents -> same output format.
-    """
     j = await fetch_json(session, next_data_url)
     # The structure for package pages often hides content under pageProps or props
     root_candidates = []
@@ -171,8 +165,16 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
                     if not isinstance(s, dict):
                         continue
                     sub_name = s.get("name") or s.get("title") or "NO_NAME"
-                    video_url = s.get("videoUrl") or s.get("url") or ""
-                    video_url = video_url.replace("\n", " ").strip()
+                    video_url = (
+                        s.get("videoUrl")
+                        or s.get("videoURL")
+                        or s.get("url")
+                        or s.get("mediaUrl")
+                        or (s.get("video", {}).get("url") if isinstance(s.get("video"), dict) else None)
+                        or (s.get("Video", {}).get("videoUrl") if isinstance(s.get("Video"), dict) else None)
+                        or ""
+                    )
+                    video_url = extract_clean_iframe_url(video_url)
                     lines.append(f"[{block_name}]{sub_name}: {video_url}")
             else:
                 sub_name = block.get("name") or block.get("title")
