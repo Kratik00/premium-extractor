@@ -135,9 +135,18 @@ async def fetch_prefetched_course_data(session: aiohttp.ClientSession, course_id
                     if not isinstance(s, dict):
                         continue
                     sub_name = s.get("name") or s.get("title") or "NO_NAME"
-                    video_url = s.get("videoUrl") or s.get("url") or ""
-                    video_url = video_url.replace("\n", " ").strip()
+                    raw = (
+                        s.get("videoUrl")
+                        or s.get("videoURL")
+                        or s.get("url")
+                        or s.get("mediaUrl")
+                        or (s.get("video", {}).get("url") if isinstance(s.get("video"), dict) else None)
+                        or (s.get("Video", {}).get("videoUrl") if isinstance(s.get("Video"), dict) else None)
+                        or ""
+                    )
+                    video_url = extract_clean_iframe_url(raw)
                     out_lines.append(f"[{block_name}]{sub_name}: {video_url}")
+
             else:
                 # maybe block itself has name and video
                 sub_name = block.get("name") or block.get("title")
@@ -151,36 +160,81 @@ async def fetch_prefetched_course_data(session: aiohttp.ClientSession, course_id
 # ------------------ Function: fetch _next/data page and parse similar content ------------------
 async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_url: str) -> str:
     j = await fetch_json(session, next_data_url)
-    # The structure for package pages often hides content under pageProps or props
+
+    # candidate roots
     root_candidates = []
     if isinstance(j, dict):
         for candidate_key in ("pageProps", "props", "data"):
             if candidate_key in j:
                 root_candidates.append(j[candidate_key])
-        # Also include top-level
         root_candidates.append(j)
+
     out_lines = []
+
+    # -------- helper to extract nested path ----------
+    def get_path(o, path):
+        for key in path:
+            if isinstance(o, dict) and key in o:
+                o = o[key]
+            else:
+                return None
+        return o
+
+    # -------- main extraction logic ----------
     def extract_from_obj(obj):
-        # find courseContents arrays inside obj
-        cc = find_first_list_of_dicts_with_keys(obj, ["courseContentName", "courseSubContents"])
+        cc = None
+
+        # common expected nested paths
+        paths = [
+            ["course", "courseDetail", "courseContents"],
+            ["courseDetail", "courseContents"],
+            ["data", "course", "courseDetail", "courseContents"],
+            ["props", "pageProps", "data", "course", "courseDetail", "courseContents"],
+        ]
+
+        # try each path
+        for path in paths:
+            maybe = get_path(obj, path)
+            if isinstance(maybe, list):
+                cc = maybe
+                break
+
+        # fallback deep-search
         if not cc:
-            # sometimes nested under course.courseDetail.courseContents etc.
-            cd = find_first_list_of_dicts_with_keys(obj, ["courseContents", "_id"])
-            cc = cd
+            cc = find_first_list_of_dicts_with_keys(obj, ["courseContentName", "courseSubContents"])
+
         if not cc:
             return []
+
         lines = []
+
         for block in cc:
             if not isinstance(block, dict):
                 continue
-            block_name = block.get("courseContentName") or block.get("courseContent") or block.get("title") or "NO_BLOCK_NAME"
-            subs = block.get("courseSubContents") or block.get("courseSubContentsList") or block.get("courseSubContent") or []
+
+            block_name = (
+                block.get("courseContentName")
+                or block.get("courseContent")
+                or block.get("title")
+                or "NO_BLOCK_NAME"
+            )
+
+            subs = (
+                block.get("courseSubContents")
+                or block.get("courseSubContentsList")
+                or block.get("courseSubContent")
+                or []
+            )
+
+            # handle sub-blocks
             if isinstance(subs, list) and subs:
                 for s in subs:
                     if not isinstance(s, dict):
                         continue
+
                     sub_name = s.get("name") or s.get("title") or "NO_NAME"
-                    video_url = (
+
+                    raw = (
                         s.get("videoUrl")
                         or s.get("videoURL")
                         or s.get("url")
@@ -189,24 +243,35 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
                         or (s.get("Video", {}).get("videoUrl") if isinstance(s.get("Video"), dict) else None)
                         or ""
                     )
-                    video_url = extract_clean_iframe_url(video_url)
+
+                    video_url = extract_clean_iframe_url(raw)
                     lines.append(f"[{block_name}]{sub_name}: {video_url}")
+
             else:
+                # block-level video
                 sub_name = block.get("name") or block.get("title")
-                video_url = block.get("videoUrl") or ""
-                if sub_name and video_url:
+                raw = block.get("videoUrl") or ""
+                if sub_name and raw:
+                    video_url = extract_clean_iframe_url(raw)
                     lines.append(f"[{block_name}]{sub_name}: {video_url}")
+
+            # END for block
+
         return lines
 
+    # PROCESS all root candidates
     for root in root_candidates:
         if not root:
             continue
         found = extract_from_obj(root)
         if found:
             out_lines.extend(found)
+
     if not out_lines:
         out_lines.append("No course contents found in _next data or unexpected structure.")
+
     return "\n".join(out_lines)
+
 
 # ------------------ UI / Callbacks ------------------
 # Entry button (user clicks "Civil Guruji")
