@@ -42,24 +42,20 @@ def extract_clean_iframe_url(video_url):
     if not video_url:
         return None
 
-    s = video_url.strip()
+    s = video_url.replace("\n", " ").replace("\r", " ").strip()
 
-    # --- Case 1: Proper or broken iframe (extract src=...) ---
-    # Matches iframe with any attributes (closing tag optional)
-    iframe_match = re.search(r'<iframe[^>]*src=["\']([^"\']+)["\']', s, re.IGNORECASE)
-    if iframe_match:
-        return iframe_match.group(1)
+    s = re.sub(r"</iframe.*$", "", s, flags=re.IGNORECASE)
 
-    # --- Case 2: Direct video URL (raw string) ---
-    if s.startswith("http"):
-        return s
+    m = re.search(r'src=["\']([^"\']+)["\']', s, flags=re.IGNORECASE)
+    if m:
+        return m.group(1).strip()
 
-    # --- Case 3: URL somewhere inside HTML string ---
-    url_match = re.search(r'(https?://[^\s"<>]+)', s)
-    if url_match:
-        return url_match.group(1)
+    m = re.search(r'(https?://[a-zA-Z0-9./?_=-]+)', s)
+    if m:
+        return m.group(1).strip()
 
     return None
+
 
 
 # ------------------ Helpers ------------------
@@ -150,9 +146,11 @@ async def fetch_prefetched_course_data(session: aiohttp.ClientSession, course_id
             else:
                 # maybe block itself has name and video
                 sub_name = block.get("name") or block.get("title")
-                video_url = block.get("videoUrl") or ""
-                if sub_name and video_url:
+                raw_block = block.get("videoUrl") or ""
+                if sub_name and raw_block:
+                    video_url = extract_clean_iframe_url(raw_block)
                     out_lines.append(f"[{block_name}]{sub_name}: {video_url}")
+
     if not out_lines:
         out_lines.append("No course contents/videos found or unexpected JSON structure.")
     return "\n".join(out_lines)
@@ -254,6 +252,7 @@ async def fetch_next_data_and_parse(session: aiohttp.ClientSession, next_data_ur
                 if sub_name and raw:
                     video_url = extract_clean_iframe_url(raw)
                     lines.append(f"[{block_name}]{sub_name}: {video_url}")
+
 
             # END for block
 
