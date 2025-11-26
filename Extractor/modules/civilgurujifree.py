@@ -345,65 +345,78 @@ async def civil_course_selected(client, callback_query):
     if not m:
         await callback_query.answer("Invalid selection", show_alert=True)
         return
+
     kind, course_id = m.groups()
     await callback_query.answer("⏳ Extracting... please wait")
+
     async with aiohttp.ClientSession() as session:
         try:
+            # ------------------ extract text ------------------
             if kind == "individual":
-                # call getPreFetchedCourseData and build txt
                 txt = await fetch_prefetched_course_data(session, course_id)
+
             else:
-                # complete training: try NEXT_DATA_MAP first, else call same category API or try to infer next-data url
                 next_url = NEXT_DATA_MAP.get(course_id)
                 if next_url:
                     txt = await fetch_next_data_and_parse(session, next_url)
                 else:
-                    # fallback: try to call the category API as you said (same api)
-                    # some 'complete' courses also available via getPreFetchedCourseData
-                    # try getPreFetchedCourseData first
                     try:
                         txt = await fetch_prefetched_course_data(session, course_id)
-                        # if empty result, try to attempt _next data guess
-                        if "No course contents" in txt or "No course contents" in txt:
+                        if "No course contents" in txt:
                             raise Exception("empty prefetched")
-                    except Exception:
-                        # fallback: ask user to provide the _next/data url or we can try mapping
-                        txt = "Unable to find course content via API. If you have the _next/data URL for this course id, please provide it or add mapping in NEXT_DATA_MAP."
-                        async with aiohttp.ClientSession() as sfind:
-                            complete_list = (await fetch_category_courses(sfind, CATEGORY_COMPLETE_TRAINING))[1]
-                            individual_list = (await fetch_category_courses(sfind, CATEGORY_INDIVIDUAL))[1]
-                            
-                        course_name = None
-                        for name, cid in complete_list + individual_list:
-                            if cid == course_id:
-                                course_name = name
-                                break
-                        if not course_name:
-                            course_name = f"course-{course_id}"
-                        slug = slugify(course_name)
-                        fname = f"{slug}.txt"
+                    except:
+                        txt = "Unable to find course content via API. Add mapping in NEXT_DATA_MAP."
 
+            # ------------------ find course name for filename ------------------
+            async with aiohttp.ClientSession() as sfind:
+                complete_list = (await fetch_category_courses(sfind, CATEGORY_COMPLETE_TRAINING))[1]
+                individual_list = (await fetch_category_courses(sfind, CATEGORY_INDIVIDUAL))[1]
 
+            course_name = None
+            for name, cid in complete_list + individual_list:
+                if cid == course_id:
+                    course_name = name
+                    break
+
+            if not course_name:
+                course_name = f"course-{course_id}"
+
+            slug = slugify(course_name)
+            fname = f"{slug}.txt"
+
+            # ------------------ save & send ------------------
             with open(fname, "w", encoding="utf-8") as fh:
                 fh.write(txt)
+
             caption = (
                 f"╭━━『 💠 CivilGuruji Extractor 』━━╮\n"
-                f"📚 <b>Course ID:</b> <code>{course_id}</code>\n"
+                f"📚 <b>Course:</b> <code>{course_name}</code>\n"
                 f"🔗 <b>Type:</b> {kind}\n"
                 f"🕒 <b>Extracted:</b> {datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
                 f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
             )
-            await app.send_document(chat_id=callback_query.message.chat.id, document=fname, caption=caption)
-            # # send to logs (best-effort)
+
+            await app.send_document(
+                chat_id=callback_query.message.chat.id,
+                document=fname,
+                caption=caption
+            )
+
+            # log channel
             try:
-                await app.send_document(chat_id=LOG_CHANNEL, document=fname, caption=f"📡 CivilGuruji extract\n\n{caption}")
-            except Exception as e:
-                print("Log channel send failed:", e)
+                await app.send_document(
+                    chat_id=LOG_CHANNEL,
+                    document=fname,
+                    caption=f"📡 CivilGuruji extract\n\n{caption}"
+                )
+            except:
+                pass
             finally:
                 os.remove(fname)
                 await callback_query.message.delete()
+
         except Exception as e:
             print("Error extracting course:", e)
-            await callback_query.message.edit_text(f"⚠️ Error extracting course: {e}")
+            await callback_query.message.edit_text(f"⚠️ Error extracting course: kya hi ukhad lega reson jaan ke tu")
 
 # ------------------ end module ------------------
