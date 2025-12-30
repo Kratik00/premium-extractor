@@ -10,8 +10,8 @@ from config import PREMIUM_LOGS
 LOG_CHANNEL_ID = PREMIUM_LOGS   # <-- change this
 
 SEM = asyncio.Semaphore(1)   # ONLY 1 account at a time
-REQUEST_DELAY = 1.2         # 1.2 sec after every account
-LOG_DELAY = 1.5             # log channel safe
+REQUEST_DELAY = 3       # 1.2 sec after every account
+LOG_DELAY = 5             # log channel safe
 PROGRESS_UPDATE_EVERY = 50
 # ================= GLOBAL STATE =================
 stats = {
