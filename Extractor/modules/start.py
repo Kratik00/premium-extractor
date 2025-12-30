@@ -7,6 +7,7 @@ from pyrogram import filters
 from Extractor import app
 from config import OWNER_ID
 from Extractor.core import script
+from Extractor.core.mongo.plans_db import *
 from Extractor.core.func import subscribe, chk_user
 from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from Extractor.modules.appex_v1 import api_v1
