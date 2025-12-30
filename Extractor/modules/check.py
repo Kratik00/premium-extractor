@@ -1,10 +1,12 @@
 import asyncio
 import requests
 import uuid
+import random
 from Extractor import app
 from pyrogram import filters
 from asyncio import Lock
 from config import PREMIUM_LOGS
+
 
 # ================= CONFIG =================
 LOG_CHANNEL_ID = PREMIUM_LOGS   # <-- change this
