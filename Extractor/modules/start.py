@@ -689,6 +689,10 @@ async def quantezy_handler(client, callback_query):
         await callback_query.message.reply_text(
             f"❌ An error occurred.\n\n<code>{str(e)}</code>"
             )
+@app.on_message(filters.command("cleanpremium") & filters.user(OWNER_ID))
+async def clean(_, msg):
+    await clean_expired_premium()
+    await msg.reply("✅ Expired premium deleted")
 @app.on_callback_query(filters.regex("^sachinacademyfree$"))
 async def sachinacademy_handler(client, callback_query):
 
