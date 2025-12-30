@@ -48,7 +48,6 @@ async def safe_edit(msg, text):
     except:
         pass   # UI fail must NEVER stop checking
 
-# ================= CORE FUNCTION =================
 async def login_and_get_courses(n, p, api, bot, progress_msg):
     async with SEM:
         is_valid = False
@@ -56,11 +55,11 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
         h = {
             "client-service": "Appx",
             "auth-key": "appxapi",
-            "user-id": "-2",
             "language": "en",
             "device_type": "ANDROID",
             "content-type": "application/x-www-form-urlencoded",
-            "user-agent": "okhttp/4.9.1"
+            "user-agent": "okhttp/4.9.1",
+            "source": "website"
         }
 
         d = {
@@ -74,7 +73,11 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
 
         try:
             r1 = await loop.run_in_executor(
-                None, post_request, f"https://{api}/post/userLogin", h, d
+                None,
+                post_request,
+                f"https://{api}/post/userLogin",
+                h,
+                d
             )
             r1 = r1.json()
         except:
@@ -82,25 +85,35 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
         else:
             data = r1.get("data") if isinstance(r1, dict) else None
             token = data.get("token") if isinstance(data, dict) else None
+            user_id = data.get("userid") if isinstance(data, dict) else None
 
-            if token:
-                h["authorization"] = token
-                try:
-                    r2 = await loop.run_in_executor(
-                        None, get_request,
-                        f"https://{api}/get/mycourseweb?userid=", h
-                    )
-                    r2 = r2.json()
-                except:
-                    pass
-                else:
+            if token and user_id:
+                h.update({
+                    "Authorization": token,
+                    "User-ID": user_id
+                })
+
+                # ---- COURSE FETCH WITH RETRY ----
+                for _ in range(3):
+                    try:
+                        r2 = await loop.run_in_executor(
+                            None,
+                            get_request,
+                            f"https://{api}/get/mycourseweb?userid={user_id}",
+                            h
+                        )
+                        r2 = r2.json()
+                    except:
+                        r2 = None
+
                     courses = r2.get("data") if isinstance(r2, dict) else None
-                    if isinstance(courses, list):
+                    if isinstance(courses, list) and courses:
                         batches = [
                             i.get("course_name")
                             for i in courses
                             if isinstance(i, dict) and i.get("course_name")
                         ]
+
                         if batches:
                             is_valid = True
 
@@ -114,6 +127,10 @@ async def login_and_get_courses(n, p, api, bot, progress_msg):
                             await asyncio.sleep(LOG_DELAY)
                             await bot.send_message(LOG_CHANNEL_ID, success_text)
                             results.append(success_text)
+                        break
+
+                    # backend delay handling
+                    await asyncio.sleep(1.5)
 
         async with stats_lock:
             stats["checked"] += 1
