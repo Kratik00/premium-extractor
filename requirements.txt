@@ -21,3 +21,4 @@ termcolor
 dotenv
 pyTelegramBotAPI
 Flask
+pysocks
