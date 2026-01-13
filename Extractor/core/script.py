@@ -96,7 +96,7 @@ BRONZE_TXT = """
 <b>
 🥉 <u>Bronze Membership</u>  
 ⏰ Validity: 7 Days  
-💸 Price: ₹200
+💸 Price: ₹300
 </b>
 """
 
@@ -106,7 +106,7 @@ SILVER_TXT = """
 <b>
 🥈 <u>Silver Membership</u>  
 ⏰ Validity: 15 Days  
-💸 Price: ₹300
+💸 Price: ₹500
 </b>
 """
 
@@ -116,7 +116,7 @@ GOLD_TXT = """
 <b>
 🥇 <u>Gold Membership</u>  
 ⏰ Validity: 30 Days  
-💸 Price: ₹500
+💸 Price: ₹800
 </b>
 """
 
@@ -134,7 +134,9 @@ OTHER_TXT = """
 
 
 PAYMENT_TXT = """
+⌬ **﹝Payment﹞**
 <b>
-CONTACT ADMIN FOR MORE DETAILS. UPLOADERS ARE FREE WITH THESE PLANS.
+🥈 <u>Contact owner</u>  
+⏰ **with uploader**
 </b>
 """
