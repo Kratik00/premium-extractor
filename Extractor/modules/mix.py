@@ -61,14 +61,14 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path):
             # 🎥 YouTube
             fl = data.get("video_id")
             if fl:
-                outputs.append(f"{path} :: 🗂️{vt}:https://youtu.be/{decrypt(fl)}")
+                outputs.append(f"🗂️{vt}:https://youtu.be/{decrypt(fl)}")
 
             # 📹 Direct link
             vl = data.get("download_link")
             if vl:
                 dvl = decrypt(vl)
                 if ".pdf" not in dvl:
-                    outputs.append(f"{path} :: 🗂️{vt}:{dvl}")
+                    outputs.append(f"🗂️{vt}:{dvl}")
 
             # 🔐 ALL encrypted links
             for link in data.get("encrypted_links", []):
@@ -76,10 +76,10 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path):
                 k = link.get("key")
                 if a and k:
                     outputs.append(
-                        f"{path} :: 🗂️{vt}:{decrypt(a)}*{decode_base64(decrypt(k))}"
+                        f"🗂️{vt}:{decrypt(a)}*{decode_base64(decrypt(k))}"
                     )
                 elif a:
-                    outputs.append(f"{path} :: 🗂️{vt}:{decrypt(a)}")
+                    outputs.append(f"🗂️{vt}:{decrypt(a)}")
 
             # 📄 PDFs (VIDEO + PDF)
             if data.get("material_type") in ("PDF", "VIDEO"):
@@ -91,9 +91,9 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path):
                         dp = decrypt(p)
                         dk = decrypt(k)
                         if dk == "abcdefg":
-                            outputs.append(f"{path} :: 📄{vt}:{dp}")
+                            outputs.append(f"📄{vt}:{dp}")
                         else:
-                            outputs.append(f"{path} :: 📄{vt}:{dp}*{dk}")
+                            outputs.append(f"📄{vt}:{dp}*{dk}")
 
     except Exception as e:
         print(f"💣 Video error {fi}: {e}")
