@@ -45,8 +45,8 @@ COURSES = {
     "course8": ("Echo Batch (AFCAT 2 2026)", "https://www.cdsjourney.com/course-detail/echo-batch-afcat-2-2026/"),
     "course9": ("Golf SSB Batch", "https://www.cdsjourney.com/course-detail/golf-ssb-batch/"),
     "coursea": ("YANKEE BATCH (AFCAT 2 2025)", "https://www.cdsjourney.com/course-detail/yankee-batch-afcat-2-2025/"),
-    "courseb": (X-RAY BATCH (NDA 2 2025)", "https://www.cdsjourney.com/course-detail/xray-batch-nda-2-2025/"),
-    "coursec": (ZULU BATCH (CDS 2 2025)", "https://www.cdsjourney.com/course-detail/zulu-ota-batch-cds-2-2025/")
+    "courseb": ("X-RAY BATCH (NDA 2 2025)", "https://www.cdsjourney.com/course-detail/xray-batch-nda-2-2025/"),
+    "coursec": ("ZULU BATCH (CDS 2 2025)", "https://www.cdsjourney.com/course-detail/zulu-ota-batch-cds-2-2025/")
 }
 
 # ---------------- SCRAPING UTILS ----------------
