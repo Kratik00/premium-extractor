@@ -41,7 +41,12 @@ COURSES = {
     "course4": ("CAPF Paper 1 + 2 Delta (2026)", "https://www.cdsjourney.com/course-detail/delta-capf-batch-capf-2026-paper-1-paper-2/"),
     "course5": ("CAPF Paper 2 Delta (2026)", "https://www.cdsjourney.com/course-detail/delta-capf-batch-capf-2026-paper-2-exclusive/"),
     "course6": ("Alpha OTA batch (CDS 1 2026)", "https://www.cdsjourney.com/course-detail/alpha-ota-batch-cds-1-2026/"),
-    "course7": ("Alpha MATH batch (CDS 1 2026)", "https://www.cdsjourney.com/course-detail/alpha-math-batch-cds-1-2026/")
+    "course7": ("Alpha MATH batch (CDS 1 2026)", "https://www.cdsjourney.com/course-detail/alpha-math-batch-cds-1-2026/"),
+    "course8": ("Echo Batch (AFCAT 2 2026)", "https://www.cdsjourney.com/course-detail/echo-batch-afcat-2-2026/"),
+    "course9": ("Golf SSB Batch", "https://www.cdsjourney.com/course-detail/golf-ssb-batch/"),
+    "coursea": ("YANKEE BATCH (AFCAT 2 2025)", "https://www.cdsjourney.com/course-detail/yankee-batch-afcat-2-2025/"),
+    "courseb": (X-RAY BATCH (NDA 2 2025)", "https://www.cdsjourney.com/course-detail/xray-batch-nda-2-2025/"),
+    "coursec": (ZULU BATCH (CDS 2 2025)", "https://www.cdsjourney.com/course-detail/zulu-ota-batch-cds-2-2025/")
 }
 
 # ---------------- SCRAPING UTILS ----------------
