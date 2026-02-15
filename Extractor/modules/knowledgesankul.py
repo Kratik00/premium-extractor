@@ -167,7 +167,7 @@ async def ingenium_callback(client, callback_query):
 
     try:
         processing = await callback_query.message.reply_text(
-            "⚙️ <b>Initializing Ingenium Extractor...</b>\n\n"
+            "⚙️ <b>Initializing KNOWLEDGE SANKUL Extractor...</b>\n\n"
             "Please wait while I load available courses 💫"
         )
 
@@ -211,7 +211,7 @@ async def ingenium_batch_callback(app, callback_query):
 
         caption = (
             f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
-            f"📦 <b>Platform:</b> Ingenium\n"
+            f"📦 <b>Platform:</b> Knowledge Sankul\n"
             f"📚 <b>Course:</b> <code>{course_title}</code>\n"
             f"🔗 <b>Total Links:</b> {total_links}\n"
             f"╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
