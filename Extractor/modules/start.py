@@ -41,6 +41,7 @@ from Extractor.modules.rgvikramjeetfree import *
 from Extractor.modules.agrifree import *
 from Extractor.modules.gyanbindufree import *
 from Extractor.modules.htmlconverter import *
+from Extractor.modules.knowledgesankul import *
 
 from Extractor.core.mongo import plans_db
 from telegram import Update
@@ -97,7 +98,8 @@ custom_button = [[
                 ],[
                   InlineKeyboardButton("🎯Classplus", callback_data="cpwp")
                 ],[
-                  InlineKeyboardButton("🪄 SelectionWay", callback_data="selectionway_")
+                    InlineKeyboardButton("🪄 SelectionWay", callback_data="selectionway_"),
+                    InlineKeyboardButton("KNOWLEDGE SANKUL", callback_data="ingenium_")
                 ],[
                     InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_"),
                     InlineKeyboardButton("🤖 CIVILGURUJI", callback_data="civilguruji_")
