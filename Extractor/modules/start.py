@@ -99,7 +99,7 @@ custom_button = [[
                   InlineKeyboardButton("🎯Classplus", callback_data="cpwp")
                 ],[
                     InlineKeyboardButton("🪄 SelectionWay", callback_data="selectionway_"),
-                    InlineKeyboardButton("KNOWLEDGE SANKUL", callback_data="ingenium_")
+                    InlineKeyboardButton("🪄 Knowledge Sankul", callback_data="ingenium_")
                 ],[
                     InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_"),
                     InlineKeyboardButton("🤖 CIVILGURUJI", callback_data="civilguruji_")
