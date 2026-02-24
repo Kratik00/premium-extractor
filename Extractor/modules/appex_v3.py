@@ -398,7 +398,7 @@ async def appex_v3_txt(app, message, api, name):
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("Please try again later. Maybe Password Wrong")
                                
-        await save_user_token(userid, token)
+
 
         hdr1 = {
             "Client-Service": "Appx",
@@ -419,7 +419,7 @@ async def appex_v3_txt(app, message, api, name):
             "Authorization": token,
             "User-ID": userid
             }  
-        
+        await save_user_token(userid, token)
         
         
     scraper = cloudscraper.create_scraper() 

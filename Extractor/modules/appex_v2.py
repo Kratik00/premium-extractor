@@ -182,7 +182,6 @@ async def appex_v2_txt(app, message, api, name):
         
         userid = jwt.decode(token, options={"verify_signature": False}).get("id")
     
-    await save_user_token(userid, token)
 
     hdr1 = {
         "Client-Service": "Appx",
@@ -191,6 +190,7 @@ async def appex_v2_txt(app, message, api, name):
         "Authorization": token,
         "User-ID": userid
     }
+    await save_user_token(userid, token)
     
     
     
