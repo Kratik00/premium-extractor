@@ -42,6 +42,7 @@ from Extractor.modules.agrifree import *
 from Extractor.modules.gyanbindufree import *
 from Extractor.modules.htmlconverter import *
 from Extractor.modules.knowledgesankul import *
+from Extractor.modules.db import *
 
 from Extractor.core.mongo import plans_db
 from telegram import Update
