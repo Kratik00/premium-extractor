@@ -12,6 +12,7 @@ import os
 import base64
 import time
 from config import PREMIUM_LOGS
+from db import save_user_token
 
 log_channel = PREMIUM_LOGS
 def decrypt(enc):
@@ -179,6 +180,8 @@ async def appex_v2_txt(app, message, api, name):
         token = raw_text
         
         userid = "extracted_userid_from_token"
+    
+    await save_user_token(userid, token)
 
     hdr1 = {
         "Client-Service": "Appx",
