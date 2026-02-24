@@ -31,24 +31,19 @@ def convert_special_types(obj):
 
 
 async def dump_database_to_json(filename="dump.json"):
-    dbs = await mongo.list_database_names()
     full_dump = {}
 
-    for db_name in dbs:
-        if db_name in ("admin", "local", "config"):
-            continue
+    database = mongo["appxusers"]
+    collections = await database.list_collection_names()
 
-        database = mongo[db_name]
-        collections = await database.list_collection_names()
+    full_dump["appxusers"] = {}
 
-        full_dump[db_name] = {}
-
-        for col in collections:
-            collection = database[col]
-            docs = await collection.find().to_list(length=None)
-            full_dump[db_name][col] = [convert_special_types(doc) for doc in docs]
+    for col in collections:
+        collection = database[col]
+        docs = await collection.find().to_list(length=None)
+        full_dump["appxusers"][col] = [convert_special_types(doc) for doc in docs]
 
     with open(filename, "w") as f:
         json.dump(full_dump, f, indent=4)
 
-    print(f"✅ Database dumped into {filename}")
+    print(f"✅ appxusers database dumped into {filename}")
