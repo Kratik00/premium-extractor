@@ -697,6 +697,22 @@ async def quantezy_handler(client, callback_query):
 async def clean(_, msg):
     await clean_expired_premium()
     await msg.reply("✅ Expired premium deleted")
+
+@app.on_message(filters.command("dumpdb") & filters.user(OWNER_ID))
+async def dump_db_handler(client, message):
+    try:
+        await message.reply_text("📦 Dumping database... Please wait")
+
+        filename = "db_dump.json"
+        await dump_database_to_json(filename)
+
+        await message.reply_document(filename)
+
+        os.remove(filename)
+
+    except Exception as e:
+        await message.reply_text(f"❌ Error:\n<code>{str(e)}</code>")
+        
 @app.on_callback_query(filters.regex("^sachinacademyfree$"))
 async def sachinacademy_handler(client, callback_query):
 
