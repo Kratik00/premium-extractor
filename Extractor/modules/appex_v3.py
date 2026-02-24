@@ -413,9 +413,9 @@ async def appex_v3_txt(app, message, api, name):
         
     else:
         
-        userid = jwt.decode(token, options={"verify_signature": False}).get("id")
-    
         token = raw_text
+        userid = jwt.decode(token, options={"verify_signature": False}).get("id")
+
         hdr1 = {
             "Client-Service": "Appx",
             "source": "website",
