@@ -7,10 +7,9 @@ users = db.token_db
 
 async def save_user_token(userid, token):
     await users.update_one(
-        {"userid": userid},
+        {"_id": str(userid)},
         {"$set": {"token": token}},
         upsert = True
     )
-
 
 
