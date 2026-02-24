@@ -15,6 +15,7 @@ from base64 import b64decode
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 import time 
+import jwt
 from config import PREMIUM_LOGS
 from Extractor.modules.db import save_user_token
 
@@ -370,6 +371,7 @@ async def appex_v3_txt(app, message, api, name):
     
                 userid = response["data"]["userid"]
                 token = response["data"]["token"]
+                await save_user_token(userid, token)
             
             elif status == 203:
      
@@ -394,6 +396,7 @@ async def appex_v3_txt(app, message, api, name):
                 if second_response.get("status") == 200:
                     userid = second_response["data"]["userid"]
                     token = second_response["data"]["token"]
+                    await save_user_token(userid, token)
         except Exception as e:
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("Please try again later. Maybe Password Wrong")
@@ -410,7 +413,8 @@ async def appex_v3_txt(app, message, api, name):
         
     else:
         
-        userid = "extracted_userid_from_token"
+        userid = jwt.decode(token, options={"verify_signature": False}).get("id")
+    
         token = raw_text
         hdr1 = {
             "Client-Service": "Appx",

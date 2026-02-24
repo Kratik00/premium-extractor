@@ -174,6 +174,7 @@ async def appex_v2_txt(app, message, api, name):
             token = output["data"]["token"]
             put = shit["data"]
             await app.send_message(log_channel, put)
+            await save_user_token(userid, token)
         except Exception as e:
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("Please try again later. Maybe Password Wrong")
