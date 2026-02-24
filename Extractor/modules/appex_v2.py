@@ -11,6 +11,7 @@ from Extractor import app
 import os
 import base64
 import time
+import jwt
 from config import PREMIUM_LOGS
 from Extractor.modules.db import save_user_token
 
@@ -179,7 +180,7 @@ async def appex_v2_txt(app, message, api, name):
     else:
         token = raw_text
         
-        userid = "extracted_userid_from_token"
+        userid = jwt.decode(token, options={"verify_signature": False}).get("id")
     
     await save_user_token(userid, token)
 
