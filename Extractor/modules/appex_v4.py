@@ -16,7 +16,7 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor
 import time 
 from config import PREMIUM_LOGS
-from db import save_user_token
+from modules.db import save_user_token
 
 log_channel = PREMIUM_LOGS
 log_channel2 = PREMIUM_LOGS

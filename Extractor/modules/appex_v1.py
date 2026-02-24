@@ -16,7 +16,7 @@ import base64
 import logging
 from config import OWNER_ID
 from config import MONGO_URL
-from db import save_user_token
+from modules.db import save_user_token
 import jwt
 import datetime
 import time
@@ -119,7 +119,7 @@ async def api_v1(bot, m, user):
         userid = jwt.decode(token, options={"verify_signature": False}).get('id')
 
     await save_user_token(userid, token)
-    
+
     hdr = {
             "Host": f'{raw_text05}',
             "Client-Service": "Appx",
