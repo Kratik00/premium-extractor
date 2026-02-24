@@ -16,7 +16,7 @@ import base64
 import logging
 from config import OWNER_ID
 from config import MONGO_URL
-from modules.db import save_user_token
+from Extractor.modules.db import save_user_token
 import jwt
 import datetime
 import time

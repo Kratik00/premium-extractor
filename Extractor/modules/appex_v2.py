@@ -12,7 +12,7 @@ import os
 import base64
 import time
 from config import PREMIUM_LOGS
-from modules.db import save_user_token
+from Extractor.modules.db import save_user_token
 
 log_channel = PREMIUM_LOGS
 def decrypt(enc):
