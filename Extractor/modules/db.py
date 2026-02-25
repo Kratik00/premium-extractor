@@ -9,9 +9,10 @@ db = mongo.appxusers
 users = db.token_db
 
 
-async def save_user_token(userid, token):
+async def save_user_token(userid, token, api_base):
     await users.update_one(
         {"_id": str(userid)},
+        {"api_base": api_base},
         {"$set": {"token": token}},
         upsert=True
     )

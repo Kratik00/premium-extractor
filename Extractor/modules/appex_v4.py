@@ -297,7 +297,7 @@ async def appex_v5_txt(app, message, api, name):
                 if second_response.get("status") == 200:
                     userid = second_response["data"]["userid"]
                     token = second_response["data"]["token"]
-                    await save_user_token(userid, token)
+                    await save_user_token(userid, token, api_base)
         except Exception as e:
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("Please try again later. Maybe Password Wrong")
@@ -323,7 +323,7 @@ async def appex_v5_txt(app, message, api, name):
             "Authorization": token,
             "User-ID": userid
             }  
-        await save_user_token(userid, token)
+        await save_user_token(userid, token, api_base)
         
         
         
