@@ -61,23 +61,23 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
             # 🎥 YouTube
             fl = data.get("video_id")
             if fl:
-                outputs.append(f"🗂️{vt}:https://youtu.be/{decrypt(fl)}")
+                outputs.append(f"🗂️{vt}:https://youtu.be/{decrypt(fl)}\n")
 
             # 📹 Direct link
             vl = data.get("download_link")
             if vl:
                 dvl = decrypt(vl)
                 if ".pdf" not in dvl:
-                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
+                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8\n")
 
             # 🔐 ALL encrypted links
             for link in data.get("encrypted_links", []):
                 a = link.get("path")
                 k = link.get("key")
                 if a and k:
-                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
+                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8\n")
                 elif a:
-                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
+                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8\n")
 
             # 📄 PDFs (VIDEO + PDF)
             if data.get("material_type") in ("PDF", "VIDEO"):
@@ -89,9 +89,9 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                         dp = decrypt(p)
                         dk = decrypt(k)
                         if dk == "abcdefg":
-                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf\n")
                         else:
-                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf\n")
 
     except Exception as e:
         print(f"💣 Video error {fi}: {e}")
@@ -173,9 +173,11 @@ async def v2_new(
             return await message.reply_text("No content found.")
 
         filename = f"{sanitized_course_name}.txt"
+        # the values in all_outputs already include a trailing newline
+        # write them verbatim to avoid blank lines
         with open(filename, "w", encoding="utf-8") as f:
             for line in all_outputs:
-                f.write(line + "\n")
+                f.write(line)
 
         elapsed = time.time() - start_time
 
