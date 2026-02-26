@@ -85,13 +85,18 @@ async def handle_course(session, api_base, course_id, si, sn, topic, headers, us
         # -------------------------------------------
         # 2) GET VIDEOS for this concept
         # -------------------------------------------
+        # Historically many modules used start=-1; using start=0 often returns
+        # an empty list, which leads to "0 videos found" and empty output files.
+        # Switch to -1 and log an alert if the response is empty for debugging.
         list_url = (
             f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
-            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
+            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=-1"
         )
 
         r_list = await fetch(session, list_url, headers)
         videos = r_list.get("data", []) or []
+        if not videos:
+            print(f"    ⚠️ no videos returned for concept {ci} (url={list_url}) -> {r_list}")
 
         videos = sorted(videos, key=lambda x: int(x.get("id", 0)))
 
@@ -207,16 +212,16 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, user
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
                     if depk1 == "abcdefg":
-                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
                     else:
-                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
                 if p2 and pk2:
                     dp2 = decrypt(p2)
                     depk2 = decrypt(pk2)
                     if depk2 == "abcdefg":
-                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
                     else:
-                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
                         
         return lines
     
@@ -274,7 +279,7 @@ async def appex_v5_txt(app, message, api, name):
     
                 userid = response["data"]["userid"]
                 token = response["data"]["token"]
-                await save_user_token(userid, token)
+                await save_user_token(userid, token, api_base)
             
             elif status == 203:
      

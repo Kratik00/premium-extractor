@@ -193,13 +193,18 @@ async def handle_course(session, api_base, course_id, si, sn, topic, headers, us
         # -------------------------------------------
         # 2) GET VIDEOS for this concept
         # -------------------------------------------
+        # use start=-1; start=0 can return empty results leading to 0 videos
+        # and an empty output file. keep the conceptid parameter and log when
+        # the API returns no data for further investigation.
         list_url = (
             f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
-            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
+            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=-1"
         )
 
         r_list = await fetch(session, list_url, headers)
         videos = r_list.get("data", []) or []
+        if not videos:
+            print(f"    ⚠️ no videos returned for concept {ci} (url={list_url}) -> {r_list}")
 
         videos = sorted(videos, key=lambda x: int(x.get("id", 0)))
 
