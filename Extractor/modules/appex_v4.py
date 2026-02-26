@@ -154,7 +154,7 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, user
         if vl:
             dvl = decrypt(vl)
             if ".pdf" not in dvl: 
-                lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
                  
         else:
             encrypted_links = r4.get("data", {}).get("encrypted_links", [])
