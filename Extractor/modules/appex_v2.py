@@ -34,7 +34,7 @@ def decode_base64(encoded_str):
     except Exception as e:
         return f"Error decoding string: {e}"
 
-async def fetch_item_details(session, api_base, course_id, item, headers, path=None):
+async def fetch_item_details(session, api_base, course_id, item, headers, userid, app_name, path=None):
     fi = item.get("id")
     vt = item.get("Title", "")
     outputs = []  
@@ -100,7 +100,7 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path=N
     
                     
         
-async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, path="Home"):
+async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, userid, app_name, path="Home"):
     outputs = []
     url = f"{api_base}/get/folder_contentsv3?course_id={course_id}&parent_id={folder_id}&windowsapp=false&start=0"
 
@@ -125,14 +125,14 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
                 if mtype == "FOLDER":
                     print(f"📂 Entering {current_path}")
                     sub_outputs = await fetch_folder_contents(
-                        session, api_base, course_id, item["id"], headers, path=current_path
+                        session, api_base, course_id, item["id"], headers, userid, app_name, path=current_path
                     )
                     outputs.extend(sub_outputs)
                 else:
                     print(f"📄 Found {mtype}: {current_path}")
                     try:
                         item_outputs = await fetch_item_details(
-                            session, api_base, course_id, item, headers, path=current_path
+                            session, api_base, course_id, item, headers, userid, app_name, path=current_path
                         )
                         outputs.extend(item_outputs)
                     except Exception as e:
@@ -261,9 +261,9 @@ async def appex_v2_txt(app, message, api, name):
         tasks = []
         if "data" in j2:
             for item in j2["data"]:        
-                tasks.append(fetch_item_details(session, api_base, raw_text2, item, hdr1))
+                tasks.append(fetch_item_details(session, api_base, raw_text2, item, hdr1, userid, app_name))
                 if item["material_type"] == "FOLDER":
-                    tasks.append(fetch_folder_contents(session, api_base, raw_text2, item["id"], hdr1))
+                    tasks.append(fetch_folder_contents(session, api_base, raw_text2, item["id"], hdr1, userid, app_name))
         if tasks:
             results = await asyncio.gather(*tasks)
             for res in results:
