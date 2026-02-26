@@ -54,7 +54,7 @@ async def fetch(session, url, headers):
         print(f"An error occurred while fetching {url}: {str(e)}")
         return {}
 
-async def handle_course(session, api_base, course_id, si, sn, topic, headers):
+async def handle_course(session, api_base, course_id, si, sn, topic, headers, userid, app_name):
     #si = subject.get("subjectid")
     #sn = subject.get("subject_name")
 
@@ -115,7 +115,9 @@ async def handle_course(session, api_base, course_id, si, sn, topic, headers):
                     ti,
                     tn,
                     video,
-                    headers
+                    headers,
+                    userid,
+                    app_name
                 )
 
                 if lines:
@@ -128,7 +130,7 @@ async def handle_course(session, api_base, course_id, si, sn, topic, headers):
 
     print(f"✔ topic complete: {tn}\n")
     return all_lines
-async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
+async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, userid, app_name):
     vi = video.get("id")
     vn = video.get("Title")
     lines = []
@@ -152,7 +154,7 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
         if vl:
             dvl = decrypt(vl)
             if ".pdf" not in dvl: 
-                lines.append(f"🗂️{vt}:{dvl}\n")
+                lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                  
         else:
             encrypted_links = r4.get("data", {}).get("encrypted_links", [])
@@ -164,10 +166,10 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1):
                     da = decrypt(a)
                     k1 = decrypt(k)
                     k2 = decode_base64(k1)
-                    lines.append(f"🗂️{vt}:{da}*{k2}\n")
+                    lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                 elif a:
                     da = decrypt(a)
-                    lines.append(f"🗂️{vt}:{da}\n")
+                    lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
         
         if "material_type" in r4.get("data", {}):
             mt = r4["data"]["material_type"]
@@ -464,7 +466,7 @@ async def appex_v5_txt(app, message, api, name):
                             topics = sorted(r2.get("data", []), key=lambda x: x.get("topicid"))
 
                             for topic in topics:
-                                data = await handle_course(session, api_base, raw_text2, si, sn, topic, hdr1)
+                                data = await handle_course(session, api_base, raw_text2, si, sn, topic, hdr1, userid, app_name)
                                 if data:
                                     f.writelines(data)
         
