@@ -47,12 +47,15 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path=N
                 if not data:
                     return []
 
+                appname = api_base.replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("api.teachx.in", " ").replace("api.cloudflare.net.in", " ")
+
                 vt = data.get("Title", "")
                 vl = data.get("download_link", "")
 
                 if vl:
                     dvl = decrypt(vl)
-                    outputs.append(f"🗂️{vt}:{dvl}")
+                    #outputs.append(f"🗂️{vt}:{dvl}")
+                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
                 else:
                     encrypted_links = data.get("encrypted_links", [])
                     for link in encrypted_links:
@@ -63,11 +66,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path=N
                             k1 = decrypt(k)
                             k2 = decode_base64(k1)
                             da = decrypt(a)
-                            outputs.append(f"🗂️{vt}:{da}*{k2}")
+                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
                             break
                         elif a:
                             da = decrypt(a)
-                            outputs.append(f"🗂️{vt}:{da}")
+                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
                             break
 
                 if "material_type" in data:
