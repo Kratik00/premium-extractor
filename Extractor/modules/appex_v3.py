@@ -227,8 +227,7 @@ async def handle_course(session, api_base, course_id, si, sn, topic, headers, us
                     userid,
                     app_name
                 )
-                    app_name
-                )
+        
 
                 if lines:
                     all_lines.extend(lines)
