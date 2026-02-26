@@ -68,16 +68,16 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
             if vl:
                 dvl = decrypt(vl)
                 if ".pdf" not in dvl:
-                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
 
             # 🔐 ALL encrypted links
             for link in data.get("encrypted_links", []):
                 a = link.get("path")
                 k = link.get("key")
                 if a and k:
-                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
                 elif a:
-                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
 
             # 📄 PDFs (VIDEO + PDF)
             if data.get("material_type") in ("PDF", "VIDEO"):
@@ -89,9 +89,9 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                         dp = decrypt(p)
                         dk = decrypt(k)
                         if dk == "abcdefg":
-                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf")
                         else:
-                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf")
 
     except Exception as e:
         print(f"💣 Video error {fi}: {e}")

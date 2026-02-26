@@ -55,7 +55,7 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                 if vl:
                     dvl = decrypt(vl)
                     #outputs.append(f"🗂️{vt}:{dvl}")
-                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                    outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
                 else:
                     encrypted_links = data.get("encrypted_links", [])
                     for link in encrypted_links:
@@ -66,11 +66,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                             k1 = decrypt(k)
                             k2 = decode_base64(k1)
                             da = decrypt(a)
-                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
                             break
                         elif a:
                             da = decrypt(a)
-                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.m3u8")
                             break
 
                 if "material_type" in data:
@@ -83,11 +83,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                         if p1:
                             dp1 = decrypt(p1)
                             depk1 = decrypt(pk1)
-                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf")
                         if p2:
                             dp2 = decrypt(p2)
                             depk2 = decrypt(pk2)
-                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
+                            outputs.append(f"{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}.pdf")
             else:
                 error_page = await response.text()
                 print(f"Error: Unexpected response for video ID {fi}:\n{error_page}")

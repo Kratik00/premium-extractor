@@ -166,10 +166,10 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, user
                     da = decrypt(a)
                     k1 = decrypt(k)
                     k2 = decode_base64(k1)
-                    lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                    lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
                 elif a:
                     da = decrypt(a)
-                    lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                    lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
         
         if "material_type" in r4.get("data", {}):
             mt = r4["data"]["material_type"]
@@ -183,16 +183,16 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, user
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
                     if depk1 == "abcdefg":
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
                     else:
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
                 if p2 and pk2:
                     dp2 = decrypt(p2)
                     depk2 = decrypt(pk2)
                     if depk2 == "abcdefg":
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
                     else:
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.pdf")
 
         
         if "material_type" in r4.get("data", {}):
@@ -207,16 +207,16 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, user
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
                     if depk1 == "abcdefg":
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
                     else:
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
                 if p2 and pk2:
                     dp2 = decrypt(p2)
                     depk2 = decrypt(pk2)
                     if depk2 == "abcdefg":
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
                     else:
-                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
+                        lines.append(f"{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}.m3u8")
                         
         return lines
     
