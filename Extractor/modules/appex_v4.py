@@ -74,10 +74,10 @@ async def handle_course(session, api_base, course_id, si, sn, topic, headers, us
     )
 
     r_concept = await fetch(session, concept_url, headers)
-    concepts = r_concept.get("data", []) or [{"conceptid": "-1", "concept_name": "All"}]
+    concepts = r_concept.get("data", []) or [{"conceptid": "", "concept_name": "All"}]
 
     for concept in concepts:
-        ci = concept.get("conceptid") or "-1"
+        ci = concept.get("conceptid") or ""
         cn = concept.get("concept_name", "Unknown")
 
         print(f"\n  ▶ ENTER CONCEPT: {cn}")
@@ -85,18 +85,14 @@ async def handle_course(session, api_base, course_id, si, sn, topic, headers, us
         # -------------------------------------------
         # 2) GET VIDEOS for this concept
         # -------------------------------------------
-        # Historically many modules used start=-1; using start=0 often returns
-        # an empty list, which leads to "0 videos found" and empty output files.
-        # Switch to -1 and log an alert if the response is empty for debugging.
+
         list_url = (
             f"{api_base}/get/livecourseclassbycoursesubtopconceptapiv3"
-            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=-1"
+            f"?courseid={course_id}&subjectid={si}&topicid={ti}&conceptid={ci}&start=0"
         )
 
         r_list = await fetch(session, list_url, headers)
         videos = r_list.get("data", []) or []
-        if not videos:
-            print(f"    ⚠️ no videos returned for concept {ci} (url={list_url}) -> {r_list}")
 
         videos = sorted(videos, key=lambda x: int(x.get("id", 0)))
 
