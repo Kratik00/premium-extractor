@@ -183,16 +183,16 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, user
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
                     if depk1 == "abcdefg":
-                        lines.append(f"📄{vt}:{dp1}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                     else:
-                        lines.append(f"📄{vt}:{dp1}*{depk1}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                 if p2 and pk2:
                     dp2 = decrypt(p2)
                     depk2 = decrypt(pk2)
                     if depk2 == "abcdefg":
-                        lines.append(f"📄{vt}:{dp2}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                     else:
-                        lines.append(f"📄{vt}:{dp2}*{depk2}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
 
         
         if "material_type" in r4.get("data", {}):
@@ -207,16 +207,16 @@ async def process_video(session, api_base, bi, si, sn, ti, tn, video, hdr1, user
                     dp1 = decrypt(p1)
                     depk1 = decrypt(pk1)
                     if depk1 == "abcdefg":
-                        lines.append(f"📄{vt}:{dp1}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                     else:
-                        lines.append(f"📄{vt}:{dp1}*{depk1}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                 if p2 and pk2:
                     dp2 = decrypt(p2)
                     depk2 = decrypt(pk2)
                     if depk2 == "abcdefg":
-                        lines.append(f"📄{vt}:{dp2}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                     else:
-                        lines.append(f"📄{vt}:{dp2}*{depk2}\n")
+                        lines.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{bi}/{vi}/{userid}")
                         
         return lines
     
@@ -242,7 +242,7 @@ async def appex_v4_txt(app, message):
 async def appex_v5_txt(app, message, api, name):
    
     api_base = api.replace("http://", "https://") if api.startswith(("http://", "https://")) else f"https://{api}"
-    app_name = api_base.replace("http://", " ").replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("apinew.teachx.in", " ").replace("api.cloudflare.net.in", " ").replace("api.appx.co.in", " ").replace("/", " ")
+    app_name = api_base.replace("http://", "").replace("https://", "").replace("api.classx.co.in","").replace("api.akamai.net.in", "").replace("apinew.teachx.in", "").replace("api.cloudflare.net.in", "").replace("api.appx.co.in", "").replace("/", "")
     
     
     input1 = await app.ask(message.chat.id, (f"SEND MOBILE NUMBER AND PASSWORD IN THIS FORMAT\n\n MOBILE*PASSWORD\n\nᴄᴏᴀᴄʜɪɴɢ ɴᴀᴍᴇ:- {app_name}\n\n OR SEND TOKEN"))

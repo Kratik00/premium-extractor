@@ -83,11 +83,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                         if p1:
                             dp1 = decrypt(p1)
                             depk1 = decrypt(pk1)
-                            outputs.append(f"📄{vt}:{dp1}*{depk1}")
+                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
                         if p2:
                             dp2 = decrypt(p2)
                             depk2 = decrypt(pk2)
-                            outputs.append(f"📄{vt}:{dp2}*{depk2}")
+                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
             else:
                 error_page = await response.text()
                 print(f"Error: Unexpected response for video ID {fi}:\n{error_page}")
@@ -147,7 +147,7 @@ async def appex_v2_txt(app, message, api, name):
     api_base = api if api.startswith(("http://", "https://")) else f"https://{api}"
     raw_url = f"{api_base}/post/userLogin"
     raw_urll = f"{api_base}/post/userLogin?extra_details=0"
-    app_name = api_base.replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("api.teachx.in", " ").replace("api.cloudflare.net.in", " ")
+    app_name = api_base.replace("https://", "").replace("api.classx.co.in","").replace("api.akamai.net.in", "").replace("api.teachx.in", "").replace("api.cloudflare.net.in", "")
     hdr = {
         "Auth-Key": "appxapi",
         "User-Id": "-2",

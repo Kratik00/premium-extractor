@@ -342,7 +342,7 @@ THREADPOOL = ThreadPoolExecutor(max_workers=1000)
 async def appex_v3_txt(app, message, api, name):
     
     api_base = api.replace("http://", "https://") if api.startswith(("http://", "https://")) else f"https://{api}"
-    app_name = api_base.replace("http://", " ").replace("https://", " ").replace("api.classx.co.in"," ").replace("api.akamai.net.in", " ").replace("apinew.teachx.in", " ").replace("api.cloudflare.net.in", " ").replace("api.appx.co.in", " ").replace("/", " ")
+    app_name = api_base.replace("http://", "").replace("https://", "").replace("api.classx.co.in","").replace("api.akamai.net.in", "").replace("apinew.teachx.in", "").replace("api.cloudflare.net.in", "").replace("api.appx.co.in", "").replace("/", "")
     
     
     input1 = await app.ask(message.chat.id, (f"SEND MOBILE NUMBER AND PASSWORD IN THIS FORMAT\n\n MOBILE*PASSWORD\n\nᴄᴏᴀᴄʜɪɴɢ ɴᴀᴍᴇ:- {app_name}\n\n OR SEND TOKEN"))

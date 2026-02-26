@@ -89,9 +89,9 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                         dp = decrypt(p)
                         dk = decrypt(k)
                         if dk == "abcdefg":
-                            outputs.append(f"📄{vt}:{dp}")
+                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
                         else:
-                            outputs.append(f"📄{vt}:{dp}*{dk}")
+                            outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
 
     except Exception as e:
         print(f"💣 Video error {fi}: {e}")
