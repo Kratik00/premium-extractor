@@ -36,7 +36,7 @@ def decode_base64(encoded_str):
 
 # ===================== VIDEO FETCH =====================
 
-async def fetch_item_details(session, api_base, course_id, item, headers, path):
+async def fetch_item_details(session, api_base, course_id, item, headers, userid, app_name, path):
     fi = item.get("id")
     outputs = []
 
@@ -68,18 +68,16 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path):
             if vl:
                 dvl = decrypt(vl)
                 if ".pdf" not in dvl:
-                    outputs.append(f"🗂️{vt}:{dvl}")
+                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
 
             # 🔐 ALL encrypted links
             for link in data.get("encrypted_links", []):
                 a = link.get("path")
                 k = link.get("key")
                 if a and k:
-                    outputs.append(
-                        f"🗂️{vt}:{decrypt(a)}*{decode_base64(decrypt(k))}"
-                    )
+                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
                 elif a:
-                    outputs.append(f"🗂️{vt}:{decrypt(a)}")
+                    outputs.append(f"🗂️{vt}:https://appxapi.co/{app_name}/{course_id}/{fi}/{userid}")
 
             # 📄 PDFs (VIDEO + PDF)
             if data.get("material_type") in ("PDF", "VIDEO"):
@@ -103,7 +101,7 @@ async def fetch_item_details(session, api_base, course_id, item, headers, path):
 
 # ===================== FOLDER RECURSION =====================
 
-async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, path="Home"):
+async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, userid, app_name, path="Home"):
     outputs = []
 
     try:
@@ -131,16 +129,16 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
                 if mtype == "FOLDER":
                     sub = await fetch_folder_contents(
                         session, api_base, course_id,
-                        item["id"], headers, current_path
+                        item["id"], headers, userid, app_name, current_path
                     )
                     outputs.extend(sub)
 
                 # 🎥 Video / PDF
                 else:
                     vids = await fetch_item_details(
-                        session, api_base, course_id,
-                        item, headers, current_path
-                    )
+                            session, api_base, course_id,
+                            item, headers, userid, app_name, current_path
+                        )
                     outputs.extend(vids)
 
     except Exception as e:
@@ -161,13 +159,15 @@ async def v2_new(
 
         # 🔁 SINGLE ENTRY POINT (IMPORTANT)
         all_outputs = await fetch_folder_contents(
-            session,
-            api_base,
-            raw_text2,
-            folder_id=-1,
-            headers=hdr1,
-            path="Home"
-        )
+                session,
+                api_base,
+                raw_text2,
+                folder_id=-1,
+                headers=hdr1,
+                userid=userid,
+                app_name=app_name,
+                path="Home"
+            )
 
         if not all_outputs:
             return await message.reply_text("No content found.")
