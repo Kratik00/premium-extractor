@@ -161,10 +161,6 @@ async def process_pinnacle(app, message, chat_id, course, msg):
     file_name = f"{safe_name}.txt"
 
     with open(file_name, "w", encoding="utf-8") as f:
-        f.write(
-            f"{course_title}\n"
-            f"{'='*50}\n\n"
-        )
         f.write("\n".join(result))
 
     thumb_path = download_thumbnail(THUMB_URL)
