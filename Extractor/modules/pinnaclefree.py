@@ -72,11 +72,10 @@ async def pinnacle_handler(app, callback_query):
     await callback_query.answer()
 
     chat_id = callback_query.message.chat.id
-    main_msg = callback_query.message  # 🔥 reuse same msg
 
-    await main_msg.edit_text("📂 <b>Fetching Categories...</b>")
+    # ✅ new message (not edit)
+    main_msg = await app.send_message(chat_id, "📂 <b>Fetching Categories...</b>")
 
-    # 🔹 categories
     categories = get_categories()
 
     text = "📚 <b>Available Categories</b>\n\n"
@@ -86,29 +85,26 @@ async def pinnacle_handler(app, callback_query):
     text += "\n📝 <b>Send Category Name:</b>"
     await main_msg.edit_text(text)
 
-    # 👇 user input
     cat_msg = await app.listen(chat_id)
-    category = cat_msg.text.strip()
+    category = cat_msg.text.strip().title()
 
     try:
         await cat_msg.delete()
     except:
         pass
 
-    # 🔹 courses
     courses = get_courses(category)
 
     if not courses:
-        return await main_msg.edit_text("❌ Invalid Category or No courses")
+        return await app.send_message(chat_id, "❌ Invalid Category or No courses")
 
     text = "🎯 <b>Available Courses</b>\n\n"
     for c in courses:
         text += f"🪪 <code>{c['id']}</code> - 📚 {c['title']}\n"
 
     text += "\n📝 <b>Send Course ID:</b>"
-    await main_msg.edit_text(text)
+    msg2 = await app.send_message(chat_id, text)
 
-    # 👇 user input
     course_msg = await app.listen(chat_id)
     course_id = course_msg.text.strip()
 
@@ -120,13 +116,11 @@ async def pinnacle_handler(app, callback_query):
     selected = next((c for c in courses if c["id"] == course_id), None)
 
     if not selected:
-        return await main_msg.edit_text("❌ Invalid Course ID")
+        return await app.send_message(chat_id, "❌ Invalid Course ID")
 
-    await main_msg.edit_text("⏳ <b>Processing...</b>")
+    process_msg = await app.send_message(chat_id, "⏳ <b>Processing...</b>")
 
-    # 🔥 FIX: pass callback_query.message as message
-    await process_pinnacle(app, callback_query.message, chat_id, selected, main_msg)
-
+    await process_pinnacle(app, callback_query.message, chat_id, selected, process_msg)
 # ---------------- PROCESS ----------------
 async def process_pinnacle(app, message, chat_id, course, msg):
 
