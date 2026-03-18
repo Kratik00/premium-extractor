@@ -122,10 +122,10 @@ async def pinnacle_handler(app, callback_query):
 
     await main_msg.edit_text("⏳ <b>Processing...</b>")
 
-    await process_pinnacle(app, callback_query.message, chat_id, selected, main_msg)
+    await process_pinnacle(app, callback_query.from_user, chat_id, selected, main_msg)
 # ---------------- PROCESS ----------------
-async def process_pinnacle(app, message, chat_id, course, msg):
-
+async def process_pinnacle(app, user, chat_id, course, msg):
+    
     course_id = course["id"]
     course_title = course["title"]
     price = course["price"]
@@ -170,9 +170,10 @@ async def process_pinnacle(app, message, chat_id, course, msg):
     me = await app.get_me()
     mention = f"<a href='tg://user?id={me.id}'>{me.first_name}</a>"
 
-    user = message.from_user or message.sender_chat
-    mention1 = f"<a href='tg://user?id={user.id}'>{user.first_name}</a>"
-
+    if user:
+        mention1 = f"<a href='tg://user?id={user.id}'>{user.first_name}</a>"
+    else:
+        mention1 = "User"
     course_name = re.sub(r"[_]+", " ", course_title).strip()
 
     caption = (
