@@ -72,14 +72,31 @@ def get_batches(session):
     soup = BeautifulSoup(html, "html.parser")
 
     batches = []
+
     for card in soup.find_all("div", class_="card-content"):
         try:
             title = card.find("h4").text.strip()
-            link = card.find("a", href=True)["href"]
 
-            if "/batch/" in link:
-                bid = link.split("/batch/")[1].split("/")[0]
-                batches.append((bid, title))
+            batch_link = card.find("a", href=True)
+            join_btn = card.find("a", class_="join-now-link")
+
+            if not batch_link or not join_btn:
+                continue
+
+            href = batch_link["href"]
+            join_href = join_btn.get("href", "")
+
+            if "/batch/" not in href:
+                continue
+
+            batch_id = href.split("/batch/")[1].split("/")[0]
+
+            if (
+                "/student-dashboard/batch/" in join_href
+                or "/zoom-index/" in join_href
+            ):
+                batches.append((batch_id, title))
+
         except:
             continue
 
@@ -90,6 +107,12 @@ def get_batches(session):
 def get_subjects(session, batch_id):
     html = session.get(f"{BASE}/student-dashboard/batch/{batch_id}/subjects/").text
     soup = BeautifulSoup(html, "html.parser")
+
+    # ✅ extract batch name
+    try:
+        batch_name = soup.find("h1").text.strip()
+    except:
+        batch_name = f"batch_{batch_id}"
 
     subjects = []
     for a in soup.find_all("a", href=True):
@@ -102,7 +125,7 @@ def get_subjects(session, batch_id):
             except:
                 continue
 
-    return subjects
+    return subjects, batch_name
 
 
 # ---------------- VIDEOS ----------------
@@ -160,89 +183,155 @@ async def cds_start(app, callback_query):
 @app.on_callback_query(filters.regex("^cds_login_session$"))
 async def cds_session_login(app, callback_query):
 
+
+    await callback_query.answer()
+    chat_id = callback_query.message.chat.id
+    await callback_query.message.delete()
+    
     inp = await app.ask(callback_query.message.chat.id, "🔑 Send SessionID:")
     sessionid = inp.text.strip()
+    await inp.delete()
 
     session = create_session()
     session.cookies.set("sessionid", sessionid)
 
     if not is_logged_in(session):
-        return await callback_query.message.reply("❌ Invalid SessionID")
+        return await app.send_message(chat_id, "__❌ Invalid SessionID__")
 
-    await show_batches(app, callback_query.message, session, sessionid)
+    await app.send_message(chat_id, "✅ Login Successful!")
+
+    await show_batches(app, chat_id, session, sessionid, msg)
 
 
 # ---------------- EMAIL LOGIN ----------------
 @app.on_callback_query(filters.regex("^cds_login_email$"))
 async def cds_email_login(app, callback_query):
 
+    await callback_query.answer()
+
+    chat_id = callback_query.message.chat.id
+
+    # 🔥 edit instead of delete
+    main_msg = callback_query.message
+    await main_msg.edit_text("📧 <b>Send Email:</b>")
+
     session = create_session()
 
-    email_msg = await app.ask(callback_query.message.chat.id, "📧 Send Email:")
+    # 📧 email input
+    email_msg = await app.listen(chat_id)
     email = email_msg.text.strip()
 
+    try:
+        await email_msg.delete()
+    except:
+        pass
+
+    # 🔑 csrf
     csrf = get_csrf(session)
 
-    await callback_query.message.reply("📨 Sending OTP...")
+    await main_msg.edit_text("📨 <b>Sending OTP...</b>")
     send_otp(session, email, csrf)
 
-    otp_msg = await app.ask(callback_query.message.chat.id, "🔢 Enter OTP:")
+    # 🔢 OTP step
+    await main_msg.edit_text("🔢 <b>Enter OTP:</b>")
+
+    otp_msg = await app.listen(chat_id)
     otp = otp_msg.text.strip()
 
+    try:
+        await otp_msg.delete()
+    except:
+        pass
+
+    csrf = session.cookies.get("csrftoken")
+
+    # ❌ fail
     if not verify_otp(session, email, otp, csrf):
-        return await callback_query.message.reply("❌ OTP Failed")
+        return await main_msg.edit_text("❌ <b>OTP Failed</b>")
 
     sessionid = session.cookies.get("sessionid")
 
-    await show_batches(app, callback_query.message, session, sessionid)
+    await main_msg.edit_text("✅ <b>Login Successful!</b>\n\nFetching batches...")
 
+    # 🔥 pass message for editing further
+    await show_batches(app, chat_id, session, sessionid, main_msg)
 
 # ---------------- SHOW BATCHES ----------------
-async def show_batches(app, message, session, sessionid):
-
-    msg = await message.reply("🔄 Fetching batches...")
+async def show_batches(app, chat_id, session, sessionid, msg):
 
     batches = get_batches(session)
 
     if not batches:
-        return await msg.edit_text("❌ No batches found")
+        return await msg.edit_text("__❌ No enrolled batches found__")
 
-    keyboard = []
+    text = "📚 <b>Your Batches</b>\n\n"
+
     for bid, title in batches:
-        keyboard.append([
-            InlineKeyboardButton(title, callback_data=f"cds_run_{bid}|{sessionid}")
-        ])
+        text += f"• <code>{bid}</code> - {title}\n"
 
-    await msg.edit_text(
-        "📚 <b>Select Batch:</b>",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    text += "\n\n📝 <b>Send Batch ID to continue:</b>"
+
+    await msg.edit_text(text)
+
+    # 👇 wait for user input
+    user_msg = await app.listen(chat_id)
+    batch_id = user_msg.text.strip()
+
+    try:
+        await user_msg.delete()
+    except:
+        pass
+
+    # 🔥 validate batch id
+    valid_ids = [b[0] for b in batches]
+
+    if batch_id not in valid_ids:
+        return await msg.edit_text("❌ Invalid Batch ID. Restart again.")
+
+    await msg.edit_text(f"⏳ Processing Batch <code>{batch_id}</code>...")
+
+    # 👉 next step call (subjects / videos)
+    await process_batch(app, chat_id, session, batch_id, msg)
 
 
 # ---------------- BATCH CALLBACK ----------------
 @app.on_callback_query(filters.regex("^cds_run_"))
 async def cds_batch_callback(app: Client, callback_query):
 
+    await callback_query.answer()
+
     data = callback_query.data.replace("cds_run_", "")
     batch_id, sessionid = data.split("|")
+
+    chat_id = callback_query.message.chat.id
+
+    # 🔥 delete old UI
+    try:
+        await callback_query.message.delete()
+    except:
+        pass
 
     session = create_session()
     session.cookies.set("sessionid", sessionid)
 
-    await callback_query.answer("⏳ Extracting...")
-
-    msg = await callback_query.message.reply_text("🔄 Processing...")
-
     try:
-        subjects = get_subjects(session, batch_id)
+        # 🔥 get subjects + batch name
+        subjects, batch_name = get_subjects(session, batch_id)
 
         if not subjects:
-            return await msg.edit_text("❌ No subjects found")
+            return await app.send_message(chat_id, "__❌ No subjects found__")
+
+        # 🔥 main progress message (single message)
+        msg = await app.send_message(chat_id, "__⏳ Starting...__")
 
         result = []
         total = 0
 
         for sid, sname in subjects:
+
+            # 🔥 ONLY SUBJECT NAME UPDATE
+            await msg.edit_text(f"📚Processing Subject <b>{sname}</b>")
+
             videos = get_videos(session, sid)
 
             for title, vid in videos:
@@ -253,27 +342,33 @@ async def cds_batch_callback(app: Client, callback_query):
                     total += 1
 
         if total == 0:
-            return await msg.edit_text("❌ No videos found")
+            return await msg.edit_text("__❌ No videos found__")
 
-        file_name = f"CDS_{batch_id}.txt"
+        # 🔥 clean file name (batch name)
+        safe_name = "".join(c for c in batch_name if c.isalnum() or c in " _-")
+        file_name = f"{safe_name}.txt"
 
         with open(file_name, "w", encoding="utf-8") as f:
             f.write("\n".join(result))
 
+        # 🔥 final message (edit same msg)
+        await msg.edit_text("📤 Uploading...")
+
         caption = (
             f"╭━━━『 💠 CDS EXTRACTOR 💠 』━━━╮\n"
-            f"📚 Batch ID: <code>{batch_id}</code>\n"
+            f"📚 Batch: <code>{batch_name}</code>\n"
             f"🔗 Total Links: {total}\n"
             f"🕒 {datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
             f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
         )
 
         await app.send_document(
-            callback_query.message.chat.id,
+            chat_id,
             file_name,
             caption=caption
         )
 
+        # 🔥 log channel
         try:
             await app.send_document(
                 LOG_CHANNEL,
@@ -284,7 +379,9 @@ async def cds_batch_callback(app: Client, callback_query):
             pass
 
         os.remove(file_name)
+
+        # 🔥 delete progress message (clean UI)
         await msg.delete()
 
     except Exception as e:
-        await msg.edit_text(f"❌ Error: {str(e)}")
+        await app.send_message(chat_id, f"❌ Error: {str(e)}")
