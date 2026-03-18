@@ -202,7 +202,6 @@ async def process_pinnacle(app, chat_id, course, msg):
         chat_id,
         file_name,
         caption=caption,
-        parse_mode="html",
         thumb=thumb_path if thumb_path else None
     )
 
@@ -212,7 +211,6 @@ async def process_pinnacle(app, chat_id, course, msg):
             LOG_CHANNEL,
             file_name,
             caption=caption,
-            parse_mode="html",
             thumb=thumb_path if thumb_path else None
         )
     except:
