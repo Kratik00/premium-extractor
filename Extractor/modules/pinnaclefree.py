@@ -6,6 +6,7 @@ from datetime import datetime
 from pyrogram import Client, filters
 from Extractor import app
 from config import PREMIUM_LOGS, THUMB_URL
+from urllib.parse import quote
 
 LOG_CHANNEL = PREMIUM_LOGS
 BASE = "https://auth.ssccglpinnacle.com"
@@ -42,7 +43,7 @@ def get_categories():
 
 # ---------------- COURSES ----------------
 def get_courses(category):
-    url = f"{BASE}/api/videoCourses/{category}"
+    url = f"{BASE}/api/videoCourses/{quote(category)}"
     res = requests.get(url, headers=get_headers()).json()
 
     courses = []
@@ -93,11 +94,11 @@ async def pinnacle_handler(app, message):
     courses = get_courses(category)
 
     if not courses:
-        return await main_msg.edit_text("❌ Invalid Category")
+        return await main_msg.edit_text("__❌ Invalid Category or No courses__")
 
     text = "🎯 <b>Available Courses</b>\n\n"
     for c in courses:
-        text += f"• <code>{c['id']}</code> - {c['title']}\n"
+        text += f"🪪 <code>{c['id']}</code> - 📚 {c['title']}\n"
 
     text += "\n📝 <b>Send Course ID:</b>"
     await main_msg.edit_text(text)
@@ -171,12 +172,17 @@ async def process_pinnacle(app, chat_id, course, msg):
     me = await app.get_me()
     mention = f"<a href='tg://user?id={me.id}'>{me.first_name}</a>"
 
+    user = message.from_user
+    mention1 = f"<a href='tg://user?id={user.id}'>{user.first_name}</a>"
+
+    course_name = re.sub(r"[_]+", " ", course_title).strip()
+
     caption = (
         "🎯 <b>PINNACLE PRO</b>\n\n"
 
         "──────── <b>COURSE DETAILS</b> ────────\n"
         "<blockquote>"
-        f"📚 <b>Course :</b> {course_title}\n"
+        f"📚 <b>Course :</b> {course_name}\n"
         f"🪪 <b>ID :</b> <code>{course_id}</code>\n"
         f"📂 <b>Category :</b> {category}\n"
         f"👨‍🏫 <b>Instructor :</b> {instructor}\n"
@@ -187,13 +193,14 @@ async def process_pinnacle(app, chat_id, course, msg):
         "<blockquote>"
         f"🔗 <b>Total Links :</b> {total}\n"
         f"🎬 <b>Videos :</b> {total}\n"
-        "📄 <b>PDFs :</b> Included\n"
+        "📄 <b>PDFs :</b> Excluded\n"
         "</blockquote>\n\n"
 
         f"⏰ <b>Generated On :</b> {datetime.now().strftime('%d-%m-%Y %I:%M:%S %p')}\n"
+        f"🪪 <b>EXTRACTED BY :</b> {mention1}"
 
         "➖➖➖➖➖➖➖\n"
-        f"✳️ <b>EXTRACTOR :</b> {mention}"
+        f"✳️ <b>TXT EXTRACTOR :</b> {mention}"
     )
 
     await msg.edit_text("📤 Uploading...")
