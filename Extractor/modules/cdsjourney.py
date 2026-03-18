@@ -6,10 +6,23 @@ from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from Extractor import app
-from config import PREMIUM_LOGS
+from config import PREMIUM_LOGS, THUMB_URL
 
 LOG_CHANNEL = PREMIUM_LOGS
 BASE = "https://www.cdsjourney.com"
+
+#=========DOWNLOAD THUMBNAIL========
+def download_thumbnail(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            thumb_path = "thumb_temp.jpg"
+            with open(thumb_path, "wb") as f:
+                f.write(response.content)
+            return thumb_path
+        return None
+    except Excpetion:
+        return None
 
 # ---------------- SESSION ----------------
 def create_session():
@@ -352,7 +365,7 @@ async def process_batch(app, chat_id, session, batch_id, msg):
         for sid, sname in subjects:
 
             # 🔥 clean UI
-            await msg.edit_text(f"📚 <b>{sname}</b>")
+            await msg.edit_text(f"📚__Extracting Subject<b>{sname}__</b>")
 
             videos = get_videos(session, sid)
 
@@ -378,20 +391,36 @@ async def process_batch(app, chat_id, session, batch_id, msg):
         await msg.edit_text("📤 Uploading...")
 
         caption = (
-            f"╭━━━『 💠 CDS EXTRACTOR 💠 』━━━╮\n"
-            f"📚 Batch: <code>{batch_name}</code>\n"
-            f"🔗 Total Links: {total}\n"
-            f"🕒 {datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
-            f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
+            "🎯 <b>CDS JOURNEY</b>\n\n"
+
+            "──────── <b>COURSE DETAILS</b> ────────\n"
+            "<blockquote>"
+            f"📚 <b>Batch :</b> {batch_name}\n"
+            f"🪪 <b>ID :</b> <code>{batch_id}</code>\n"
+            f"📖 <b>Subjects :</b> {len(subjects)}\n"
+            "</blockquote>\n\n"
+
+            "──────── <b>LINK SUMMARY</b> ────────\n"
+            "<blockquote>"
+            f"🔗 <b>Total Links :</b> {total}\n"
+            "🎬 <b>Videos :</b> Included\n"
+            "📄 <b>PDFs :</b> Excluded\n"
+            "</blockquote>\n\n"
+
+            f"⏰ <b>Generated On :</b> {datetime.now().strftime('%d-%m-%Y  %I:%M:%S %p')}\n"
+
+            "➖➖➖➖➖➖➖\n"
+            "✳️ <b>EXTRACTOR :</b> <a href='https://t.me/noobhusir'>LUCIFER</a>"
         )
 
-        await app.send_document(chat_id, file_name, caption=caption)
+        await app.send_document(chat_id, file_name, caption=caption, thumb=thumb_path if thumb_path else None)
 
         try:
             await app.send_document(
                 LOG_CHANNEL,
                 file_name,
-                caption=f"📡 CDS Extract\n\n{caption}"
+                caption=caption,
+                thumb=thumb_path if thumb_path else None
             )
         except:
             pass
