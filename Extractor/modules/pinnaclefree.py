@@ -157,7 +157,7 @@ async def process_pinnacle(app, message, chat_id, course, msg):
         return await msg.edit_text("❌ No videos found")
 
     # 🔹 file
-    safe_name = re.sub(r'[\\/*?:"<>|]', "", course_title)
+    safe_name = re.sub(r'[\\/*?:_"<>|]', " ", course_title)
     file_name = f"{safe_name}.txt"
 
     with open(file_name, "w", encoding="utf-8") as f:
