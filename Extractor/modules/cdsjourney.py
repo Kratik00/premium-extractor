@@ -413,6 +413,8 @@ async def process_batch(app, chat_id, session, batch_id, msg):
             "✳️ <b>EXTRACTOR :</b> <a href='https://t.me/noobhusir'>LUCIFER</a>"
         )
 
+        thumb_path = download_thumbnail(THUMB_URL)
+
         await app.send_document(chat_id, file_name, caption=caption, thumb=thumb_path if thumb_path else None)
 
         try:
@@ -426,6 +428,8 @@ async def process_batch(app, chat_id, session, batch_id, msg):
             pass
 
         os.remove(file_name)
+        if thumb_path and os.path.exists(thumb_path):
+            os.remove(thumb_path)
 
         # 🔥 clean UI
         await msg.delete()
