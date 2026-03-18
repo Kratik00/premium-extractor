@@ -183,25 +183,39 @@ async def cds_start(app, callback_query):
 @app.on_callback_query(filters.regex("^cds_login_session$"))
 async def cds_session_login(app, callback_query):
 
-
     await callback_query.answer()
     chat_id = callback_query.message.chat.id
-    await callback_query.message.delete()
-    
-    inp = await app.ask(callback_query.message.chat.id, "🔑 Send SessionID:")
-    sessionid = inp.text.strip()
-    await inp.delete()
 
+    # 🔥 remove old button msg
+    try:
+        await callback_query.message.delete()
+    except:
+        pass
+
+    # 🔑 ask session id
+    ask_msg = await app.send_message(chat_id, "🔑 <b>Send SessionID:</b>")
+    inp = await app.listen(chat_id)
+
+    sessionid = inp.text.strip()
+
+    try:
+        await inp.delete()
+    except:
+        pass
+
+    # 🔥 create session
     session = create_session()
     session.cookies.set("sessionid", sessionid)
 
+    # ❌ invalid
     if not is_logged_in(session):
-        return await app.send_message(chat_id, "__❌ Invalid SessionID__")
+        return await ask_msg.edit_text("❌ <b>Invalid SessionID</b>")
 
-    await app.send_message(chat_id, "✅ Login Successful!")
+    # ✅ reuse SAME message (clean UI)
+    await ask_msg.edit_text("✅ <b>Login Successful!</b>\n\nFetching batches...")
 
-    await show_batches(app, chat_id, session, sessionid, msg)
-
+    # 🔥 pass same msg
+    await show_batches(app, chat_id, session, sessionid, ask_msg)
 
 # ---------------- EMAIL LOGIN ----------------
 @app.on_callback_query(filters.regex("^cds_login_email$"))
