@@ -325,26 +325,34 @@ async def cds_batch_callback(app: Client, callback_query):
     except:
         pass
 
+    # 🔥 session setup
     session = create_session()
     session.cookies.set("sessionid", sessionid)
 
+    # 🔥 single progress message
+    msg = await app.send_message(chat_id, "⏳ Starting...")
+
+    # 🔥 delegate ALL work
+    await process_batch(app, chat_id, session, batch_id, msg)
+
+async def process_batch(app, chat_id, session, batch_id, msg):
+
     try:
-        # 🔥 get subjects + batch name
+        import asyncio
+        import re
+
         subjects, batch_name = get_subjects(session, batch_id)
 
         if not subjects:
-            return await app.send_message(chat_id, "__❌ No subjects found__")
-
-        # 🔥 main progress message (single message)
-        msg = await app.send_message(chat_id, "__⏳ Starting...__")
+            return await msg.edit_text("❌ No subjects found")
 
         result = []
         total = 0
 
         for sid, sname in subjects:
 
-            # 🔥 ONLY SUBJECT NAME UPDATE
-            await msg.edit_text(f"📚Processing Subject <b>{sname}</b>")
+            # 🔥 clean UI
+            await msg.edit_text(f"📚 <b>{sname}</b>")
 
             videos = get_videos(session, sid)
 
@@ -355,17 +363,18 @@ async def cds_batch_callback(app: Client, callback_query):
                     result.append(f"({sname}) {title}: {url}")
                     total += 1
 
-        if total == 0:
-            return await msg.edit_text("__❌ No videos found__")
+            await asyncio.sleep(0.4)
 
-        # 🔥 clean file name (batch name)
-        safe_name = "".join(c for c in batch_name if c.isalnum() or c in " _-")
+        if total == 0:
+            return await msg.edit_text("❌ No videos found")
+
+        # 🔥 safe filename
+        safe_name = re.sub(r'[\\/*?:"<>|]', "", batch_name)
         file_name = f"{safe_name}.txt"
 
         with open(file_name, "w", encoding="utf-8") as f:
             f.write("\n".join(result))
 
-        # 🔥 final message (edit same msg)
         await msg.edit_text("📤 Uploading...")
 
         caption = (
@@ -376,13 +385,8 @@ async def cds_batch_callback(app: Client, callback_query):
             f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
         )
 
-        await app.send_document(
-            chat_id,
-            file_name,
-            caption=caption
-        )
+        await app.send_document(chat_id, file_name, caption=caption)
 
-        # 🔥 log channel
         try:
             await app.send_document(
                 LOG_CHANNEL,
@@ -394,8 +398,9 @@ async def cds_batch_callback(app: Client, callback_query):
 
         os.remove(file_name)
 
-        # 🔥 delete progress message (clean UI)
+        # 🔥 clean UI
         await msg.delete()
 
     except Exception as e:
-        await app.send_message(chat_id, f"❌ Error: {str(e)}")
+        await msg.edit_text(f"❌ Error: {str(e)}")
+        
