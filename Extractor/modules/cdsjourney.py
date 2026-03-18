@@ -365,7 +365,7 @@ async def process_batch(app, chat_id, session, batch_id, msg):
         for sid, sname in subjects:
 
             # 🔥 clean UI
-            await msg.edit_text(f"📚__Extracting Subject<b>{sname}__</b>")
+            await msg.edit_text(f"📚__Extracting Subject <b>{sname}__</b>")
 
             videos = get_videos(session, sid)
 
