@@ -29,6 +29,7 @@ from Extractor.modules.rg_vikramjeet import rgvikram_txt
 from Extractor.modules.adda import adda_command_handler
         
 from Extractor.modules.freecp import *
+from Extractor.modules.cdsjourney import *
 from Extractor.modules.yesofficerfree import *
 from Extractor.modules.cdsjourneyfree import *
 from Extractor.modules.selectionwayfree import *
@@ -131,7 +132,7 @@ button1 = [
                     InlineKeyboardButton(" 🕹️UTKARSH", callback_data="utkarsh_")
                 ],
                 [
-                    InlineKeyboardButton(" 🕹️KHAN GS", callback_data="khan_"),   
+                    InlineKeyboardButton(" 🕹️CDS JOURNEY", callback_data="cds"),   
                     InlineKeyboardButton(" 🕹️PHYSICS WALLAH", callback_data="pw_")    
                 ],
                 # [
@@ -569,6 +570,22 @@ async def pwwp_callback(client, callback_query):
     except Exception as e:
         print(f"Error in pwwp_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
+
+@app.on_callback_query(filters.regex("^cds$"))
+async def cds_callback(app: Client, callback_query: CallbackQuery):
+    try:
+        await callback_query.answer()
+
+        msg = await callback_query.message.reply_text("🔄 Starting CDS extractor...")
+
+        # call your main function
+        await cds_handler(app, callback_query.message)
+
+        await msg.delete()
+
+    except Exception as e:
+        await callback_query.message.reply_text(f"❌ Error: {str(e)}")
+
 
 @app.on_callback_query(filters.regex("^selectionway_$"))
 async def selectionway_callback(client, callback_query):
