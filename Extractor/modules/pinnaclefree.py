@@ -43,7 +43,7 @@ def get_categories():
 
 # ---------------- COURSES ----------------
 def get_courses(category):
-    url = f"{BASE}/api/videoCourses/{quote(category)}"
+    url = f"{BASE}/rc/courses?category={quote(category)}"
     res = requests.get(url, headers=get_headers()).json()
 
     courses = []
@@ -118,11 +118,11 @@ async def pinnacle_handler(app, message):
 
     await main_msg.edit_text("⏳ <b>Processing...</b>")
 
-    await process_pinnacle(app, chat_id, selected, main_msg)
+    await process_pinnacle(app, message chat_id, selected, main_msg)
 
 
 # ---------------- PROCESS ----------------
-async def process_pinnacle(app, chat_id, course, msg):
+async def process_pinnacle(app, message chat_id, course, msg):
 
     course_id = course["id"]
     course_title = course["title"]
@@ -197,7 +197,7 @@ async def process_pinnacle(app, chat_id, course, msg):
         "</blockquote>\n\n"
 
         f"⏰ <b>Generated On :</b> {datetime.now().strftime('%d-%m-%Y %I:%M:%S %p')}\n"
-        f"🪪 <b>EXTRACTED BY :</b> {mention1}"
+        f"🪪 <b>EXTRACTED BY :</b> {mention1}\n"
 
         "➖➖➖➖➖➖➖\n"
         f"✳️ <b>TXT EXTRACTOR :</b> {mention}"
