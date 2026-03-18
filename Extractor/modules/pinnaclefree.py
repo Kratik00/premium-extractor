@@ -69,19 +69,24 @@ def get_chapters(course_id):
 @app.on_callback_query(filters.regex("^pinnacle$"))
 async def pinnacle_handler(app, callback_query):
 
+    await callback_query.answer()
+
     chat_id = callback_query.message.chat.id
-    main_msg = await callback_query.message.reply_txt("📂 <b>Fetching Categories...</b>")
+    main_msg = callback_query.message  # 🔥 reuse same msg
+
+    await main_msg.edit_text("📂 <b>Fetching Categories...</b>")
 
     # 🔹 categories
     categories = get_categories()
 
     text = "📚 <b>Available Categories</b>\n\n"
-    for cid, name in categories:
+    for _, name in categories:
         text += f"• <code>{name.strip()}</code>\n"
 
     text += "\n📝 <b>Send Category Name:</b>"
     await main_msg.edit_text(text)
 
+    # 👇 user input
     cat_msg = await app.listen(chat_id)
     category = cat_msg.text.strip()
 
@@ -94,7 +99,7 @@ async def pinnacle_handler(app, callback_query):
     courses = get_courses(category)
 
     if not courses:
-        return await main_msg.edit_text("__❌ Invalid Category or No courses__")
+        return await main_msg.edit_text("❌ Invalid Category or No courses")
 
     text = "🎯 <b>Available Courses</b>\n\n"
     for c in courses:
@@ -103,6 +108,7 @@ async def pinnacle_handler(app, callback_query):
     text += "\n📝 <b>Send Course ID:</b>"
     await main_msg.edit_text(text)
 
+    # 👇 user input
     course_msg = await app.listen(chat_id)
     course_id = course_msg.text.strip()
 
@@ -118,8 +124,8 @@ async def pinnacle_handler(app, callback_query):
 
     await main_msg.edit_text("⏳ <b>Processing...</b>")
 
-    await process_pinnacle(app, message, chat_id, selected, main_msg)
-
+    # 🔥 FIX: pass callback_query.message as message
+    await process_pinnacle(app, callback_query.message, chat_id, selected, main_msg)
 
 # ---------------- PROCESS ----------------
 async def process_pinnacle(app, message, chat_id, course, msg):
