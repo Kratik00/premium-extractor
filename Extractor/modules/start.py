@@ -107,7 +107,7 @@ custom_button = [[
                     InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_"),
                     InlineKeyboardButton("🤖 CIVILGURUJI", callback_data="civilguruji_")
                 ],[
-                  InlineKeyboardButton("🚀 ROJGAAR WITH ANKIT", callback_data="rwafree")
+                  InlineKeyboardButton("🚀 PINNACLE ", callback_data="pinnacle")
                 ],[
                     InlineKeyboardButton("🌸 SACHIN ACADEMY", callback_data="sachinacademyfree"),
                     InlineKeyboardButton("♕ EXAMTUNE", callback_data="quantezyfree")
