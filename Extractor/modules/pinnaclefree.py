@@ -66,8 +66,8 @@ def get_chapters(course_id):
 
 
 # ---------------- MAIN COMMAND ----------------
-@app.on_message(filters.command("pinnacle") & filters.private)
-async def pinnacle_handler(app, message):
+@app.on_callback_query(filters.regex("^pinnacle$"))
+async def pinnacle_handler(app, callback_query):
 
     chat_id = message.chat.id
     main_msg = await message.reply("📂 <b>Fetching Categories...</b>")
