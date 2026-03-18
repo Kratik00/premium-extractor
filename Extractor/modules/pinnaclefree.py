@@ -118,11 +118,11 @@ async def pinnacle_handler(app, message):
 
     await main_msg.edit_text("⏳ <b>Processing...</b>")
 
-    await process_pinnacle(app, message chat_id, selected, main_msg)
+    await process_pinnacle(app, message, chat_id, selected, main_msg)
 
 
 # ---------------- PROCESS ----------------
-async def process_pinnacle(app, message chat_id, course, msg):
+async def process_pinnacle(app, message, chat_id, course, msg):
 
     course_id = course["id"]
     course_title = course["title"]
