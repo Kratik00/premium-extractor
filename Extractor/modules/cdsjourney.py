@@ -53,11 +53,11 @@ def send_otp(session, email, csrf):
         "referer": BASE,
         "origin": BASE,
         "content-type": "application/x-www-form-urlencoded",
-        "user-agent": "MOzilla/5.0",
-        "cookie": f"csrftoken={csrf}"
     }
 
-    session.post(url, data=data, headers=headers)
+    r = session.post(url, data=data, headers=headers)
+    print("\n[+] OTP SEND STATUS:", r.status_code)
+    print("[+] OTP RESPONSE:", r.text)
 
 def verify_otp(session, email, otp, csrf):
     url = f"{BASE}/verify-quiz-otp/"
@@ -77,7 +77,10 @@ def verify_otp(session, email, otp, csrf):
         "content-type": "application/x-www-form-urlencoded"
     }
 
-    session.post(url, data=data, headers=headers)
+    r = session.post(url, data=data, headers=headers)
+
+    print("\n[+] OTP SEND STATUS:", r.status_code)
+    print("[+] OTP RESPONSE:", r.text)
 
     return "sessionid" in session.cookies.get_dict()
 # ---------------- VALIDATION ----------------
