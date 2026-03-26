@@ -21,7 +21,7 @@ def download_thumbnail(url):
                 f.write(response.content)
             return thumb_path
         return None
-    except Excpetion:
+    except Exception:
         return None
 
 # ---------------- SESSION ----------------
