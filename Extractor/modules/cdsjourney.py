@@ -52,7 +52,9 @@ def send_otp(session, email, csrf):
         "x-requested-with": "XMLHttpRequest",
         "referer": BASE,
         "origin": BASE,
-        "content-type": "application/x-www-form-urlencoded"
+        "content-type": "application/x-www-form-urlencoded",
+        "user-agent": "MOzilla/5.0",
+        "cookie": f"csrftoken={csrf}"
     }
 
     session.post(url, data=data, headers=headers)
@@ -260,6 +262,8 @@ async def cds_email_login(app, callback_query):
         await email_msg.delete()
     except:
         pass
+
+    session = create_session()
 
     # 🔑 csrf
     csrf = get_csrf(session)
