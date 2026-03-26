@@ -1,4 +1,3 @@
-import re
 import requests
 import os
 from bs4 import BeautifulSoup
@@ -28,7 +27,9 @@ def download_thumbnail(url):
 def create_session():
     s = requests.Session()
     s.headers.update({
-        "user-agent": "Mozilla/5.0"
+        "user-agent": "Mozilla/5.0",
+        "referer": BASE,
+        "origin": BASE
     })
     return s
 
@@ -36,7 +37,8 @@ def create_session():
 # ---------------- CSRF ----------------
 def get_csrf(session):
     session.get(BASE)
-    return session.cookies.get("csrftoken")
+    cookies = session.cookies.get_dict()
+    return cookies.get("csrftoken")
 
 
 # ---------------- LOGIN ----------------
@@ -50,9 +52,10 @@ def send_otp(session, email, csrf):
 
     headers = {
         "x-requested-with": "XMLHttpRequest",
-        "referer": BASE,
+        "referer": BASE + "/",
         "origin": BASE,
         "content-type": "application/x-www-form-urlencoded",
+        "cookie": f"csrftoken={csrf}"
     }
 
     r = session.post(url, data=data, headers=headers)
@@ -72,9 +75,10 @@ def verify_otp(session, email, otp, csrf):
 
     headers = {
         "x-requested-with": "XMLHttpRequest",
-        "referer": BASE,
+        "referer": BASE + "/",
         "origin": BASE,
-        "content-type": "application/x-www-form-urlencoded"
+        "content-type": "application/x-www-form-urlencoded",
+        "cookie": f"csrftoken={csrf}"
     }
 
     r = session.post(url, data=data, headers=headers)
