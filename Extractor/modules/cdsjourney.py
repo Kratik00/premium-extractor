@@ -42,19 +42,24 @@ def get_csrf(session):
 # ---------------- LOGIN ----------------
 def send_otp(session, email, csrf):
     url = f"{BASE}/login-or-register/"
+
     data = {
         "csrfmiddlewaretoken": csrf,
         "loginEmail": email
     }
+
     headers = {
         "x-requested-with": "XMLHttpRequest",
-        "referer": BASE
+        "referer": BASE,
+        "origin": BASE,
+        "content-type": "application/x-www-form-urlencoded"
     }
-    session.post(url, data=data, headers=headers)
 
+    session.post(url, data=data, headers=headers)
 
 def verify_otp(session, email, otp, csrf):
     url = f"{BASE}/verify-quiz-otp/"
+
     data = {
         "csrfmiddlewaretoken": csrf,
         "loginPhone2": email,
@@ -62,14 +67,17 @@ def verify_otp(session, email, otp, csrf):
         "first-name": "",
         "mobile": ""
     }
+
     headers = {
         "x-requested-with": "XMLHttpRequest",
-        "referer": BASE
+        "referer": BASE,
+        "origin": BASE,
+        "content-type": "application/x-www-form-urlencoded"
     }
+
     session.post(url, data=data, headers=headers)
+
     return "sessionid" in session.cookies.get_dict()
-
-
 # ---------------- VALIDATION ----------------
 def is_logged_in(session):
     try:
