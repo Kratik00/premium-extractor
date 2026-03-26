@@ -239,10 +239,10 @@ async def cds_session_login(app, callback_query):
 
     # ❌ invalid
     if not is_logged_in(session):
-        return await app.send_message("❌ <b>Invalid SessionID</b>")
+        return await app.send_message(chat_id, "❌ <b>Invalid SessionID</b>")
 
     # ✅ reuse SAME message (clean UI)
-    await app.send_message("✅ <b>Login Successful!</b>\n\nFetching batches...")
+    await app.send_message(chat_id, "✅ <b>Login Successful!</b>\n\nFetching batches...")
 
     # 🔥 pass same msg
     await show_batches(app, chat_id, session, sessionid, ask_msg)
