@@ -340,11 +340,19 @@ async def cds_batch_callback(app: Client, callback_query):
 
     # 🔥 session setup
     session = create_session()
-    session.cookies.set("sessionid", sessionid)
 
-    # 🔥 single progress message
-    msg = await app.send_message(chat_id, "⏳ Starting...")
+# ✅ set sessionid properly
+    session.cookies.set("sessionid", sessionid, domain=".cdsjourney.com")
 
+# 🔥 VERY IMPORTANT (THIS FIXES YOUR ISSUE)
+    session.get(BASE)
+
+# optional debug
+    print("Cookies:", session.cookies.get_dict())
+
+# ✅ validate
+    if not is_logged_in(session):
+        return await ask_msg.edit_text("❌ <b>Invalid SessionID</b>")
     # 🔥 delegate ALL work
     await process_batch(app, chat_id, session, batch_id, msg)
 
