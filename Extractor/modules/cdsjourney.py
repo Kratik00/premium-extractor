@@ -174,7 +174,7 @@ def get_videos(session, subject_id):
             if not btn:
                 continue
 
-            vid = re.search(r"loadVideo\('(\d+)'\)", btn["onclick"])
+            vid = re.search(r"loadVideo\((\d+)\)", btn["onclick"])
             if vid:
                 videos.append((title, vid.group(1)))
         except:
