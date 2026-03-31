@@ -1,5 +1,6 @@
 import requests
 import os
+import re
 from bs4 import BeautifulSoup
 from datetime import datetime
 from pyrogram import Client, filters
@@ -419,7 +420,7 @@ async def process_batch(app, chat_id, session, batch_id, msg):
             videos = get_videos(session, sid)
 
             for title, vid in videos:
-                url = get_video_url(session, vid)
+                url = get_video_url(session, vid, sid)
 
                 if url:
                     result.append(f"({sname}) {title}: {url}")
