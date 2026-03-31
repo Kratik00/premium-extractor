@@ -185,37 +185,43 @@ def get_videos(session, subject_id):
 
 # ---------------- VIDEO URL ----------------
 def get_video_url(session, vid, subject_id):
-    try:
-        headers = {
-            "user-agent": "Mozilla/5.0",
-            "referer": f"{BASE}/student-dashboard/subject/{subject_id}/",
-            "origin": BASE,
-            "x-requested-with": "XMLHttpRequest"
-        }
+    headers = {
+        "user-agent": "Mozilla/5.0",
+        "referer": f"{BASE}/student-dashboard/subject/{subject_id}/",
+        "origin": BASE,
+        "x-requested-with": "XMLHttpRequest"
+    }
 
-        # STEP 1
-        r1 = session.get(
-            f"{BASE}/get-recording-url/{vid}/",
-            headers=headers
-        ).json()
+    for real_vid in [int(vid), int(vid) + 1000]:  # 🔥 try both
+        try:
+            r1 = session.get(
+                f"{BASE}/get-recording-url/{real_vid}/",
+                headers=headers
+            )
 
-        proxy = BASE + r1["url"]
+            if r1.status_code != 200:
+                continue
 
-        # STEP 2
-        r2 = session.get(proxy, headers=headers).json()
+            data1 = r1.json()
+            if "url" not in data1:
+                continue
 
-        # 🔥 flexible return
-        return (
-            r2.get("url")
-            or r2.get("video_url")
-            or r2.get("playback_url")
-            or r2.get("join_url")
-        )
+            proxy = BASE + data1["url"]
 
-    except Exception as e:
-        print("ERROR:", e)
-        return None
+            r2 = session.get(proxy, headers=headers)
 
+            if "application/json" not in r2.headers.get("content-type", ""):
+                continue
+
+            data2 = r2.json()
+
+            if "url" in data2:
+                return data2["url"]
+
+        except:
+            continue
+
+    return None
 
 # ---------------- START CALLBACK ----------------
 @app.on_callback_query(filters.regex("^cds$"))
