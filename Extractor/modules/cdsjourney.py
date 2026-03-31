@@ -183,14 +183,36 @@ def get_videos(session, subject_id):
 
 
 # ---------------- VIDEO URL ----------------
-def get_video_url(session, vid):
+def get_video_url(session, vid, subject_id):
     try:
-        r1 = session.get(f"{BASE}/get-recording-url/{vid}/").json()
+        headers = {
+            "user-agent": "Mozilla/5.0",
+            "referer": f"{BASE}/student-dashboard/subject/{subject_id}/",
+            "origin": BASE,
+            "x-requested-with": "XMLHttpRequest"
+        }
+
+        # STEP 1
+        r1 = session.get(
+            f"{BASE}/get-recording-url/{vid}/",
+            headers=headers
+        ).json()
+
         proxy = BASE + r1["url"]
 
-        r2 = session.get(proxy).json()
-        return r2.get("url")
-    except:
+        # STEP 2
+        r2 = session.get(proxy, headers=headers).json()
+
+        # 🔥 flexible return
+        return (
+            r2.get("url")
+            or r2.get("video_url")
+            or r2.get("playback_url")
+            or r2.get("join_url")
+        )
+
+    except Exception as e:
+        print("ERROR:", e)
         return None
 
 
