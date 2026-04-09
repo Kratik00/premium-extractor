@@ -27,7 +27,7 @@ from Extractor.modules.getappxotp import send_otpp
 from Extractor.modules.findapi import findapis_extract
 from Extractor.modules.rg_vikramjeet import rgvikram_txt
 from Extractor.modules.adda import adda_command_handler
-        
+from Extractor.modules.qualityfree import *        
 from Extractor.modules.freecp import *
 from Extractor.modules.cdsjourney import *
 from Extractor.modules.yesofficerfree import *
@@ -109,7 +109,7 @@ custom_button = [[
                 ],[
                   InlineKeyboardButton("🚀 PINNACLE ", callback_data="pinnacle")
                 ],[
-                    InlineKeyboardButton("🌸 SACHIN ACADEMY", callback_data="sachinacademyfree"),
+                    InlineKeyboardButton("🌸 QUALITY EDUCATION", callback_data="qualitytext"),
                     InlineKeyboardButton("♕ EXAMTUNE", callback_data="quantezyfree")
                 ],[
                     InlineKeyboardButton("🌷 AGRI COACHING", callback_data="agrifree"),
