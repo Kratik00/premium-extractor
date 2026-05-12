@@ -118,9 +118,24 @@ def verify_otp(session, email, otp):
         print("\n[+] VERIFY STATUS:", r.status_code)
         print("[+] VERIFY RESPONSE:", r.text)
 
-        cookies = session.cookies.get_dict()
+        print("\n[+] COOKIES:")
+        print(session.cookies.get_dict())
 
-        return "sessionid" in cookies
+        try:
+
+            response_data = r.json()
+
+            print("\n[+] VERIFY JSON:")
+            print(response_data)
+
+            if "success" in response_data:
+                return True
+
+        except Exception as json_error:
+
+            print("JSON ERROR:", json_error)
+
+        return False
 
     except Exception as e:
 
@@ -137,6 +152,10 @@ def get_subjects(session, batch_id):
         url = f"{BASE}/api/batch-subject/{batch_id}/"
 
         r = session.get(url, timeout=20)
+
+        print("\n[+] SUBJECT STATUS:", r.status_code)
+        print("\n[+] SUBJECT RESPONSE:")
+        print(r.text)
 
         if r.status_code != 200:
             return []
@@ -159,6 +178,10 @@ def get_recordings(session, subject_id):
         url = f"{BASE}/api/recordings/{subject_id}/"
 
         r = session.get(url, timeout=20)
+
+        print("\n[+] RECORDING STATUS:", r.status_code)
+        print("\n[+] RECORDING RESPONSE:")
+        print(r.text)
 
         if r.status_code != 200:
             return []
@@ -247,7 +270,7 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
         "📧 Send your CDS Journey email:"
     )
 
-# ================= EMAIL HANDLER =================
+# ================= LOGIN + OTP =================
 
 @app.on_message(filters.text & filters.private)
 async def login_handler(client, message):
@@ -259,7 +282,7 @@ async def login_handler(client, message):
 
     data = LOGIN_SESSIONS[user_id]
 
-    # ================= EMAIL STEP =================
+    # ================= EMAIL =================
 
     if data["step"] == "email":
 
@@ -288,7 +311,7 @@ async def login_handler(client, message):
 
         return
 
-    # ================= OTP STEP =================
+    # ================= OTP =================
 
     if data["step"] == "otp":
 
@@ -316,10 +339,25 @@ async def login_handler(client, message):
             "⚡ Starting extraction..."
         )
 
+        # ================= DEBUG TEST =================
+
+        test = session.get(
+            f"{BASE}/api/batch-subject/{data['batch_id']}/"
+        )
+
+        print("\n[+] TEST STATUS:", test.status_code)
+        print("\n[+] TEST RESPONSE:")
+        print(test.text)
+
+        # ================= EXTRACTION =================
+
         course_title = data["course_title"]
         batch_id = data["batch_id"]
 
-        subjects = get_subjects(session, batch_id)
+        subjects = get_subjects(
+            session,
+            batch_id
+        )
 
         total_links = 0
         subject_count = 0
@@ -377,6 +415,10 @@ async def login_handler(client, message):
                 f"⚠️ No links found for:\n"
                 f"<code>{course_title}</code>"
             )
+
+            session.close()
+
+            del LOGIN_SESSIONS[user_id]
 
             return
 
