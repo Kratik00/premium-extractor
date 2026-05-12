@@ -14,76 +14,67 @@ from config import PREMIUM_LOGS
 # ---------------- GLOBAL SETTINGS ----------------
 LOG_CHANNEL = PREMIUM_LOGS
 HEADERS = {
-    "authority": "www.cdsjourney.com",
-    "method": "GET",
-    "scheme": "https",
-    "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+    "accept": "application/json",
     "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-    "cookie": "_gid=GA1.2.980171571.1761951418; _ga=GA1.2.1653714809.1760266297; _ga_8ZGD76QEP3=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; _ga_66NQGZ7KP9=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; csrftoken=8BdZImygCi5IilEl1fl8gtHcaUNDV30NFeuy8i3PEfVyqHHNp5LIjSPOtD3VWi0R; sessionid=lw2ryog1sxywl86xx6gozazfm2nqggma; AWSALB=ja/SNHhZ5w9SSNad5typfLrUzVSM1c4IZ1SNXp2+4u/ifK+1jDoSMv2L7XMwmR/oL0dQvGjqcD75hHnaNsBTmc5XH62COgeoxKq5PbaEvt213X3uAlr6weFpi5N0",
+    "accept-language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7,hi;q=0.6,pt;q=0.5,mr;q=0.4",
+    
+    "authorization": "Bearer YOUR_TOKEN",
+
+    "cache-control": "max-age=0",
+
+    "cookie": "_ga_66NQGZ7KP9=GS2.1.s1774946517$o6$g1$t1774951029$j46$l0$h0; _ga_8ZGD76QEP3=GS2.1.s1774946517$o6$g1$t1774951031$j44$l0$h0; _ga=GA1.1.143849368.1758642086; _ga_M6LMHSSMSF=GS2.1.s1774966216$o5$g1$t1774966216$j60$l0$h0; _ga_FQXYQFWSCS=GS2.1.s1774966216$o5$g1$t1774966216$j60$l0$h0; csrftoken=Qq2SCtr4bqPmTu8PzfzpZGvhxA5C4hpqYg9L2bUVysacNjeK0OI6Ynn2erAYYTh3; sessionid=51r64ellnbub4tp0ynt5suhd3401zp2c; AWSALB=6pABHq1w4jKW/gDwrObgEtecjZ1xHF+i1ZG0tqpMCm2NtiHdgnfuMi/0QXaFguuecNu91G+n9+oTQoBc/E4yrz0Of0CAUdtmk4siVM/beE/Qvn4wAMwUCIgNEGYB",
+
     "priority": "u=0, i",
+
     "referer": "https://www.cdsjourney.com/",
-    "sec-ch-ua": "\"Google Chrome\";v=\"141\", \"Not?A_Brand\";v=\"8\", \"Chromium\";v=\"141\"",
+
+    "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
     "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": "\"Windows\"",
+    "sec-ch-ua-platform": '"Windows"',
+
     "sec-fetch-dest": "document",
     "sec-fetch-mode": "navigate",
     "sec-fetch-site": "same-origin",
     "sec-fetch-user": "?1",
+
     "upgrade-insecure-requests": "1",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36"
 }
 
 COURSES = {
-    "course1": ("Bravo GAT batch (NDA 1 2026)", "https://www.cdsjourney.com/course-detail/bravo-gat-batch-nda-1-2026/"),
-    "course2": ("Bravo MATH batch (NDA 1 2026)", "https://www.cdsjourney.com/course-detail/bravo-math-batch-nda-1-2026/"),
-    "course3": ("Charlie Batch (AFCAT 1 2026)", "https://www.cdsjourney.com/course-detail/charlie-batch-afcat-1-2026/"),
-    "course4": ("CAPF Paper 1 + 2 Delta (2026)", "https://www.cdsjourney.com/course-detail/delta-capf-batch-capf-2026-paper-1-paper-2/"),
-    "course5": ("CAPF Paper 2 Delta (2026)", "https://www.cdsjourney.com/course-detail/delta-capf-batch-capf-2026-paper-2-exclusive/"),
-    "course6": ("Alpha OTA batch (CDS 1 2026)", "https://www.cdsjourney.com/course-detail/alpha-ota-batch-cds-1-2026/"),
-    "course7": ("Alpha MATH batch (CDS 1 2026)", "https://www.cdsjourney.com/course-detail/alpha-math-batch-cds-1-2026/"),
-    "course8": ("Echo Batch (AFCAT 2 2026)", "https://www.cdsjourney.com/course-detail/echo-batch-afcat-2-2026/"),
-    "course9": ("Golf SSB Batch", "https://www.cdsjourney.com/course-detail/golf-ssb-batch/"),
-    "coursea": ("YANKEE BATCH (AFCAT 2 2025)", "https://www.cdsjourney.com/course-detail/yankee-batch-afcat-2-2025/"),
-    "courseb": ("X-RAY BATCH (NDA 2 2025)", "https://www.cdsjourney.com/course-detail/xray-batch-nda-2-2025/"),
-    "coursec": ("ZULU BATCH (CDS 2 2025)", "https://www.cdsjourney.com/course-detail/zulu-ota-batch-cds-2-2025/")
+    "course1": ("Bravo GAT batch (NDA 1 2026)", 45),
+    "course2": ("Bravo MATH batch (NDA 1 2026)", 46),
 }
 
 # ---------------- SCRAPING UTILS ----------------
-def get_subject_ids(url):
-    """Extract subject IDs from a course page"""
+def get_subjects(batch_id):
+    """Fetch subjects using API"""
+
+    url = f"https://www.cdsjourney.com/api/batch-subject/{batch_id}/"
+
     r = requests.get(url, headers=HEADERS)
-    soup = BeautifulSoup(r.content, "html.parser")
-    ids = set()
-    for a in soup.find_all("a", href=True):
-        m = re.search(r"/student-dashboard/subject/(\d+)/", a["href"])
-        if m:
-            ids.add(m.group(1))
-    return list(ids)
 
-def scrape_subject(subject_id):
-    """Extract lessons and links from a subject"""
-    url = f"https://www.cdsjourney.com/student-dashboard/subject/{subject_id}/"
+    if r.status_code != 200:
+        return []
+
+    data = r.json()
+
+    return data.get("list", [])
+
+def get_recordings(subject_id):
+    """Fetch recordings using API"""
+
+    url = f"https://www.cdsjourney.com/api/recordings/{subject_id}/"
+
     r = requests.get(url, headers=HEADERS)
-    soup = BeautifulSoup(r.content, "html.parser")
 
-    subject_name = soup.select_one("h3.card-title")
-    subject_name = subject_name.get_text(strip=True) if subject_name else f"Subject {subject_id}"
+    if r.status_code != 200:
+        return []
 
-    titles = []
-    for p in soup.select('.card-header p'):
-        t = re.sub(r"^\d+\.\s*", "", p.get_text(strip=True))
-        if t:
-            titles.append(t)
+    data = r.json()
 
-    zoom_links = re.findall(r"if\s*\(videoId === '(\d+)'\).*?zoomLink\s*=\s*'(.*?)'", r.text, re.S)
-
-    lessons = []
-    for i, t in enumerate(titles, 1):
-        link = next((l for vid, l in zoom_links if int(vid) == i), None)
-        lessons.append((t, link))
-
-    return subject_name, lessons
+    return data.get("recordings", [])
 
 # ---------------- CALLBACKS ----------------
 @app.on_callback_query(filters.regex("^cdsjourney_$"))
@@ -135,21 +126,29 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
         await callback_query.answer("❌ Invalid course!", show_alert=True)
         return
 
-    course_title, course_url = COURSES[data]
+    course_title, batch_id = COURSES[data]
     await callback_query.answer("⏳ Extracting... please wait")
 
     # Scrape the course
-    subject_ids = get_subject_ids(course_url)
+    subjects = get_subjects(batch_id)
     total_links = 0
     file_name = f"{course_title}.txt"
 
     with open(file_name, "w", encoding="utf-8") as f:
-        for sid in subject_ids:
-            subject, lessons = scrape_subject(sid)
-            for title, link in lessons:
-                f.write(f"{title}: {link or 'NO LINK FOUND'}\n")
-                total_links += 1
+        for subject_data in subjects:
 
+            subject_id = subject_data["id"]
+            subject_name = subject_data["subject"]["name"]
+
+            recordings = get_recordings(subject_id)
+            for rec in recordings:
+
+                title = rec.get("title", "Untitled")
+                link = rec.get("file_url", "NO LINK")
+
+                f.write(f"{title}: {link}\n")
+
+                total_links += 1
     if total_links == 0 or os.path.getsize(file_name) == 0:
         os.remove(file_name)
         await callback_query.message.edit_text(
