@@ -14,21 +14,30 @@ from config import PREMIUM_LOGS
 
 LOG_CHANNEL = PREMIUM_LOGS
 
-BASE = "https://www.cdsjourney.com"
-
 HEADERS = {
     "accept": "application/json",
-    "user-agent": "Mozilla/5.0"
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgzNzkzODEyLCJpYXQiOjE3Nzg2MDk4MTIsImp0aSI6IjczY2E0MDUzMzM3YzQ3Y2E5MzE4NjdmYzQwMjQ5MjFlIiwidXNlcl9pZCI6NDg4MzU2fQ.osCffVxx2sQA8seyRaIu8I4cH4Llxo1mHTTpLt5l5Tw",
+    "cookie": "_gid=GA1.2.980171571.1761951418; _ga=GA1.2.1653714809.1760266297; _ga_8ZGD76QEP3=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; _ga_66NQGZ7KP9=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; csrftoken=8BdZImygCi5IilEl1fl8gtHcaUNDV30NFeuy8i3PEfVyqHHNp5LIjSPOtD3VWi0R; sessionid=lw2ryog1sxywl86xx6gozazfm2nqggma; AWSALB=ja/SNHhZ5w9SSNad5typfLrUzVSM1c4IZ1SNXp2+4u/ifK+1jDoSMv2L7XMwmR/oL0dQvGjqcD75hHnaNsBTmc5XH62COgeoxKq5PbaEvt213X3uAlr6weFpi5N0",
+    "host": "www.cdsjourney.com",
+    "priority": "u=0, i",
+    "referer": "https://www.cdsjourney.com/",
+    "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "sec-fetch-dest": "document",
+    "sec-fetch-mode": "navigate",
+    "sec-fetch-site": "same-origin",
+    "sec-fetch-user": "?1",
+    "upgrade-insecure-requests": "1",
+    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
 }
 
 COURSES = {
     "course1": ("Bravo GAT batch (NDA 1 2026)", 45),
     "course2": ("Bravo MATH batch (NDA 1 2026)", 46),
 }
-
-# ================= TEMP STORAGE =================
-
-LOGIN_SESSIONS = {}
 
 # ================= SESSION =================
 
@@ -38,118 +47,15 @@ def create_session():
 
     session.headers.update(HEADERS)
 
-    session.get(BASE, timeout=20)
-
     return session
 
-# ================= LOGIN =================
-
-def send_otp(session, email):
-
-    try:
-
-        url = f"{BASE}/login-or-register/"
-
-        csrf = session.cookies.get("csrftoken")
-
-        data = {
-            "csrfmiddlewaretoken": csrf,
-            "loginEmail": email
-        }
-
-        headers = {
-            "x-requested-with": "XMLHttpRequest",
-            "referer": BASE + "/",
-            "origin": BASE,
-            "content-type": "application/x-www-form-urlencoded",
-            "user-agent": "Mozilla/5.0"
-        }
-
-        r = session.post(
-            url,
-            data=data,
-            headers=headers,
-            timeout=20
-        )
-
-        print("\n[+] OTP SEND STATUS:", r.status_code)
-        print("[+] OTP RESPONSE:", r.text)
-
-        return r.status_code == 200
-
-    except Exception as e:
-
-        print(f"OTP SEND ERROR: {e}")
-
-        return False
-
-
-def verify_otp(session, email, otp):
-
-    try:
-
-        url = f"{BASE}/verify-quiz-otp/"
-
-        csrf = session.cookies.get("csrftoken")
-
-        data = {
-            "csrfmiddlewaretoken": csrf,
-            "loginPhone2": email,
-            "sent-OTP": otp,
-            "first-name": "",
-            "mobile": ""
-        }
-
-        headers = {
-            "x-requested-with": "XMLHttpRequest",
-            "referer": BASE + "/",
-            "origin": BASE,
-            "content-type": "application/x-www-form-urlencoded",
-            "user-agent": "Mozilla/5.0"
-        }
-
-        r = session.post(
-            url,
-            data=data,
-            headers=headers,
-            timeout=20
-        )
-
-        print("\n[+] VERIFY STATUS:", r.status_code)
-        print("[+] VERIFY RESPONSE:", r.text)
-
-        print("\n[+] COOKIES:")
-        print(session.cookies.get_dict())
-
-        try:
-
-            response_data = r.json()
-
-            print("\n[+] VERIFY JSON:")
-            print(response_data)
-
-            if "success" in response_data:
-                return True
-
-        except Exception as json_error:
-
-            print("JSON ERROR:", json_error)
-
-        return False
-
-    except Exception as e:
-
-        print(f"OTP VERIFY ERROR: {e}")
-
-        return False
-
-# ================= API =================
+# ================= GET SUBJECTS =================
 
 def get_subjects(session, batch_id):
 
     try:
 
-        url = f"{BASE}/api/batch-subject/{batch_id}/"
+        url = f"https://www.cdsjourney.com/api/batch-subject/{batch_id}/"
 
         r = session.get(url, timeout=20)
 
@@ -170,12 +76,13 @@ def get_subjects(session, batch_id):
 
         return []
 
+# ================= GET RECORDINGS =================
 
 def get_recordings(session, subject_id):
 
     try:
 
-        url = f"{BASE}/api/recordings/{subject_id}/"
+        url = f"https://www.cdsjourney.com/api/recordings/{subject_id}/"
 
         r = session.get(url, timeout=20)
 
@@ -210,9 +117,7 @@ async def cdsjourney_callback(client, callback_query):
 
         await callback_query.message.reply_text(
             "🔒 <b>Premium Feature Locked!</b>\n\n"
-            "You don’t have access to use this feature yet.\n"
-            "💎 <b>Contact:</b> "
-            "<a href='https://t.me/URS_LUCIFER'>LUCIFER</a>",
+            "💎 Contact Admin to upgrade.",
             reply_markup=InlineKeyboardMarkup(
                 [
                     [
@@ -260,212 +165,118 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
 
     course_title, batch_id = COURSES[data]
 
-    LOGIN_SESSIONS[callback_query.from_user.id] = {
-        "course_title": course_title,
-        "batch_id": batch_id,
-        "step": "email"
-    }
-
-    await callback_query.message.reply_text(
-        "📧 Send your CDS Journey email:"
+    await callback_query.answer(
+        "⏳ Extracting... please wait"
     )
 
-# ================= LOGIN + OTP =================
+    session = create_session()
 
-@app.on_message(filters.text & filters.private)
-async def login_handler(client, message):
+    subjects = get_subjects(
+        session,
+        batch_id
+    )
 
-    user_id = message.from_user.id
+    total_links = 0
+    subject_count = 0
 
-    if user_id not in LOGIN_SESSIONS:
-        return
+    safe_name = course_title.replace("/", "_")
 
-    data = LOGIN_SESSIONS[user_id]
+    file_name = f"{safe_name}.txt"
 
-    # ================= EMAIL =================
+    with open(file_name, "w", encoding="utf-8") as f:
 
-    if data["step"] == "email":
+        for subject_data in subjects:
 
-        email = message.text.strip()
+            time.sleep(1)
 
-        session = create_session()
+            subject_count += 1
 
-        ok = send_otp(session, email)
+            subject_id = subject_data["id"]
 
-        if not ok:
+            subject_name = subject_data["subject"]["name"]
 
-            await message.reply_text(
-                "❌ Failed to send OTP"
+            recordings = get_recordings(
+                session,
+                subject_id
             )
 
-            return
-
-        LOGIN_SESSIONS[user_id]["email"] = email
-        LOGIN_SESSIONS[user_id]["session"] = session
-        LOGIN_SESSIONS[user_id]["step"] = "otp"
-
-        await message.reply_text(
-            "📩 OTP sent successfully.\n\n"
-            "Now send the OTP:"
-        )
-
-        return
-
-    # ================= OTP =================
-
-    if data["step"] == "otp":
-
-        otp = message.text.strip()
-
-        session = data["session"]
-        email = data["email"]
-
-        verified = verify_otp(
-            session,
-            email,
-            otp
-        )
-
-        if not verified:
-
-            await message.reply_text(
-                "❌ Invalid OTP"
+            f.write(
+                f"\n========== {subject_name} ==========\n\n"
             )
 
-            return
+            for rec in recordings:
 
-        await message.reply_text(
-            "✅ Login successful\n\n"
-            "⚡ Starting extraction..."
-        )
+                title = rec.get(
+                    "title",
+                    "Untitled"
+                ).strip()
 
-        # ================= DEBUG TEST =================
-
-        test = session.get(
-            f"{BASE}/api/batch-subject/{data['batch_id']}/"
-        )
-
-        print("\n[+] TEST STATUS:", test.status_code)
-        print("\n[+] TEST RESPONSE:")
-        print(test.text)
-
-        # ================= EXTRACTION =================
-
-        course_title = data["course_title"]
-        batch_id = data["batch_id"]
-
-        subjects = get_subjects(
-            session,
-            batch_id
-        )
-
-        total_links = 0
-        subject_count = 0
-
-        safe_name = course_title.replace("/", "_")
-
-        file_name = f"{safe_name}_{user_id}.txt"
-
-        with open(file_name, "w", encoding="utf-8") as f:
-
-            for subject_data in subjects:
-
-                time.sleep(1)
-
-                subject_count += 1
-
-                subject_id = subject_data["id"]
-
-                subject_name = subject_data["subject"]["name"]
-
-                recordings = get_recordings(
-                    session,
-                    subject_id
-                )
+                link = rec.get(
+                    "file_url",
+                    "NO LINK"
+                ).strip()
 
                 f.write(
-                    f"\n========== {subject_name} ==========\n\n"
+                    f"{title} : {link}\n"
                 )
 
-                for rec in recordings:
+                total_links += 1
 
-                    title = rec.get(
-                        "title",
-                        "Untitled"
-                    ).strip()
+    # ================= EMPTY CHECK =================
 
-                    link = rec.get(
-                        "file_url",
-                        "NO LINK"
-                    ).strip()
-
-                    f.write(
-                        f"{title} : {link}\n"
-                    )
-
-                    total_links += 1
-
-        # ================= EMPTY CHECK =================
-
-        if total_links == 0 or os.path.getsize(file_name) == 0:
-
-            os.remove(file_name)
-
-            await message.reply_text(
-                f"⚠️ No links found for:\n"
-                f"<code>{course_title}</code>"
-            )
-
-            session.close()
-
-            del LOGIN_SESSIONS[user_id]
-
-            return
-
-        # ================= CAPTION =================
-
-        caption = (
-            f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
-            f"📦 <b>Platform:</b> CDS Journey\n"
-            f"📚 <b>Course:</b> "
-            f"<code>{course_title}</code>\n"
-            f"📖 <b>Total Subjects:</b> "
-            f"{subject_count}\n"
-            f"🔗 <b>Total Links:</b> "
-            f"{total_links}\n"
-            f"🕒 <b>Extracted:</b> "
-            f"{datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
-            f"╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-            f"<b>👑 Maintained by:</b> "
-            f"<a href='https://t.me/URS_LUCIFER'>Lucifer</a>"
-        )
-
-        # ================= SEND USER =================
-
-        await client.send_document(
-            chat_id=message.chat.id,
-            document=file_name,
-            caption=caption
-        )
-
-        # ================= SEND LOG =================
-
-        try:
-
-            await client.send_document(
-                chat_id=LOG_CHANNEL,
-                document=file_name,
-                caption=f"📡 CDS Journey Extract\n\n{caption}"
-            )
-
-        except Exception as e:
-
-            print(f"LOG ERROR: {e}")
-
-        # ================= CLEANUP =================
-
-        session.close()
+    if total_links == 0 or os.path.getsize(file_name) == 0:
 
         os.remove(file_name)
 
-        del LOGIN_SESSIONS[user_id]
+        await callback_query.message.reply_text(
+            f"⚠️ No links found for:\n"
+            f"<code>{course_title}</code>"
+        )
+
+        return
+
+    # ================= CAPTION =================
+
+    caption = (
+        f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
+        f"📦 <b>Platform:</b> CDS Journey\n"
+        f"📚 <b>Course:</b> "
+        f"<code>{course_title}</code>\n"
+        f"📖 <b>Total Subjects:</b> "
+        f"{subject_count}\n"
+        f"🔗 <b>Total Links:</b> "
+        f"{total_links}\n"
+        f"🕒 <b>Extracted:</b> "
+        f"{datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
+        f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
+    )
+
+    # ================= SEND USER =================
+
+    await app.send_document(
+        chat_id=callback_query.message.chat.id,
+        document=file_name,
+        caption=caption
+    )
+
+    # ================= SEND LOG =================
+
+    try:
+
+        await app.send_document(
+            chat_id=LOG_CHANNEL,
+            document=file_name,
+            caption=f"📡 CDS Journey Extract\n\n{caption}"
+        )
+
+    except Exception as e:
+
+        print(f"LOG ERROR: {e}")
+
+    # ================= CLEANUP =================
+
+    session.close()
+
+    os.remove(file_name)
+
+    await callback_query.message.delete()
