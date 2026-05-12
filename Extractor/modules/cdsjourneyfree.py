@@ -37,6 +37,8 @@ HEADERS = {
 COURSES = {
     "course1": ("Bravo GAT batch (NDA 1 2026)", 45),
     "course2": ("Bravo MATH batch (NDA 1 2026)", 46),
+    "course3": ("Bravo MATH batch (NDA 1 2026)", 47),
+
 }
 
 # ================= SESSION =================
