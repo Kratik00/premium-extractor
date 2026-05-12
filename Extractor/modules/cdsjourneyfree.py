@@ -35,8 +35,13 @@ HEADERS = {
 }
 
 COURSES = {
-    "course1": ("Bravo GAT batch (NDA 1 2026)", 39),
-    "course2": ("Bravo MATH batch (NDA 1 2026)", 47),
+    "course1": ("GOLF OTA BATCH (CDS-2 2026)", 44),
+    "course2": ("GOLF MATH BATCH (CDS-2 2026)", 46),
+    "course3": ("HOTEL BATCH (NDA-2 2026)", 45),
+    "course4": ("FOXTROT BATCH (AFCAT 2 2026)", 47),
+    "course5": ("ECHO BATCH (AFCAT 2 2026)", 43),
+    "course6": ("CAPF Paper 1 + Paper 2 Delta batch (CAPF 2026)", 39),
+    "course7": ("CAPF Paper 2 Delta batch (CAPF 2026)", 40),
 }
 
 # ================= SESSION =================
@@ -200,10 +205,6 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
                 subject_id
             )
 
-            f.write(
-                f"\n========== {subject_name} ==========\n\n"
-            )
-
             for rec in recordings:
 
                 title = rec.get(
@@ -217,7 +218,7 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
                 ).strip()
 
                 f.write(
-                    f"{title} : {link}\n"
+                    f"[{subject_name}]{title}: {link}\n"
                 )
 
                 total_links += 1
