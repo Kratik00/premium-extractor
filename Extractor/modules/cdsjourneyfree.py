@@ -35,7 +35,7 @@ HEADERS = {
 }
 
 COURSES = {
-    "course1": ("Bravo GAT batch (NDA 1 2026)", 45),
+    "course1": ("Bravo GAT batch (NDA 1 2026)", 39),
     "course2": ("Bravo MATH batch (NDA 1 2026)", 47),
 }
 
