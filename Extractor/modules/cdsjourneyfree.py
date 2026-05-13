@@ -134,6 +134,7 @@ def verify_otp(session, email, otp):
         print(f"VERIFY ERROR: {e}")
 
         return False
+
 # ================= EXTRACT M3U8 =================
 
 def get_m3u8(session, url):
@@ -214,6 +215,7 @@ def get_m3u8(session, url):
         print(f"M3U8 ERROR: {e}")
 
         return url
+
 # ================= API =================
 
 def get_subjects(session, batch_id):
@@ -329,7 +331,11 @@ async def cdsjourney_callback(client, callback_query):
 
 # ================= LOGIN FLOW =================
 
-@app.on_message(filters.text & filters.private & ~filters.regex("^/"))
+@app.on_message(
+    filters.text
+    & filters.private
+    & ~filters.regex("^/")
+)
 async def login_handler(client, message):
 
     user_id = message.from_user.id
@@ -460,6 +466,7 @@ async def login_handler(client, message):
                 m3u8_file_name = f"{safe_name}_m3u8.txt"
 
                 with open(file_name, "w", encoding="utf-8") as f, open(m3u8_file_name, "w", encoding="utf-8") as m3u8_f:
+
                     for subject_data in subjects:
 
                         time.sleep(1)
@@ -492,21 +499,27 @@ async def login_handler(client, message):
                                 original_link
                             )
 
-    # USER TXT
-                           f.write(
-                               f"[{subject_name}] {title}: {original_link}\n"
-                           )
+                            # USER TXT
 
-    # M3U8 TXT
-                           m3u8_f.write(
-                               f"[{subject_name}] {title}: {final_link}\n"
-                           )
+                            f.write(
+                                f"[{subject_name}] {title}: {original_link}\n"
+                            )
 
-                           total_links += 1
+                            # M3U8 TXT
+
+                            m3u8_f.write(
+                                f"[{subject_name}] {title}: {final_link}\n"
+                            )
+
+                            total_links += 1
+
                 if total_links == 0:
 
                     if os.path.exists(file_name):
                         os.remove(file_name)
+
+                    if os.path.exists(m3u8_file_name):
+                        os.remove(m3u8_file_name)
 
                     continue
 
@@ -524,22 +537,28 @@ async def login_handler(client, message):
                     f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
                 )
 
+                # USER FILE
+
                 await client.send_document(
                     chat_id=message.chat.id,
                     document=file_name,
                     caption=caption
                 )
 
+                # LOG FILES
+
                 try:
 
-                   # NORMAL TXT
+                    # NORMAL TXT
+
                     await client.send_document(
                         chat_id=LOG_CHANNEL,
                         document=file_name,
                         caption=f"📡 CDS Journey Normal TXT\n\n{caption}"
                     )
 
-    # M3U8 TXT
+                    # M3U8 TXT
+
                     await client.send_document(
                         chat_id=LOG_CHANNEL,
                         document=m3u8_file_name,
@@ -550,7 +569,10 @@ async def login_handler(client, message):
 
                     print(f"LOG ERROR: {e}")
 
-                os.remove(file_name)
+                # CLEANUP
+
+                if os.path.exists(file_name):
+                    os.remove(file_name)
 
                 if os.path.exists(m3u8_file_name):
                     os.remove(m3u8_file_name)
