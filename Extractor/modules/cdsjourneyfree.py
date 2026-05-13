@@ -16,6 +16,7 @@ LOG_CHANNEL = PREMIUM_LOGS
 
 HEADERS = {
     "accept": "application/json",
+    "accept-encoding": "gzip",
     "user-agent": "Dart/3.10 (dart:io)"
 }
 
@@ -184,20 +185,20 @@ def get_recordings(session, subject_id):
 
 async def show_courses(message):
 
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                f"📘 {name}",
-                callback_data=f"cds_batch_{cid}"
-            )
-        ]
-        for cid, (name, _) in COURSES.items()
-    ]
+    text = "📚 <b>CDS Journey Courses</b>\n\n"
 
-    await message.reply_text(
-        "💠 <b>Select a Course:</b>",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+    for i, (_, data) in enumerate(COURSES.items(), start=1):
+
+        text += f"<b>{i}.</b> {data[0]}\n"
+
+    text += (
+        "\n━━━━━━━━━━━━━━\n"
+        "📥 Send indexes separated with <code>&</code>\n\n"
+        "Example:\n"
+        "<code>1&3&5</code>"
     )
+
+    await message.reply_text(text)
 
 # ================= MAIN BUTTON =================
 
@@ -229,8 +230,6 @@ async def cdsjourney_callback(client, callback_query):
         )
 
         return
-
-    # Already logged in
 
     if user_id in LOGIN_SESSIONS and LOGIN_SESSIONS[user_id].get("logged_in"):
 
@@ -310,6 +309,7 @@ async def login_handler(client, message):
             return
 
         LOGIN_SESSIONS[user_id]["logged_in"] = True
+        LOGIN_SESSIONS[user_id]["step"] = "select"
 
         await message.reply_text(
             "✅ Login successful"
@@ -317,136 +317,156 @@ async def login_handler(client, message):
 
         await show_courses(message)
 
-# ================= COURSE SELECT =================
-
-@app.on_callback_query(filters.regex("^cds_batch_"))
-async def cdsjourney_batch_callback(app: Client, callback_query):
-
-    user_id = callback_query.from_user.id
-
-    if user_id not in LOGIN_SESSIONS:
-
-        await callback_query.answer(
-            "❌ Login expired",
-            show_alert=True
-        )
-
         return
 
-    session = LOGIN_SESSIONS[user_id]["session"]
+    # ================= COURSE SELECT =================
 
-    data = callback_query.data.replace("cds_batch_", "")
+    if data["step"] == "select":
 
-    if data not in COURSES:
+        raw = message.text.strip()
 
-        await callback_query.answer(
-            "❌ Invalid course!",
-            show_alert=True
+        if "&" not in raw and not raw.isdigit():
+            return
+
+        processing = await message.reply_text(
+            "⚡ Processing your request..."
         )
 
-        return
+        indexes = raw.split("&")
 
-    course_title, batch_id = COURSES[data]
+        session = data["session"]
 
-    await callback_query.answer(
-        "⏳ Extracting... please wait"
-    )
+        selected = []
 
-    subjects = get_subjects(
-        session,
-        batch_id
-    )
+        for x in indexes:
 
-    total_links = 0
-    subject_count = 0
+            try:
 
-    safe_name = course_title.replace("/", "_")
+                idx = int(x.strip())
 
-    file_name = f"{safe_name}.txt"
+                key = list(COURSES.keys())[idx - 1]
 
-    with open(file_name, "w", encoding="utf-8") as f:
+                selected.append(COURSES[key])
 
-        for subject_data in subjects:
+            except:
+                pass
 
-            time.sleep(1)
+        if not selected:
 
-            subject_count += 1
-
-            subject_id = subject_data["id"]
-
-            subject_name = subject_data["subject"]["name"]
-
-            recordings = get_recordings(
-                session,
-                subject_id
+            await processing.edit_text(
+                "❌ Invalid indexes"
             )
 
-            for rec in recordings:
+            return
 
-                title = rec.get(
-                    "title",
-                    "Untitled"
-                ).strip()
+        for course_title, batch_id in selected:
 
-                link = rec.get(
-                    "file_url",
-                    "NO LINK"
-                ).strip()
+            try:
 
-                f.write(
-                    f"[{subject_name}] {title}: {link}\n"
+                subjects = get_subjects(
+                    session,
+                    batch_id
                 )
 
-                total_links += 1
+                total_links = 0
+                subject_count = 0
 
-    # ================= EMPTY CHECK =================
+                safe_name = course_title.replace("/", "_")
 
-    if total_links == 0 or os.path.getsize(file_name) == 0:
+                file_name = f"{safe_name}.txt"
 
-        os.remove(file_name)
+                with open(file_name, "w", encoding="utf-8") as f:
 
-        await callback_query.message.reply_text(
-            f"⚠️ No links found for:\n"
-            f"<code>{course_title}</code>"
-        )
+                    for subject_data in subjects:
 
-        return
+                        time.sleep(1)
 
-    # ================= CAPTION =================
+                        subject_count += 1
 
-    caption = (
-        f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
-        f"📦 <b>Platform:</b> CDS Journey\n"
-        f"📚 <b>Course:</b> <code>{course_title}</code>\n"
-        f"📖 <b>Total Subjects:</b> {subject_count}\n"
-        f"🔗 <b>Total Links:</b> {total_links}\n"
-        f"🕒 <b>Extracted:</b> "
-        f"{datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
-        f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
-    )
+                        subject_id = subject_data["id"]
 
-    # ================= SEND USER =================
+                        subject_name = subject_data["subject"]["name"]
 
-    await app.send_document(
-        chat_id=callback_query.message.chat.id,
-        document=file_name,
-        caption=caption
-    )
+                        recordings = get_recordings(
+                            session,
+                            subject_id
+                        )
 
-    # ================= SEND LOG =================
+                        for rec in recordings:
 
-    try:
+                            title = rec.get(
+                                "title",
+                                "Untitled"
+                            ).strip()
 
-        await app.send_document(
-            chat_id=LOG_CHANNEL,
-            document=file_name,
-            caption=f"📡 CDS Journey Extract\n\n{caption}"
-        )
+                            link = rec.get(
+                                "file_url",
+                                "NO LINK"
+                            ).strip()
 
-    except Exception as e:
+                            f.write(
+                                f"[{subject_name}] {title}: {link}\n"
+                            )
 
-        print(f"LOG ERROR: {e}")
+                            total_links += 1
 
-    # ================= CLEANUP =================
+                if total_links == 0:
 
-    os.remove(file_name)
+                    if os.path.exists(file_name):
+                        os.remove(file_name)
+
+                    continue
+
+                caption = (
+                    f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
+                    f"📦 <b>Platform:</b> CDS Journey\n"
+                    f"📚 <b>Course:</b> "
+                    f"<code>{course_title}</code>\n"
+                    f"📖 <b>Total Subjects:</b> "
+                    f"{subject_count}\n"
+                    f"🔗 <b>Total Links:</b> "
+                    f"{total_links}\n"
+                    f"🕒 <b>Extracted:</b> "
+                    f"{datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
+                    f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
+                )
+
+                await client.send_document(
+                    chat_id=message.chat.id,
+                    document=file_name,
+                    caption=caption
+                )
+
+                try:
+
+                    await client.send_document(
+                        chat_id=LOG_CHANNEL,
+                        document=file_name,
+                        caption=f"📡 CDS Journey Extract\n\n{caption}"
+                    )
+
+                except Exception as e:
+
+                    print(f"LOG ERROR: {e}")
+
+                os.remove(file_name)
+
+            except Exception as e:
+
+                print(f"EXTRACTION ERROR: {e}")
+
+                await message.reply_text(
+                    f"❌ Failed extracting:\n"
+                    f"<code>{course_title}</code>"
+                )
+
+        session.close()
+
+        del LOGIN_SESSIONS[user_id]
+
+        await processing.delete()
+
+        try:
+            await message.delete()
+        except:
+            pass
