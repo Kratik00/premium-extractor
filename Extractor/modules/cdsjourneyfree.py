@@ -247,7 +247,7 @@ async def cdsjourney_callback(client, callback_query):
 
 # ================= LOGIN FLOW =================
 
-@app.on_message(filters.text & filters.private)
+@app.on_message(filters.text & filters.private & ~filters.regex("^/"))
 async def login_handler(client, message):
 
     user_id = message.from_user.id
