@@ -16,22 +16,7 @@ LOG_CHANNEL = PREMIUM_LOGS
 
 HEADERS = {
     "accept": "application/json",
-    "accept-encoding": "gzip, deflate, br, zstd",
-    "accept-language": "en-GB,en-US;q=0.9,en;q=0.8",
-    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzgzNzkzODEyLCJpYXQiOjE3Nzg2MDk4MTIsImp0aSI6IjczY2E0MDUzMzM3YzQ3Y2E5MzE4NjdmYzQwMjQ5MjFlIiwidXNlcl9pZCI6NDg4MzU2fQ.osCffVxx2sQA8seyRaIu8I4cH4Llxo1mHTTpLt5l5Tw",
-    "cookie": "_gid=GA1.2.980171571.1761951418; _ga=GA1.2.1653714809.1760266297; _ga_8ZGD76QEP3=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; _ga_66NQGZ7KP9=GS2.1.s1761951417$o5$g1$t1761953478$j60$l0$h0; csrftoken=8BdZImygCi5IilEl1fl8gtHcaUNDV30NFeuy8i3PEfVyqHHNp5LIjSPOtD3VWi0R; sessionid=lw2ryog1sxywl86xx6gozazfm2nqggma; AWSALB=ja/SNHhZ5w9SSNad5typfLrUzVSM1c4IZ1SNXp2+4u/ifK+1jDoSMv2L7XMwmR/oL0dQvGjqcD75hHnaNsBTmc5XH62COgeoxKq5PbaEvt213X3uAlr6weFpi5N0",
-    "host": "www.cdsjourney.com",
-    "priority": "u=0, i",
-    "referer": "https://www.cdsjourney.com/",
-    "sec-ch-ua": '"Google Chrome";v="141", "Not?A_Brand";v="8", "Chromium";v="141"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Windows"',
-    "sec-fetch-dest": "document",
-    "sec-fetch-mode": "navigate",
-    "sec-fetch-site": "same-origin",
-    "sec-fetch-user": "?1",
-    "upgrade-insecure-requests": "1",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36"
+    "user-agent": "Dart/3.10 (dart:io)"
 }
 
 COURSES = {
@@ -44,6 +29,8 @@ COURSES = {
     "course7": ("CAPF Paper 2 Delta batch (CAPF 2026)", 40),
 }
 
+LOGIN_SESSIONS = {}
+
 # ================= SESSION =================
 
 def create_session():
@@ -54,7 +41,97 @@ def create_session():
 
     return session
 
-# ================= GET SUBJECTS =================
+# ================= LOGIN =================
+
+def send_otp(session, email):
+
+    try:
+
+        url = "https://www.cdsjourney.com/api/login_or_register/"
+
+        payload = {
+            "email": email
+        }
+
+        headers = {
+            "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+            "user-agent": "Dart/3.10 (dart:io)",
+            "accept-encoding": "gzip"
+        }
+
+        r = session.post(
+            url,
+            data=payload,
+            headers=headers,
+            timeout=20
+        )
+
+        print("\n[+] OTP SEND STATUS:", r.status_code)
+        print("[+] OTP RESPONSE:", r.text)
+
+        return r.status_code == 200
+
+    except Exception as e:
+
+        print(f"OTP SEND ERROR: {e}")
+
+        return False
+
+
+def verify_otp(session, email, otp):
+
+    try:
+
+        url = "https://www.cdsjourney.com/api/verify_otp/"
+
+        payload = {
+            "email": email,
+            "otp": otp,
+            "first-name": "User",
+            "mobile": "9999999999"
+        }
+
+        headers = {
+            "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+            "user-agent": "Dart/3.10 (dart:io)",
+            "accept-encoding": "gzip"
+        }
+
+        r = session.post(
+            url,
+            data=payload,
+            headers=headers,
+            timeout=20
+        )
+
+        print("\n[+] VERIFY STATUS:", r.status_code)
+        print("[+] VERIFY RESPONSE:", r.text)
+
+        if r.status_code != 200:
+            return False
+
+        data = r.json()
+
+        access_token = data.get("access_token")
+
+        if not access_token:
+            return False
+
+        session.headers.update({
+            "authorization": f"Bearer {access_token}"
+        })
+
+        print("\n[+] JWT TOKEN LOADED")
+
+        return True
+
+    except Exception as e:
+
+        print(f"VERIFY ERROR: {e}")
+
+        return False
+
+# ================= API =================
 
 def get_subjects(session, batch_id):
 
@@ -65,8 +142,6 @@ def get_subjects(session, batch_id):
         r = session.get(url, timeout=20)
 
         print("\n[+] SUBJECT STATUS:", r.status_code)
-        print("\n[+] SUBJECT RESPONSE:")
-        print(r.text)
 
         if r.status_code != 200:
             return []
@@ -81,7 +156,6 @@ def get_subjects(session, batch_id):
 
         return []
 
-# ================= GET RECORDINGS =================
 
 def get_recordings(session, subject_id):
 
@@ -92,8 +166,6 @@ def get_recordings(session, subject_id):
         r = session.get(url, timeout=20)
 
         print("\n[+] RECORDING STATUS:", r.status_code)
-        print("\n[+] RECORDING RESPONSE:")
-        print(r.text)
 
         if r.status_code != 200:
             return []
@@ -108,14 +180,35 @@ def get_recordings(session, subject_id):
 
         return []
 
+# ================= SHOW COURSES =================
+
+async def show_courses(message):
+
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f"📘 {name}",
+                callback_data=f"cds_batch_{cid}"
+            )
+        ]
+        for cid, (name, _) in COURSES.items()
+    ]
+
+    await message.reply_text(
+        "💠 <b>Select a Course:</b>",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
 # ================= MAIN BUTTON =================
 
 @app.on_callback_query(filters.regex("^cdsjourney_$"))
 async def cdsjourney_callback(client, callback_query):
 
+    user_id = callback_query.from_user.id
+
     lol = await chk_user(
         callback_query,
-        callback_query.from_user.id
+        user_id
     )
 
     if lol == 1:
@@ -137,25 +230,110 @@ async def cdsjourney_callback(client, callback_query):
 
         return
 
-    keyboard = [
-        [
-            InlineKeyboardButton(
-                f"📘 {name}",
-                callback_data=f"cds_batch_{cid}"
-            )
-        ]
-        for cid, (name, _) in COURSES.items()
-    ]
+    # Already logged in
+
+    if user_id in LOGIN_SESSIONS and LOGIN_SESSIONS[user_id].get("logged_in"):
+
+        await show_courses(callback_query.message)
+
+        return
+
+    LOGIN_SESSIONS[user_id] = {
+        "step": "email"
+    }
 
     await callback_query.message.reply_text(
-        "💠 <b>Select a Course:</b>",
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        "📧 Send your CDS Journey email:"
     )
+
+# ================= LOGIN FLOW =================
+
+@app.on_message(filters.text & filters.private)
+async def login_handler(client, message):
+
+    user_id = message.from_user.id
+
+    if user_id not in LOGIN_SESSIONS:
+        return
+
+    data = LOGIN_SESSIONS[user_id]
+
+    # ================= EMAIL STEP =================
+
+    if data["step"] == "email":
+
+        email = message.text.strip()
+
+        session = create_session()
+
+        ok = send_otp(session, email)
+
+        if not ok:
+
+            await message.reply_text(
+                "❌ Failed to send OTP"
+            )
+
+            return
+
+        LOGIN_SESSIONS[user_id]["email"] = email
+        LOGIN_SESSIONS[user_id]["session"] = session
+        LOGIN_SESSIONS[user_id]["step"] = "otp"
+
+        await message.reply_text(
+            "📩 OTP sent successfully.\n\n"
+            "Now send the OTP:"
+        )
+
+        return
+
+    # ================= OTP STEP =================
+
+    if data["step"] == "otp":
+
+        otp = message.text.strip()
+
+        session = data["session"]
+
+        verified = verify_otp(
+            session,
+            data["email"],
+            otp
+        )
+
+        if not verified:
+
+            await message.reply_text(
+                "❌ Invalid OTP"
+            )
+
+            return
+
+        LOGIN_SESSIONS[user_id]["logged_in"] = True
+
+        await message.reply_text(
+            "✅ Login successful"
+        )
+
+        await show_courses(message)
 
 # ================= COURSE SELECT =================
 
 @app.on_callback_query(filters.regex("^cds_batch_"))
 async def cdsjourney_batch_callback(app: Client, callback_query):
+
+    user_id = callback_query.from_user.id
+
+    if user_id not in LOGIN_SESSIONS:
+
+        await callback_query.answer(
+            "❌ Login expired",
+            show_alert=True
+        )
+
+        return
+
+    session = LOGIN_SESSIONS[user_id]["session"]
 
     data = callback_query.data.replace("cds_batch_", "")
 
@@ -173,8 +351,6 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
     await callback_query.answer(
         "⏳ Extracting... please wait"
     )
-
-    session = create_session()
 
     subjects = get_subjects(
         session,
@@ -218,7 +394,7 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
                 ).strip()
 
                 f.write(
-                    f"[{subject_name}]{title}: {link}\n"
+                    f"[{subject_name}] {title}: {link}\n"
                 )
 
                 total_links += 1
@@ -241,12 +417,9 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
     caption = (
         f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
         f"📦 <b>Platform:</b> CDS Journey\n"
-        f"📚 <b>Course:</b> "
-        f"<code>{course_title}</code>\n"
-        f"📖 <b>Total Subjects:</b> "
-        f"{subject_count}\n"
-        f"🔗 <b>Total Links:</b> "
-        f"{total_links}\n"
+        f"📚 <b>Course:</b> <code>{course_title}</code>\n"
+        f"📖 <b>Total Subjects:</b> {subject_count}\n"
+        f"🔗 <b>Total Links:</b> {total_links}\n"
         f"🕒 <b>Extracted:</b> "
         f"{datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
         f"╰━━━━━━━━━━━━━━━━━━━━━━╯"
@@ -276,8 +449,4 @@ async def cdsjourney_batch_callback(app: Client, callback_query):
 
     # ================= CLEANUP =================
 
-    session.close()
-
     os.remove(file_name)
-
-    await callback_query.message.delete()
