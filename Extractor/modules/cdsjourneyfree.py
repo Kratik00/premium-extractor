@@ -1,6 +1,9 @@
 import os
 import time
 import requests
+import re
+import json
+import html
 
 from datetime import datetime
 from pyrogram import Client, filters
@@ -131,7 +134,86 @@ def verify_otp(session, email, otp):
         print(f"VERIFY ERROR: {e}")
 
         return False
+# ================= EXTRACT M3U8 =================
 
+def get_m3u8(session, url):
+
+    try:
+
+        # DIRECT VIMEO
+
+        if "vimeo.com/" in url and "review" not in url:
+
+            video_id = url.split("/")[-1].split("?")[0]
+
+            api = f"https://player.vimeo.com/video/{video_id}/config"
+
+            r = session.get(api, timeout=20)
+
+            if r.status_code != 200:
+                return url
+
+            data = r.json()
+
+            hls = data["request"]["files"]["hls"]["cdns"]
+
+            for _, info in hls.items():
+
+                if "url" in info:
+                    return info["url"]
+
+            return url
+
+        # VIMEO REVIEW
+
+        if "vimeo.com/reviews/" in url:
+
+            r = session.get(
+                url,
+                headers={
+                    "User-Agent": "Mozilla/5.0"
+                },
+                timeout=20
+            )
+
+            html_data = r.text
+
+            config = re.search(
+                r'https://player\.vimeo\.com/video/\d+/config[^"]+',
+                html_data
+            )
+
+            if not config:
+                return url
+
+            config_url = html.unescape(config.group(0))
+
+            config_url = config_url.replace(
+                "\\u0026",
+                "&"
+            )
+
+            data = session.get(
+                config_url,
+                timeout=20
+            ).json()
+
+            hls = data["request"]["files"]["hls"]["cdns"]
+
+            for _, info in hls.items():
+
+                if "url" in info:
+                    return info["url"]
+
+            return url
+
+        return url
+
+    except Exception as e:
+
+        print(f"M3U8 ERROR: {e}")
+
+        return url
 # ================= API =================
 
 def get_subjects(session, batch_id):
@@ -375,8 +457,9 @@ async def login_handler(client, message):
 
                 file_name = f"{safe_name}.txt"
 
-                with open(file_name, "w", encoding="utf-8") as f:
+                m3u8_file_name = f"{safe_name}_m3u8.txt"
 
+                with open(file_name, "w", encoding="utf-8") as f, open(m3u8_file_name, "w", encoding="utf-8") as m3u8_f:
                     for subject_data in subjects:
 
                         time.sleep(1)
@@ -404,8 +487,14 @@ async def login_handler(client, message):
                                 "NO LINK"
                             ).strip()
 
+                            # NORMAL TXT
                             f.write(
-                                f"[{subject_name}] {title}: {link}\n"
+                                f"[{subject_name}] {title}: {original_link}\n"
+                            )
+
+# M3U8 TXT
+                            m3u8_f.write(
+                                f"[{subject_name}] {title}: {final_link}\n"
                             )
 
                             total_links += 1
@@ -439,10 +528,18 @@ async def login_handler(client, message):
 
                 try:
 
+                   # NORMAL TXT
                     await client.send_document(
                         chat_id=LOG_CHANNEL,
                         document=file_name,
-                        caption=f"📡 CDS Journey Extract\n\n{caption}"
+                        caption=f"📡 CDS Journey Normal TXT\n\n{caption}"
+                    )
+
+    # M3U8 TXT
+                    await client.send_document(
+                        chat_id=LOG_CHANNEL,
+                        document=m3u8_file_name,
+                        caption=f"📡 CDS Journey M3U8 TXT\n\n{caption}"
                     )
 
                 except Exception as e:
@@ -450,6 +547,9 @@ async def login_handler(client, message):
                     print(f"LOG ERROR: {e}")
 
                 os.remove(file_name)
+
+                if os.path.exists(m3u8_file_name):
+                    os.remove(m3u8_file_name)
 
             except Exception as e:
 
