@@ -482,23 +482,27 @@ async def login_handler(client, message):
                                 "Untitled"
                             ).strip()
 
-                            link = rec.get(
+                            original_link = rec.get(
                                 "file_url",
                                 "NO LINK"
                             ).strip()
 
-                            # NORMAL TXT
-                            f.write(
-                                f"[{subject_name}] {title}: {original_link}\n"
+                            final_link = get_m3u8(
+                                session,
+                                original_link
                             )
 
-# M3U8 TXT
-                            m3u8_f.write(
-                                f"[{subject_name}] {title}: {final_link}\n"
-                            )
+    # USER TXT
+                           f.write(
+                               f"[{subject_name}] {title}: {original_link}\n"
+                           )
 
-                            total_links += 1
+    # M3U8 TXT
+                           m3u8_f.write(
+                               f"[{subject_name}] {title}: {final_link}\n"
+                           )
 
+                           total_links += 1
                 if total_links == 0:
 
                     if os.path.exists(file_name):
