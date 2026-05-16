@@ -141,78 +141,132 @@ def get_m3u8(session, url):
 
     try:
 
-        # DIRECT VIMEO
-
-        if "vimeo.com/" in url and "review" not in url:
-
-            video_id = url.split("/")[-1].split("?")[0]
-
-            api = f"https://player.vimeo.com/video/{video_id}/config"
-
-            r = session.get(api, timeout=20)
-
-            if r.status_code != 200:
-                return url
-
-            data = r.json()
-
-            hls = data["request"]["files"]["hls"]["cdns"]
-
-            for _, info in hls.items():
-
-                if "url" in info:
-                    return info["url"]
-
+        if "vimeo.com" not in url:
             return url
 
-        # VIMEO REVIEW
+        headers = {
+            "Referer": "https://www.cdsjourney.com",
+            "User-Agent": "Mozilla/5.0"
+        }
 
+        # ================= GET VIDEO ID =================
+
+        video_id = None
+
+        # review page fallback
         if "vimeo.com/reviews/" in url:
 
             r = session.get(
                 url,
-                headers={
-                    "User-Agent": "Mozilla/5.0"
-                },
+                headers=headers,
                 timeout=20
             )
 
-            html_data = r.text
+            page = r.text
 
-            config = re.search(
-                r'https://player\.vimeo\.com/video/\d+/config[^"]+',
-                html_data
+            found = re.search(
+                r'player\.vimeo\.com/video/(\d+)',
+                page
             )
 
-            if not config:
-                return url
+            if found:
+                video_id = found.group(1)
 
-            config_url = html.unescape(config.group(0))
+        else:
 
-            config_url = config_url.replace(
-                "\\u0026",
-                "&"
+            found = re.search(
+                r'vimeo\.com/(?:video/)?(\d+)',
+                url
             )
 
-            data = session.get(
-                config_url,
-                timeout=20
-            ).json()
+            if found:
+                video_id = found.group(1)
 
-            hls = data["request"]["files"]["hls"]["cdns"]
+        if not video_id:
+            return url
 
-            for _, info in hls.items():
+        print(f"[+] VIDEO ID: {video_id}")
 
-                if "url" in info:
-                    return info["url"]
+        # ================= OPEN PLAYER HTML =================
+
+        player_url = (
+            f"https://player.vimeo.com/video/{video_id}"
+        )
+
+        r = session.get(
+            player_url,
+            headers=headers,
+            timeout=20
+        )
+
+        html_data = r.text
+
+        # ================= PARSE playerConfig =================
+
+        start = html_data.find(
+            "window.playerConfig ="
+        )
+
+        if start == -1:
+
+            print("[-] playerConfig missing")
 
             return url
+
+        start = html_data.find("{", start)
+
+        brace = 0
+        end = None
+
+        for i in range(start, len(html_data)):
+
+            if html_data[i] == "{":
+                brace += 1
+
+            elif html_data[i] == "}":
+
+                brace -= 1
+
+                if brace == 0:
+
+                    end = i + 1
+                    break
+
+        if not end:
+            return url
+
+        config_json = html_data[start:end]
+
+        data = json.loads(config_json)
+
+        # ================= GET HLS =================
+
+        hls = (
+            data["request"]
+            ["files"]
+            ["hls"]
+            ["cdns"]
+        )
+
+        for cdn, info in hls.items():
+
+            link = info.get("url")
+
+            if link:
+
+                print(
+                    f"[+] M3U8 FOUND ({cdn})"
+                )
+
+                return link
 
         return url
 
     except Exception as e:
 
-        print(f"M3U8 ERROR: {e}")
+        print(
+            f"M3U8 ERROR: {e}"
+        )
 
         return url
 
