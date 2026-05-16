@@ -25,13 +25,106 @@ stats = {
 
 stats_lock = Lock()
 results = []
+# ================= PROXY =================
 
+try:
+    with open("proxy.txt", "r") as f:
+        PROXIES = [
+            x.strip()
+            for x in f
+            if x.strip()
+        ]
+except:
+    PROXIES = []
+
+print(f"[PROXY LOADED] {len(PROXIES)} proxies")
+
+CURRENT_PROXY = None
+REQUEST_COUNT = 0
+ROTATE_AFTER = 5
+
+
+def get_proxy():
+    global CURRENT_PROXY
+    global REQUEST_COUNT
+
+    if not PROXIES:
+        return None
+
+    # first proxy or rotate after 5 requests
+    if CURRENT_PROXY is None or REQUEST_COUNT >= ROTATE_AFTER:
+
+        CURRENT_PROXY = random.choice(PROXIES)
+        REQUEST_COUNT = 0
+
+        print(f"[NEW PROXY] {CURRENT_PROXY}")
+
+    REQUEST_COUNT += 1
+
+    print(
+        f"[PROXY USE {REQUEST_COUNT}/{ROTATE_AFTER}] "
+        f"{CURRENT_PROXY}"
+    )
+
+    return {
+        "http": CURRENT_PROXY,
+        "https": CURRENT_PROXY
+    }
+
+
+def remove_bad_proxy(proxy):
+    global CURRENT_PROXY
+
+    if not proxy:
+        return
+
+    bad = proxy["http"]
+
+    if bad in PROXIES:
+        PROXIES.remove(bad)
+
+        print(f"[REMOVED DEAD] {bad}")
+
+    if CURRENT_PROXY == bad:
+        CURRENT_PROXY = None
 # ================= HELPERS =================
 def post_request(url, headers, data):
-    return requests.post(url, headers=headers, data=data, timeout=15)
+    proxy = get_proxy()
+
+    try:
+        return requests.post(
+            url,
+            headers=headers,
+            data=data,
+            timeout=15,
+            proxies=proxy
+        )
+
+    except Exception as e:
+        print(f"[POST ERROR] {e}")
+
+        remove_bad_proxy(proxy)
+
+        raise
+
 
 def get_request(url, headers):
-    return requests.get(url, headers=headers, timeout=15)
+    proxy = get_proxy()
+
+    try:
+        return requests.get(
+            url,
+            headers=headers,
+            timeout=15,
+            proxies=proxy
+        )
+
+    except Exception as e:
+        print(f"[GET ERROR] {e}")
+
+        remove_bad_proxy(proxy)
+
+        raise
 
 def extract_api_name(api: str) -> str:
     api = api.replace("https://", "").replace("http://", "")
