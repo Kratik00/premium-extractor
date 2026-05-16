@@ -556,13 +556,13 @@ async def login_handler(client, message):
                             # USER TXT
 
                             f.write(
-                                f"[{subject_name}] {title}: {original_link}\n"
+                                f"({subject_name}) {title}-lucifer: {original_link}\n"
                             )
 
                             # M3U8 TXT
 
                             m3u8_f.write(
-                                f"[{subject_name}] {title}: {final_link}\n"
+                                f"({subject_name}) {title}: {final_link}\n"
                             )
 
                             total_links += 1
