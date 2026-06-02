@@ -44,6 +44,7 @@ from Extractor.modules.gyanbindufree import *
 from Extractor.modules.htmlconverter import *
 from Extractor.modules.knowledgesankul import *
 from Extractor.modules.db import *
+from Extractor.modules.apnacollege import *
 from Extractor.modules.pinnaclefree import *
 
 from Extractor.core.mongo import plans_db
@@ -136,9 +137,9 @@ button1 = [
                     InlineKeyboardButton(" 🕹️CDS JOURNEY", callback_data="cds"),   
                     InlineKeyboardButton(" 🕹️PHYSICS WALLAH", callback_data="pw_")    
                 ],
-                # [
-                #     InlineKeyboardButton("👑 Sᴛᴜᴅʏ IQ", callback_data="iq_"),
-                #     InlineKeyboardButton("👑 Kᴅ Cᴀᴍᴘᴜs", callback_data="kdlive_")         
+                [
+                    InlineKeyboardButton("👑 APNA COLLEGE", callback_data="apna_handler"),
+                    InlineKeyboardButton("👑 Kᴅ Cᴀᴍᴘᴜs", callback_data="kdlive_")         
                 # ],
                 # [
                 #     InlineKeyboardButton("👑 Cᴀʀᴇᴇʀᴡɪʟʟ", callback_data="cw_"),   
