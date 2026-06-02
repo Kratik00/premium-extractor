@@ -254,8 +254,10 @@ async def apna_handler(app, m):
         login,
         email,
         password,
-        False
+        True
     )
+    print("Status:", resp.status_code)
+    print("Response:", resp.text[:1000])
 
     if not token:
         return await status.edit_text("❌ Login failed.")
