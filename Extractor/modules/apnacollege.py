@@ -13,6 +13,8 @@ from Extractor import app
 from config import PREMIUM_LOGS, join,BOT_TEXT
 from datetime import datetime
 import pytz
+import re
+import urllib.parse
 # ================= CONFIG =================
 WEB_LOGIN = "https://www.apnacollege.in/api/signin"
 PRODUCTS_API = "https://www.apnacollege.in/api/products_all"
@@ -256,8 +258,8 @@ async def apna_handler(app, m):
         password,
         True
     )
-    print("Status:", resp.status_code)
-    print("Response:", resp.text[:1000])
+    #print("Status:", resp.status_code)
+    #print("Response:", resp.text[:1000])
 
     if not token:
         return await status.edit_text("❌ Login failed.")
