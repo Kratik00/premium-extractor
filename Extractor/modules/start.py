@@ -140,7 +140,7 @@ button1 = [
                 [
                     InlineKeyboardButton("👑 APNA COLLEGE", callback_data="apna_handler"),
                     InlineKeyboardButton("👑 Kᴅ Cᴀᴍᴘᴜs", callback_data="kdlive_")         
-                # ],
+                ],
                 # [
                 #     InlineKeyboardButton("👑 Cᴀʀᴇᴇʀᴡɪʟʟ", callback_data="cw_"),   
                 #     InlineKeyboardButton("👑 Uᴛᴋᴀʀsʜ", callback_data="adda_")              
