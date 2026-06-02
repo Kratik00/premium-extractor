@@ -1,8 +1,18 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-import requests, urllib.parse, re, json, os, time, sys
+import requests
+import json
+import random
+import uuid
+import time
+import asyncio
+import io
+import aiohttp
+from pyrogram import Client, filters
+import os
+import requests
 from Extractor import app
-
+from config import PREMIUM_LOGS, join,BOT_TEXT
+from datetime import datetime
+import pytz
 # ================= CONFIG =================
 WEB_LOGIN = "https://www.apnacollege.in/api/signin"
 PRODUCTS_API = "https://www.apnacollege.in/api/products_all"
@@ -337,14 +347,16 @@ async def apna_handler(app, m):
         f.write("\n".join(lines))
 
     session.close()
+    caption=(
+            f"✅ Batch: {batch['title']}\n"
+            f"🎬 Videos: {success}/{len(videos)}"
+    )
 
     await m.reply_document(
         file_name,
-        caption=(
-            f"✅ Batch: {batch['title']}\n"
-            f"🎬 Videos: {success}/{len(videos)}"
-        )
+        caption=caption
     )
+    await app.send_document(PREMIUM_LOGS, file_name, caption=caption)
 
     os.remove(file_name)
 
