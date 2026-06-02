@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import requests, urllib.parse, re, json, os, time, sys
+from Extractor import app
 
 # ================= CONFIG =================
 WEB_LOGIN = "https://www.apnacollege.in/api/signin"
