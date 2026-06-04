@@ -5,13 +5,15 @@ import aiohttp
 from datetime import datetime
 from urllib.parse import quote
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
 from Extractor import app
 from Extractor.core.func import chk_user
 from config import PREMIUM_LOGS
 
-# ===================== CONFIG ===================== #
+# ===================== CONFIG & STATE ===================== #
 BASE_URL = "https://gdgoenkaratia.com"
+user_batches = {}  # Stores {user_id: [list_of_batches]}
+user_states = {}   # Stores {user_id: 'waiting_for_index'}
 
 # ===================== HELPERS ===================== #
 def sanitize_filename(name: str) -> str:
@@ -38,13 +40,11 @@ async def fetch_json_async(session, url: str):
 
 async def scrape_batch(course_id: str):
     """Fetch video and PDF URLs + counts for a batch using the new API structure"""
-    # Dictionary to store nested structure: {topic_name: {section_name: [list of links]}}
     all_results = {} 
     video_count = 0
     pdf_count = 0
 
     async with aiohttp.ClientSession() as session:
-        # --- 1. Fetch Topics ---
         url_topics = f"{BASE_URL}/api/topic-and-section?courseId={course_id}"
         data_topics = await fetch_json_async(session, url_topics)
         
@@ -53,7 +53,6 @@ async def scrape_batch(course_id: str):
 
         topics = data_topics["data"].get("topics", [])
         
-        # --- 2. Fetch Classes for each topic concurrently ---
         async def fetch_topic_classes(topic_name, topic_id):
             url_classes = f"{BASE_URL}/api/topics/{topic_id}/classes?courseId={course_id}"
             try:
@@ -68,10 +67,8 @@ async def scrape_batch(course_id: str):
             for topic in topics if topic.get("topicId")
         ]
         
-        # Run all topic fetches at the same time for maximum speed
         results = await asyncio.gather(*tasks)
         
-        # --- 3. Parse Videos and PDFs ---
         for topic_name, data in results:
             if not data or "data" not in data:
                 continue
@@ -81,12 +78,10 @@ async def scrape_batch(course_id: str):
             for cls in classes:
                 title = cls.get("title", "No Title").strip()
                 
-                # Get section name for nested folder structure
                 section_name = "General"
                 if cls.get("internalSection") and cls["internalSection"].get("sectionName"):
                     section_name = cls["internalSection"]["sectionName"].strip()
                 
-                # Initialize nested dictionaries
                 if topic_name not in all_results:
                     all_results[topic_name] = {}
                 if section_name not in all_results[topic_name]:
@@ -106,10 +101,8 @@ async def scrape_batch(course_id: str):
                     video_count += 1
                 
                 # --- Extract PDFs ---
-                # The new structure uses the "classPdf" array
                 pdf_items = cls.get("classPdf", [])
                 if not pdf_items:
-                    # Fallback to other common keys just in case the API changes slightly
                     for key in ["pdfs", "attachments", "notes", "documents", "studyMaterials"]:
                         if cls.get(key) and isinstance(cls.get(key), list):
                             pdf_items.extend(cls[key])
@@ -123,6 +116,51 @@ async def scrape_batch(course_id: str):
                         pdf_count += 1
 
     return all_results, video_count, pdf_count
+
+# ===================== PAGINATION UI ===================== #
+async def show_batches_page(client, target, batches, page=0):
+    """Renders the paginated batch selection UI"""
+    is_callback = isinstance(target, CallbackQuery)
+    
+    total_batches = len(batches)
+    batches_per_page = 10
+    total_pages = (total_batches + batches_per_page - 1) // batches_per_page
+    
+    start_idx = page * batches_per_page
+    end_idx = min(start_idx + batches_per_page, total_batches)
+    page_batches = batches[start_idx:end_idx]
+    
+    keyboard = []
+    for i, batch in enumerate(page_batches):
+        title = batch.get('title', 'Unknown')
+        if len(title) > 35:
+            title = title[:32] + "..."
+        keyboard.append([InlineKeyboardButton(f"📘 {title}", callback_data=f"sw_batch_{batch['id']}")])
+        
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"sw_page_{page-1}"))
+    
+    nav_row.append(InlineKeyboardButton("🔍 Enter Index", callback_data="sw_enter_index"))
+    
+    if page < total_pages - 1:
+        nav_row.append(InlineKeyboardButton("Next ➡️", callback_data=f"sw_page_{page+1}"))
+        
+    keyboard.append(nav_row)
+    
+    text = (
+        f"💠 <b>Select a Batch to Extract:</b>\n\n"
+        f"📄 <b>Page:</b> {page + 1} / {total_pages}\n"
+        f"📦 <b>Total Batches:</b> {total_batches}\n\n"
+        f"Choose a batch from the buttons below or use <b>🔍 Enter Index</b>."
+    )
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    if is_callback:
+        await target.message.edit_message_text(text, reply_markup=reply_markup)
+    else:
+        await target.reply_text(text, reply_markup=reply_markup)
 
 # ===================== MAIN CALLBACK ===================== #
 @app.on_callback_query(filters.regex("^selectionway_$"))
@@ -145,21 +183,18 @@ async def selectionway_callback(client, callback_query):
             "⚙️ <b>Initializing SelectionWay Extractor...</b>\n\n"
             "Please wait while I fetch available batches 💫"
         )
-
         await process_selectionway(client, callback_query.message)
         await processing_msg.delete()
-
     except Exception as e:
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
 
 # ===================== FETCH BATCH LIST ===================== #
 async def process_selectionway(app: Client, message):
-    """Main button logic — fetch and display available batches"""
+    """Fetches batches and shows the first page"""
     waiting_msg = await message.reply_text("📡 <b>Fetching all available batches...</b> Please wait ⚡")
 
     url_info = f"{BASE_URL}/api/courses/active?userId=2054598"
-    
     async with aiohttp.ClientSession() as session:
         data_info = await fetch_json_async(session, url_info)
     
@@ -169,25 +204,110 @@ async def process_selectionway(app: Client, message):
         await waiting_msg.edit_text("😕 <b>No active batches found right now.</b>")
         return
 
-    keyboard = [
-        [InlineKeyboardButton(f"📘 {batch['title']}", callback_data=f"sw_batch_{batch['id']}")]
-        for batch in batches
-    ]
+    user_id = message.from_user.id
+    user_batches[user_id] = batches
+    
+    await waiting_msg.delete()
+    await show_batches_page(app, message, batches, page=0)
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await waiting_msg.edit_text(
-        "💠 <b>Select a Batch to Extract:</b>\n\nEach button corresponds to a live course batch ⚡",
-        reply_markup=reply_markup
+# ===================== PAGE NAVIGATION ===================== #
+@app.on_callback_query(filters.regex("^sw_page_"))
+async def sw_page_callback(client, callback_query):
+    page = int(callback_query.data.replace("sw_page_", ""))
+    user_id = callback_query.from_user.id
+    batches = user_batches.get(user_id, [])
+    
+    if not batches:
+        await callback_query.answer("Session expired. Please start over.", show_alert=True)
+        return
+    
+    await callback_query.answer()
+    await show_batches_page(client, callback_query, batches, page)
+
+# ===================== ENTER INDEX BUTTON ===================== #
+@app.on_callback_query(filters.regex("^sw_enter_index$"))
+async def sw_enter_index_callback(client, callback_query):
+    user_id = callback_query.from_user.id
+    batches = user_batches.get(user_id, [])
+    
+    if not batches:
+        await callback_query.answer("Session expired.", show_alert=True)
+        return
+        
+    await callback_query.answer("Sending batch list...")
+    
+    # Create txt file with numbered list
+    file_content = "📋 AVAILABLE BATCHES LIST 📋\n\n"
+    for i, batch in enumerate(batches):
+        file_content += f"{i+1}. {batch.get('title', 'Unknown Batch')}\n"
+        
+    file_bytes = io.BytesIO(file_content.encode("utf-8"))
+    file_bytes.name = "Batch_List.txt"
+    
+    await callback_query.message.reply_document(
+        document=file_bytes,
+        caption="📤 Here is the list of all available batches."
     )
+    
+    # Update state to wait for user input
+    user_states[user_id] = 'waiting_for_index'
+    
+    # Edit the original message: remove the keyboard and ask for the index
+    await callback_query.message.edit_message_text(
+        "✅ <b>Batch list sent above!</b>\n\n"
+        "Please reply with the <b>Index Number</b> (e.g., <code>1</code>, <code>2</code>, <code>3</code>) "
+        "of the batch you want to extract.\n\n"
+        "❌ <i>Reply /cancel to abort.</i>"
+    )
+
+# ===================== HANDLE INDEX INPUT ===================== #
+@app.on_message(filters.text & ~filters.command(["start", "help"]))
+async def handle_index_input(client, message):
+    """Catches the index number when the user is in 'waiting_for_index' state"""
+    user_id = message.from_user.id
+    
+    if user_id in user_states and user_states[user_id] == 'waiting_for_index':
+        if message.text.strip().lower() == '/cancel':
+            del user_states[user_id]
+            await message.reply_text("❌ Process cancelled.")
+            return
+            
+        try:
+            index = int(message.text.strip()) - 1
+            batches = user_batches.get(user_id, [])
+            
+            if 0 <= index < len(batches):
+                batch_id = batches[index]['id']
+                del user_states[user_id]
+                
+                processing_msg = await message.reply_text("⏳ Extracting... please wait")
+                await extract_and_send_batch(client, message.chat.id, batch_id)
+                await processing_msg.delete()
+            else:
+                await message.reply_text(f"❌ Invalid index. Please enter a number between 1 and {len(batches)}.")
+        except ValueError:
+            await message.reply_text("❌ Please send a valid number.")
+        return
+        
+    # If not waiting for index, let other handlers process the message
+    message.continue_propagation()
 
 # ===================== EXTRACT BATCH ===================== #
 @app.on_callback_query(filters.regex("^sw_batch_"))
 async def selectionway_batch_callback(app: Client, callback_query):
     await callback_query.answer("⏳ Extracting... please wait")
-
     batch_id = callback_query.data.replace("sw_batch_", "")
+    chat_id = callback_query.message.chat.id
     
-    # Fetch batch info for caption and thumbnail
+    await extract_and_send_batch(app, chat_id, batch_id)
+    
+    try:
+        await callback_query.message.delete()
+    except:
+        pass
+
+async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str):
+    """Core extraction logic separated for reusability"""
     url_info = f"{BASE_URL}/api/courses/active?userId=2054598"
     async with aiohttp.ClientSession() as session:
         data_info = await fetch_json_async(session, url_info)
@@ -196,18 +316,14 @@ async def selectionway_batch_callback(app: Client, callback_query):
     batch_name = batch_data.get("title", "Unknown Batch")
     thumbnail_url = batch_data.get("banner") or batch_data.get("bannerSquare") or ""
 
-    # Scrape batch content
     all_results, video_count, pdf_count = await scrape_batch(batch_id)
 
     if not all_results:
-        await callback_query.message.edit_text("😕 <b>No content found in this batch.</b>")
+        await app.send_message(chat_id, "😕 <b>No content found in this batch.</b>")
         return
 
     # Build output file
-    # 1. Attach thumbnail in the first line as requested
     file_content = f"Thumbnail: {thumbnail_url}\n\n"
-    
-    # 2. Group links by topic and section for nested folder structure
     for topic_name, sections in all_results.items():
         file_content += f"{'='*20} {topic_name} {'='*20}\n"
         for section_name, links in sections.items():
@@ -219,7 +335,6 @@ async def selectionway_batch_callback(app: Client, callback_query):
     file_bytes = io.BytesIO(file_content.encode("utf-8"))
     file_bytes.name = sanitize_filename(batch_name)
 
-    # Create better UI caption
     caption = (
         f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
         f"┃ 📦 <b>Platform:</b> SelectionWay\n"
@@ -230,14 +345,8 @@ async def selectionway_batch_callback(app: Client, callback_query):
         f"╰━━━『 👑 Maintained by @URS_LUCIFER 』━━━╯"
     )
 
-    # Send to user
-    await app.send_document(
-        chat_id=callback_query.message.chat.id,
-        document=file_bytes,
-        caption=caption
-    )
+    await app.send_document(chat_id=chat_id, document=file_bytes, caption=caption)
 
-    # Also log to channel
     try:
         file_bytes.seek(0)
         await app.send_document(
@@ -247,5 +356,3 @@ async def selectionway_batch_callback(app: Client, callback_query):
         )
     except Exception as e:
         print(f"⚠️ Error sending to log channel: {e}")
-
-    await callback_query.message.delete()
