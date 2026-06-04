@@ -33,6 +33,7 @@ from Extractor.modules.cdsjourney import *
 from Extractor.modules.yesofficerfree import *
 from Extractor.modules.cdsjourneyfree import *
 from Extractor.modules.selectionwayfree import *
+from Extractor.modules.topperswisdomfree import *
 from Extractor.modules.freepw import *
 from Extractor.modules.sachinacademyfree import *
 from Extractor.modules.quantezyfree import *
@@ -108,7 +109,8 @@ custom_button = [[
                     InlineKeyboardButton("🤖 CDS JOURNEY", callback_data="cdsjourney_"),
                     InlineKeyboardButton("🤖 CIVILGURUJI", callback_data="civilguruji_")
                 ],[
-                  InlineKeyboardButton("🚀 PINNACLE ", callback_data="pinnacle")
+                    InlineKeyboardButton("🚀 PINNACLE ", callback_data="pinnacle"),
+                    InlineKeyboardButton("🚀 TopppersWisdom", callback_data="topperswisdom_")
                 ],[
                     InlineKeyboardButton("🌸 QUALITY EDUCATION", callback_data="qualitytext"),
                     InlineKeyboardButton("♕ EXAMTUNE", callback_data="quantezyfree")
@@ -626,6 +628,44 @@ async def selectionway_callback(client, callback_query):
     except Exception as e:
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
+@app.on_callback_query(filters.regex("^topperswisdom_$"))
+async def topperswisdom_callback(client, callback_query):
+    try:
+        # Send processing message
+        processing_msg = await callback_query.message.reply_text(
+            "⚙️ <b>Handling ToppersWisdom Extractor...</b>\n\nPlease wait a few seconds 💫"
+        )
+
+        user_id = callback_query.from_user.id
+
+        try:
+            # Run the SelectionWay extractor process with timeout
+            result = await process_with_timeout(process_topperswisdom, client, callback_query.message, user_id)
+
+            if result == "timeout":
+                await processing_msg.edit_text(
+                    "⚠️ <b>Process timed out!</b>\n"
+                    "Please try again.\n\n"
+                    "💡 Tip: Respond within <b>60 seconds</b> when prompted."
+                )
+            elif result and result.startswith("error:"):
+                await processing_msg.edit_text(
+                    f"❌ <b>An error occurred:</b> {result[6:]}\n\nPlease try again."
+                )
+            else:
+                await processing_msg.delete()
+
+        except Exception as e:
+            await processing_msg.edit_text(
+                "❌ <b>Process failed.</b>\n\n"
+                f"Error: <code>{str(e)}</code>\n"
+                "Please retry after a moment."
+            )
+
+    except Exception as e:
+        print(f"Error in topperswisdom_callback: {e}")
+        await callback_query.answer("⚠️ An error occurred while handling SelectionWay.", show_alert=True)
+
 @app.on_message(filters.command("html"))
 async def html_cmd(client, message):
     await message.reply_text("📄 Send the TXT file you want to convert.")
