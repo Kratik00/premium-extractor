@@ -2,7 +2,6 @@ import asyncio
 import io
 import re
 import aiohttp
-import requests
 from datetime import datetime
 from urllib.parse import quote
 from pyrogram import Client, filters
@@ -12,8 +11,6 @@ from Extractor.core.func import chk_user
 from config import PREMIUM_LOGS
 
 # ===================== CONFIG ===================== #
-# Base URL for the API. 
-# Note: If the classes endpoint is hosted on a different domain (e.g., node.topperswisdom.com), change this.
 BASE_URL = "https://gdgoenkaratia.com"
 
 # ===================== HELPERS ===================== #
@@ -31,7 +28,7 @@ def encode_url(url: str) -> str:
 async def fetch_json_async(session, url: str):
     """Async helper to fetch JSON data"""
     try:
-        async with session.get(url, timeout=15) as r:
+        async with session.get(url, timeout=20) as r:
             if r.status == 200:
                 return await r.json()
             return None
@@ -41,7 +38,8 @@ async def fetch_json_async(session, url: str):
 
 async def scrape_batch(course_id: str):
     """Fetch video and PDF URLs + counts for a batch using the new API structure"""
-    all_results = {}  # Will store {topic_name: [list of links]}
+    # Dictionary to store nested structure: {topic_name: {section_name: [list of links]}}
+    all_results = {} 
     video_count = 0
     pdf_count = 0
 
@@ -70,7 +68,7 @@ async def scrape_batch(course_id: str):
             for topic in topics if topic.get("topicId")
         ]
         
-        # Run all topic fetches at the same time
+        # Run all topic fetches at the same time for maximum speed
         results = await asyncio.gather(*tasks)
         
         # --- 3. Parse Videos and PDFs ---
@@ -79,44 +77,50 @@ async def scrape_batch(course_id: str):
                 continue
             
             classes = data["data"].get("classes", [])
-            topic_links = []
             
             for cls in classes:
                 title = cls.get("title", "No Title").strip()
                 
+                # Get section name for nested folder structure
+                section_name = "General"
+                if cls.get("internalSection") and cls["internalSection"].get("sectionName"):
+                    section_name = cls["internalSection"]["sectionName"].strip()
+                
+                # Initialize nested dictionaries
+                if topic_name not in all_results:
+                    all_results[topic_name] = {}
+                if section_name not in all_results[topic_name]:
+                    all_results[topic_name][section_name] = []
+                
                 # --- Extract Video ---
                 video_url = None
-                if cls.get("mp4Recordings"):
+                if cls.get("mp4Recordings") and isinstance(cls["mp4Recordings"], list) and len(cls["mp4Recordings"]) > 0:
                     recs = cls["mp4Recordings"]
-                    if recs:
-                        preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
-                        video_url = preferred["url"] if preferred else recs[0].get("url")
-                    else:
-                        video_url = cls.get("class_link") or cls.get("videoUrl") or cls.get("url")
+                    preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
+                    video_url = preferred["url"] if preferred else recs[0].get("url")
                 else:
                     video_url = cls.get("class_link") or cls.get("videoUrl") or cls.get("url")
                 
                 if title and video_url:
-                    topic_links.append(f"[VIDEO] {title}: {video_url}")
+                    all_results[topic_name][section_name].append(f"[VIDEO] {title}: {video_url}")
                     video_count += 1
                 
                 # --- Extract PDFs ---
-                pdf_items = []
-                # Check common keys for PDFs/attachments in the class object
-                for key in ["pdfs", "attachments", "notes", "documents", "studyMaterials"]:
-                    if cls.get(key) and isinstance(cls.get(key), list):
-                        pdf_items.extend(cls[key])
+                # The new structure uses the "classPdf" array
+                pdf_items = cls.get("classPdf", [])
+                if not pdf_items:
+                    # Fallback to other common keys just in case the API changes slightly
+                    for key in ["pdfs", "attachments", "notes", "documents", "studyMaterials"]:
+                        if cls.get(key) and isinstance(cls.get(key), list):
+                            pdf_items.extend(cls[key])
                 
                 for pdf in pdf_items:
-                    pdf_title = pdf.get("title") or pdf.get("name") or "PDF"
+                    pdf_title = pdf.get("name") or pdf.get("title") or "PDF"
                     pdf_url = pdf.get("url") or pdf.get("uploadPdf") or pdf.get("link")
                     if pdf_url:
                         pdf_url = encode_url(pdf_url)
-                        topic_links.append(f"[PDF] {pdf_title}: {pdf_url}")
+                        all_results[topic_name][section_name].append(f"[PDF] {pdf_title}: {pdf_url}")
                         pdf_count += 1
-            
-            if topic_links:
-                all_results[topic_name] = topic_links
 
     return all_results, video_count, pdf_count
 
@@ -203,12 +207,14 @@ async def selectionway_batch_callback(app: Client, callback_query):
     # 1. Attach thumbnail in the first line as requested
     file_content = f"Thumbnail: {thumbnail_url}\n\n"
     
-    # 2. Group links by topic for better readability
-    for topic_name, links in all_results.items():
+    # 2. Group links by topic and section for nested folder structure
+    for topic_name, sections in all_results.items():
         file_content += f"{'='*20} {topic_name} {'='*20}\n"
-        for link in links:
-            file_content += f"{link}\n"
-        file_content += "\n"
+        for section_name, links in sections.items():
+            file_content += f"\n--- {section_name} ---\n"
+            for link in links:
+                file_content += f"{link}\n"
+        file_content += "\n\n"
         
     file_bytes = io.BytesIO(file_content.encode("utf-8"))
     file_bytes.name = sanitize_filename(batch_name)
