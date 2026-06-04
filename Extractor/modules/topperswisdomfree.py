@@ -114,7 +114,7 @@ async def scrape_batch(course_id: str):
                 video_url = None
                 if cls.get("class_link"):
                     video_url = cls.get("class_link")
-                  else:
+                else:
                     video_url = cls.get("link")
                 if title and video_url:
                     all_results[topic_name][section_name].append(f"({topic_name}) {title}: {video_url}")
