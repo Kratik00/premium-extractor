@@ -6,6 +6,7 @@ from datetime import datetime
 from urllib.parse import quote
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from pyrogram.errors import MessageNotModified  # <-- Added to catch the error
 from Extractor import app
 from Extractor.core.func import chk_user
 from config import PREMIUM_LOGS
@@ -158,8 +159,11 @@ async def show_batches_page(client, target, batches, page=0):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if is_callback:
-        # FIX: Changed edit_message_text to edit_text
-        await target.message.edit_text(text, reply_markup=reply_markup)
+        # FIX: Wrapped in try/except to prevent MESSAGE_NOT_MODIFIED crashes
+        try:
+            await target.message.edit_text(text, reply_markup=reply_markup)
+        except MessageNotModified:
+            pass  # Silently ignore if the message content is exactly the same
     else:
         await target.reply_text(text, reply_markup=reply_markup)
 
@@ -256,12 +260,16 @@ async def sw_enter_index_callback(client, callback_query):
     user_states[user_id] = 'waiting_for_index'
     
     # Edit the original message: remove the keyboard and ask for the index
-    await callback_query.message.edit_text(
-        "✅ <b>Batch list sent above!</b>\n\n"
-        "Please reply with the <b>Index Number</b> (e.g., <code>1</code>, <code>2</code>, <code>3</code>) "
-        "of the batch you want to extract.\n\n"
-        "❌ <i>Reply /cancel to abort.</i>"
-    )
+    # FIX: Wrapped in try/except to prevent MESSAGE_NOT_MODIFIED crashes
+    try:
+        await callback_query.message.edit_text(
+            "✅ <b>Batch list sent above!</b>\n\n"
+            "Please reply with the <b>Index Number</b> (e.g., <code>1</code>, <code>2</code>, <code>3</code>) "
+            "of the batch you want to extract.\n\n"
+            "❌ <i>Reply /cancel to abort.</i>"
+        )
+    except MessageNotModified:
+        pass
 
 # ===================== HANDLE INDEX INPUT ===================== #
 @app.on_message(filters.text & ~filters.command(["start", "help"]))
