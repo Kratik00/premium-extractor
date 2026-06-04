@@ -119,7 +119,7 @@ async def scrape_batch(course_id: str):
                     preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
                     video_url = preferred["url"] if preferred else recs[0].get("url")
                 if title and video_url:
-                    all_results[topic_name][section_name].append(f"{topic_name}{title}: {video_url}")
+                    all_results[topic_name][section_name].append(f"({topic_name}) {title}: {video_url}")
                     video_count += 1
                 
                 # --- Extract PDFs ---
@@ -134,7 +134,7 @@ async def scrape_batch(course_id: str):
                     pdf_url = pdf.get("url") or pdf.get("uploadPdf") or pdf.get("link")
                     if pdf_url:
                         pdf_url = encode_url(pdf_url)
-                        all_results[topic_name][section_name].append(f"{topic_name}{pdf_title}: {pdf_url}")
+                        all_results[topic_name][section_name].append(f"({topic_name}) {pdf_title}: {pdf_url}")
                         pdf_count += 1
 
     return all_results, video_count, pdf_count
@@ -273,7 +273,7 @@ async def selectionway_batch_callback(app: Client, callback_query):
     chat_id = callback_query.message.chat.id
     
     try:
-        await extract_and_send_batch(app, chat_id, batch_id)
+        await extract_and_send_batch(app, chat_id, batch_id, callback_query.from_user)
     except Exception as e:
         print(f"❌ Extraction Error: {e}")
         await callback_query.message.reply_text(f"❌ <b>Error:</b>\n<code>{str(e)}</code>")
@@ -283,7 +283,7 @@ async def selectionway_batch_callback(app: Client, callback_query):
     except:
         pass
 
-async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str):
+async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str, user):
     url_info = f"{BASE_URL}/api/courses/active?userId=2054598"
     async with aiohttp.ClientSession() as session:
         data_info = await fetch_json_async(session, url_info)
@@ -314,7 +314,7 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str):
         # Download thumbnail
         thumb_path = await download_thumbnail(MY_LOGO_URL)
 
-        mention = f'<a href="tg://user?id={m.from_user.id}">{m.from_user.first_name}</a>'
+        mention = f'<a href="tg://user?id={user.id}">{user.first_name}</a>'
         total_links = video_count + pdf_count
         caption = (
             f"📚 App: Selection Way\n\n"
