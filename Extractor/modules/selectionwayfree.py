@@ -6,13 +6,18 @@ from datetime import datetime
 from urllib.parse import quote
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from pyrogram.errors import MessageNotModified  # <-- Added to catch the error
+from pyrogram.errors import MessageNotModified
 from Extractor import app
 from Extractor.core.func import chk_user
 from config import PREMIUM_LOGS
 
 # ===================== CONFIG & STATE ===================== #
 BASE_URL = "https://gdgoenkaratia.com"
+
+# 👇👇👇 CHANGE THIS URL TO YOUR OWN LOGO/THUMBNAIL 👇👇👇
+MY_LOGO_URL = "https://telegra.ph/file/your-custom-logo.jpg" 
+# 👆👆👆 PASTE YOUR LOGO URL HERE 👆👆👆
+
 user_batches = {}  # Stores {user_id: [list_of_batches]}
 user_states = {}   # Stores {user_id: 'waiting_for_index'}
 
@@ -159,11 +164,10 @@ async def show_batches_page(client, target, batches, page=0):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if is_callback:
-        # FIX: Wrapped in try/except to prevent MESSAGE_NOT_MODIFIED crashes
         try:
             await target.message.edit_text(text, reply_markup=reply_markup)
         except MessageNotModified:
-            pass  # Silently ignore if the message content is exactly the same
+            pass
     else:
         await target.reply_text(text, reply_markup=reply_markup)
 
@@ -260,7 +264,6 @@ async def sw_enter_index_callback(client, callback_query):
     user_states[user_id] = 'waiting_for_index'
     
     # Edit the original message: remove the keyboard and ask for the index
-    # FIX: Wrapped in try/except to prevent MESSAGE_NOT_MODIFIED crashes
     try:
         await callback_query.message.edit_text(
             "✅ <b>Batch list sent above!</b>\n\n"
@@ -272,19 +275,24 @@ async def sw_enter_index_callback(client, callback_query):
         pass
 
 # ===================== HANDLE INDEX INPUT ===================== #
-@app.on_message(filters.text & ~filters.command(["start", "help"]))
+# FIX: Added group=-1 to force this to run BEFORE other global text handlers
+@app.on_message(filters.text & ~filters.command(["start", "help"]), group=-1)
 async def handle_index_input(client, message):
     """Catches the index number when the user is in 'waiting_for_index' state"""
     user_id = message.from_user.id
     
     if user_id in user_states and user_states[user_id] == 'waiting_for_index':
-        if message.text.strip().lower() == '/cancel':
+        # Stop propagation so other handlers (like start.py) don't catch this message
+        message.stop_propagation()
+        
+        text = message.text.strip()
+        if text.lower() == '/cancel':
             del user_states[user_id]
             await message.reply_text("❌ Process cancelled.")
             return
             
         try:
-            index = int(message.text.strip()) - 1
+            index = int(text) - 1
             batches = user_batches.get(user_id, [])
             
             if 0 <= index < len(batches):
@@ -292,16 +300,21 @@ async def handle_index_input(client, message):
                 del user_states[user_id]
                 
                 processing_msg = await message.reply_text("⏳ Extracting... please wait")
-                await extract_and_send_batch(client, message.chat.id, batch_id)
+                
+                # FIX: Added try/except to catch silent extraction failures
+                try:
+                    await extract_and_send_batch(client, message.chat.id, batch_id)
+                except Exception as e:
+                    print(f"❌ Extraction Error: {e}")
+                    await processing_msg.edit_text(f"❌ <b>Error during extraction:</b>\n<code>{str(e)}</code>")
+                    return
+                    
                 await processing_msg.delete()
             else:
                 await message.reply_text(f"❌ Invalid index. Please enter a number between 1 and {len(batches)}.")
         except ValueError:
             await message.reply_text("❌ Please send a valid number.")
         return
-        
-    # If not waiting for index, let other handlers process the message
-    message.continue_propagation()
 
 # ===================== EXTRACT BATCH ===================== #
 @app.on_callback_query(filters.regex("^sw_batch_"))
@@ -325,7 +338,6 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str):
     
     batch_data = next((b for b in (data_info.get("data", []) if data_info else []) if b["id"] == batch_id), {})
     batch_name = batch_data.get("title", "Unknown Batch")
-    thumbnail_url = batch_data.get("banner") or batch_data.get("bannerSquare") or ""
 
     all_results, video_count, pdf_count = await scrape_batch(batch_id)
 
@@ -334,7 +346,7 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str):
         return
 
     # Build output file
-    file_content = f"Thumbnail: {thumbnail_url}\n\n"
+    file_content = f"{MY_LOGO_URL}\n\n"
     for topic_name, sections in all_results.items():
         file_content += f"{'='*20} {topic_name} {'='*20}\n"
         for section_name, links in sections.items():
