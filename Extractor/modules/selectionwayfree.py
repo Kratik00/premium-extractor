@@ -11,11 +11,14 @@ from Extractor import app
 from Extractor.core.func import chk_user
 from config import PREMIUM_LOGS
 
+# ===================== CONFIG ===================== #
+# Base URL for the API. 
+# Note: If the classes endpoint is hosted on a different domain (e.g., node.topperswisdom.com), change this.
+BASE_URL = "https://gdgoenkaratia.com"
 
 # ===================== HELPERS ===================== #
 def sanitize_filename(name: str) -> str:
     return re.sub(r'[\\/*?:"<>|₹]', "", name).strip() + ".txt"
-
 
 def encode_url(url: str) -> str:
     if not url:
@@ -25,58 +28,97 @@ def encode_url(url: str) -> str:
         return url
     return parts[0] + '//' + parts[2] + '/' + quote(parts[3])
 
-
-def fetch_json(url: str):
+async def fetch_json_async(session, url: str):
+    """Async helper to fetch JSON data"""
     try:
-        r = requests.get(url, timeout=15)
-        r.raise_for_status()
-        return r.json()
+        async with session.get(url, timeout=15) as r:
+            if r.status == 200:
+                return await r.json()
+            return None
     except Exception as e:
         print(f"⚠️ Failed to fetch {url}: {e}")
         return None
 
-
-async def scrape_batch(batch_id: str):
-    """Fetch video and PDF URLs + counts for a batch"""
-    all_results = []
+async def scrape_batch(course_id: str):
+    """Fetch video and PDF URLs + counts for a batch using the new API structure"""
+    all_results = {}  # Will store {topic_name: [list of links]}
     video_count = 0
     pdf_count = 0
 
-    # --- Videos ---
-    url_videos = f"https://backend.multistreaming.site/api/courses/{batch_id}/classes?populate=full"
-    data_videos = fetch_json(url_videos)
-    if data_videos:
-        classes_data = data_videos.get("data", {}).get("classes", [])
-        for topic in classes_data:
-            for cls in topic.get("classes", []):
+    async with aiohttp.ClientSession() as session:
+        # --- 1. Fetch Topics ---
+        url_topics = f"{BASE_URL}/api/topic-and-section?courseId={course_id}"
+        data_topics = await fetch_json_async(session, url_topics)
+        
+        if not data_topics or "data" not in data_topics:
+            return all_results, video_count, pdf_count
+
+        topics = data_topics["data"].get("topics", [])
+        
+        # --- 2. Fetch Classes for each topic concurrently ---
+        async def fetch_topic_classes(topic_name, topic_id):
+            url_classes = f"{BASE_URL}/api/topics/{topic_id}/classes?courseId={course_id}"
+            try:
+                data = await fetch_json_async(session, url_classes)
+                return topic_name, data
+            except Exception as e:
+                print(f"⚠️ Error fetching classes for {topic_name}: {e}")
+                return topic_name, None
+
+        tasks = [
+            fetch_topic_classes(topic.get("topicName", "Unknown Topic"), topic.get("topicId"))
+            for topic in topics if topic.get("topicId")
+        ]
+        
+        # Run all topic fetches at the same time
+        results = await asyncio.gather(*tasks)
+        
+        # --- 3. Parse Videos and PDFs ---
+        for topic_name, data in results:
+            if not data or "data" not in data:
+                continue
+            
+            classes = data["data"].get("classes", [])
+            topic_links = []
+            
+            for cls in classes:
                 title = cls.get("title", "No Title").strip()
-                url = None
+                
+                # --- Extract Video ---
+                video_url = None
                 if cls.get("mp4Recordings"):
                     recs = cls["mp4Recordings"]
-                    preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
-                    url = preferred["url"] if preferred else recs[0].get("url")
+                    if recs:
+                        preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
+                        video_url = preferred["url"] if preferred else recs[0].get("url")
+                    else:
+                        video_url = cls.get("class_link") or cls.get("videoUrl") or cls.get("url")
                 else:
-                    url = cls.get("class_link")
-                if title and url:
-                    all_results.append(f"{title}: {url}")
+                    video_url = cls.get("class_link") or cls.get("videoUrl") or cls.get("url")
+                
+                if title and video_url:
+                    topic_links.append(f"[VIDEO] {title}: {video_url}")
                     video_count += 1
-
-    # --- PDFs ---
-    url_pdfs = f"https://backend.multistreaming.site/api/courses/{batch_id}/pdfs?groupBy=topic"
-    data_pdfs = fetch_json(url_pdfs)
-    if data_pdfs:
-        topics = data_pdfs.get("data", {}).get("topics", [])
-        for topic in topics:
-            pdfs = topic.get("pdfs", [])
-            for pdf in pdfs:
-                title = pdf.get("title", "No Title").strip()
-                link = encode_url(pdf.get("uploadPdf"))
-                if title and link:
-                    all_results.append(f"{title}: {link}")
-                    pdf_count += 1
+                
+                # --- Extract PDFs ---
+                pdf_items = []
+                # Check common keys for PDFs/attachments in the class object
+                for key in ["pdfs", "attachments", "notes", "documents", "studyMaterials"]:
+                    if cls.get(key) and isinstance(cls.get(key), list):
+                        pdf_items.extend(cls[key])
+                
+                for pdf in pdf_items:
+                    pdf_title = pdf.get("title") or pdf.get("name") or "PDF"
+                    pdf_url = pdf.get("url") or pdf.get("uploadPdf") or pdf.get("link")
+                    if pdf_url:
+                        pdf_url = encode_url(pdf_url)
+                        topic_links.append(f"[PDF] {pdf_title}: {pdf_url}")
+                        pdf_count += 1
+            
+            if topic_links:
+                all_results[topic_name] = topic_links
 
     return all_results, video_count, pdf_count
-
 
 # ===================== MAIN CALLBACK ===================== #
 @app.on_callback_query(filters.regex("^selectionway_$"))
@@ -107,14 +149,16 @@ async def selectionway_callback(client, callback_query):
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
 
-
 # ===================== FETCH BATCH LIST ===================== #
 async def process_selectionway(app: Client, message):
     """Main button logic — fetch and display available batches"""
     waiting_msg = await message.reply_text("📡 <b>Fetching all available batches...</b> Please wait ⚡")
 
-    url_info = "https://backend.multistreaming.site/api/courses/active?userId=2054598"
-    data_info = fetch_json(url_info)
+    url_info = f"{BASE_URL}/api/courses/active?userId=2054598"
+    
+    async with aiohttp.ClientSession() as session:
+        data_info = await fetch_json_async(session, url_info)
+    
     batches = data_info.get("data", []) if data_info else []
 
     if not batches:
@@ -132,42 +176,52 @@ async def process_selectionway(app: Client, message):
         reply_markup=reply_markup
     )
 
-
 # ===================== EXTRACT BATCH ===================== #
 @app.on_callback_query(filters.regex("^sw_batch_"))
 async def selectionway_batch_callback(app: Client, callback_query):
     await callback_query.answer("⏳ Extracting... please wait")
 
     batch_id = callback_query.data.replace("sw_batch_", "")
-    all_results, video_count, pdf_count = await scrape_batch(batch_id)
-
-    # Fetch batch info for caption
-    url_info = "https://backend.multistreaming.site/api/courses/active?userId=2054598"
-    data_info = fetch_json(url_info)
+    
+    # Fetch batch info for caption and thumbnail
+    url_info = f"{BASE_URL}/api/courses/active?userId=2054598"
+    async with aiohttp.ClientSession() as session:
+        data_info = await fetch_json_async(session, url_info)
+    
     batch_data = next((b for b in (data_info.get("data", []) if data_info else []) if b["id"] == batch_id), {})
-
     batch_name = batch_data.get("title", "Unknown Batch")
     thumbnail_url = batch_data.get("banner") or batch_data.get("bannerSquare") or ""
+
+    # Scrape batch content
+    all_results, video_count, pdf_count = await scrape_batch(batch_id)
 
     if not all_results:
         await callback_query.message.edit_text("😕 <b>No content found in this batch.</b>")
         return
 
     # Build output file
-    file_content = "\n".join(all_results)
+    # 1. Attach thumbnail in the first line as requested
+    file_content = f"Thumbnail: {thumbnail_url}\n\n"
+    
+    # 2. Group links by topic for better readability
+    for topic_name, links in all_results.items():
+        file_content += f"{'='*20} {topic_name} {'='*20}\n"
+        for link in links:
+            file_content += f"{link}\n"
+        file_content += "\n"
+        
     file_bytes = io.BytesIO(file_content.encode("utf-8"))
     file_bytes.name = sanitize_filename(batch_name)
 
-    # Create caption
+    # Create better UI caption
     caption = (
         f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
-        f"📦 <b>Platform:</b> SelectionWay\n"
-        f"📚 <b>Batch:</b> <code>{batch_name}</code>\n"
-        f"🎬 <b>Videos:</b> {video_count}\n"
-        f"📄 <b>PDFs:</b> {pdf_count}\n"
-        f"🕒 <b>Extracted:</b> {datetime.now().strftime('%d-%m-%Y %I:%M %p')}\n"
-        f"╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-        f"<b>👑 Maintained by:</b> <a href='https://t.me/URS_LUCIFER'>Lucifer</a>"
+        f"┃ 📦 <b>Platform:</b> SelectionWay\n"
+        f"┃ 📚 <b>Course:</b> <code>{batch_name}</code>\n"
+        f"┃ 🎬 <b>Total Videos:</b> {video_count}\n"
+        f"┃ 📄 <b>Total PDFs:</b> {pdf_count}\n"
+        f"┃ 🕒 <b>Time:</b> {datetime.now().strftime('%d-%m-%Y | %I:%M %p')}\n"
+        f"╰━━━『 👑 Maintained by @URS_LUCIFER 』━━━╯"
     )
 
     # Send to user
