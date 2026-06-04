@@ -158,7 +158,8 @@ async def show_batches_page(client, target, batches, page=0):
     reply_markup = InlineKeyboardMarkup(keyboard)
     
     if is_callback:
-        await target.message.edit_message_text(text, reply_markup=reply_markup)
+        # FIX: Changed edit_message_text to edit_text
+        await target.message.edit_text(text, reply_markup=reply_markup)
     else:
         await target.reply_text(text, reply_markup=reply_markup)
 
@@ -184,7 +185,6 @@ async def selectionway_callback(client, callback_query):
             "Please wait while I fetch available batches 💫"
         )
         
-        # FIX: Explicitly get the user ID from the callback query to avoid Bot ID mismatch
         user_id = callback_query.from_user.id
         await process_selectionway(client, callback_query.message, user_id)
         await processing_msg.delete()
@@ -194,7 +194,6 @@ async def selectionway_callback(client, callback_query):
         await callback_query.answer("An error occurred", show_alert=True)
 
 # ===================== FETCH BATCH LIST ===================== #
-# FIX: Added user_id parameter to ensure we save under the correct user
 async def process_selectionway(app: Client, message, user_id: int):
     """Fetches batches and shows the first page"""
     waiting_msg = await message.reply_text("📡 <b>Fetching all available batches...</b> Please wait ⚡")
@@ -209,7 +208,6 @@ async def process_selectionway(app: Client, message, user_id: int):
         await waiting_msg.edit_text("😕 <b>No active batches found right now.</b>")
         return
 
-    # FIX: Use the explicitly passed user_id
     user_batches[user_id] = batches
     
     await waiting_msg.delete()
@@ -258,7 +256,7 @@ async def sw_enter_index_callback(client, callback_query):
     user_states[user_id] = 'waiting_for_index'
     
     # Edit the original message: remove the keyboard and ask for the index
-    await callback_query.message.edit_message_text(
+    await callback_query.message.edit_text(
         "✅ <b>Batch list sent above!</b>\n\n"
         "Please reply with the <b>Index Number</b> (e.g., <code>1</code>, <code>2</code>, <code>3</code>) "
         "of the batch you want to extract.\n\n"
