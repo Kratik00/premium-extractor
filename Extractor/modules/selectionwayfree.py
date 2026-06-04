@@ -183,14 +183,19 @@ async def selectionway_callback(client, callback_query):
             "⚙️ <b>Initializing SelectionWay Extractor...</b>\n\n"
             "Please wait while I fetch available batches 💫"
         )
-        await process_selectionway(client, callback_query.message)
+        
+        # FIX: Explicitly get the user ID from the callback query to avoid Bot ID mismatch
+        user_id = callback_query.from_user.id
+        await process_selectionway(client, callback_query.message, user_id)
         await processing_msg.delete()
+        
     except Exception as e:
         print(f"Error in selectionway_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
 
 # ===================== FETCH BATCH LIST ===================== #
-async def process_selectionway(app: Client, message):
+# FIX: Added user_id parameter to ensure we save under the correct user
+async def process_selectionway(app: Client, message, user_id: int):
     """Fetches batches and shows the first page"""
     waiting_msg = await message.reply_text("📡 <b>Fetching all available batches...</b> Please wait ⚡")
 
@@ -204,7 +209,7 @@ async def process_selectionway(app: Client, message):
         await waiting_msg.edit_text("😕 <b>No active batches found right now.</b>")
         return
 
-    user_id = message.from_user.id
+    # FIX: Use the explicitly passed user_id
     user_batches[user_id] = batches
     
     await waiting_msg.delete()
