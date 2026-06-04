@@ -15,9 +15,7 @@ from config import PREMIUM_LOGS
 # ===================== CONFIG & STATE ===================== #
 BASE_URL = "https://gdgoenkaratia.com"
 
-# 👇👇👇 YOUR LOGO URL (will be used as file thumbnail) 👇👇👇
-MY_LOGO_URL = "https://telegra.ph/file/your-logo.jpg"
-# 👆👆👆 PASTE YOUR LOGO URL HERE 👆👆👆
+MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
 
 user_batches = {}
 user_pages = {}  # Track current page for each user
