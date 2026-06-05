@@ -1,4 +1,3 @@
-import asyncio
 import io
 import os
 import re
@@ -16,8 +15,9 @@ from config import PREMIUM_LOGS
 
 # ===================== CONFIG & STATE ===================== #
 MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
+user_states = {}  # Stores {user_id: 'waiting_for_package_id'}
 
-# ===================== HEADERS (No JWT Required) ===================== #
+# ===================== HEADERS ===================== #
 BASE_HEADERS = {
     "Accept": "*/*",
     "Accept-Encoding": "gzip, deflate, br, zstd",
@@ -134,30 +134,39 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                     )
                     data_classes = await fetch_json_async(session, url_classes, get_headers("liveclasses.adda247.com"))
 
+                    # 🚨 DEBUG: Print if the API fails or returns success=False
                     if not data_classes or not data_classes.get("success"):
+                        print(f"⚠️ Classes API failed for subject {subject_name} (ID: {subject_id}): {data_classes}")
                         break
 
                     content = data_classes.get("data", {}).get("content", [])
                     if not content:
+                        print(f"⚠️ Empty content for subject {subject_name} on page {page}")
                         break
 
                     for cls in content:
                         title = cls.get("name", "No Title").strip()
 
-                        # --- Extract Video URL ---
+                        # --- Extract Video URL (FIXED FOR ALL FORMATS) ---
                         tImg = cls.get("tImg", "")
                         video_url = None
                         if "/ivs/" in tImg:
                             try:
                                 ivs_part = tImg.split("/ivs/")[1]
                                 parts = ivs_part.split("/")
-                                if len(parts) >= 2:
-                                    video_url = (
-                                        "https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/"
-                                        f"{parts[0]}/{parts[1]}.mp4"
-                                    )
-                            except Exception:
-                                pass
+                                
+                                if len(parts) >= 3:
+                                    # Format: /ivs/ID1/ID2/filename.jpg
+                                    video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com/ivs/{parts[0]}/{parts[1]}.mp4"
+                                elif len(parts) == 2:
+                                    # Format: /ivs/ID/filename.jpg
+                                    video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com/ivs/{parts[0]}.mp4"
+                                elif len(parts) == 1:
+                                    # Format: /ivs/ID.jpg
+                                    video_id = parts[0].split('.')[0]
+                                    video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com/ivs/{video_id}.mp4"
+                            except Exception as e:
+                                print(f"⚠️ Error parsing tImg {tImg}: {e}")
 
                         if title and video_url:
                             all_results[subject_name].append(f"[VIDEO] {title}: {video_url}")
@@ -179,7 +188,10 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                     page += 1
 
         if total_videos == 0 and total_pdfs == 0:
-            await processing_msg.edit_text("😕 <b>No content found in this package.</b>")
+            await processing_msg.edit_text(
+                "😕 <b>No content found in this package.</b>\n\n"
+                "<i>Please check the bot console/logs for API errors.</i>"
+            )
             return
 
         await processing_msg.edit_text("⏳ <b>Generating file...</b> Almost done! ⚡")
@@ -250,10 +262,73 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
             except Exception:
                 pass
 
-# ===================== COMMAND HANDLER ===================== #
+# ===================== CALLBACK HANDLER (For start.py button) ===================== #
+@app.on_callback_query(filters.regex("^adda247_"))
+async def adda247_callback(client, callback_query):
+    lol = await chk_user(callback_query, callback_query.from_user.id)
+    if lol == 1:
+        await callback_query.message.reply_text(
+            "🔒 <b>Premium Feature Locked!</b>\n\n"
+            "You don't have access to use this feature yet.\n"
+            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade.",
+            reply_markup=InlineKeyboardMarkup(
+                [[InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]]
+            )
+        )
+        return
+
+    try:
+        user_id = callback_query.from_user.id
+        user_states[user_id] = 'waiting_for_package_id'
+        
+        try:
+            await callback_query.message.edit_text(
+                "📦 <b>Adda247 Extractor</b>\n\n"
+                "Please send the <b>Package ID</b> to extract all subjects.\n\n"
+                "❌ <i>Reply /cancel to abort.</i>"
+            )
+        except MessageNotModified:
+            await callback_query.message.reply_text(
+                "📦 <b>Adda247 Extractor</b>\n\n"
+                "Please send the <b>Package ID</b> to extract all subjects.\n\n"
+                "❌ <i>Reply /cancel to abort.</i>"
+            )
+        await callback_query.answer()
+        
+    except Exception as e:
+        print(f"Error in adda247_callback: {e}")
+        await callback_query.answer("An error occurred", show_alert=True)
+
+# ===================== HANDLE PACKAGE ID INPUT ===================== #
+@app.on_message(filters.text & ~filters.command(["start", "help"]), group=-15)
+async def handle_package_id_input(client, message):
+    user_id = message.from_user.id
+    
+    if user_id in user_states and user_states[user_id] == 'waiting_for_package_id':
+        message.stop_propagation()
+        
+        text = message.text.strip()
+        if text.lower() == '/cancel':
+            del user_states[user_id]
+            await message.reply_text("❌ Process cancelled.")
+            return
+            
+        if text.isdigit():
+            package_id = text
+            del user_states[user_id]
+            
+            try:
+                await extract_adda247_package(client, message.chat.id, package_id, message.from_user)
+            except Exception as e:
+                print(f"❌ CRITICAL ERROR IN EXTRACTION: {e}")
+                await message.reply_text(f"❌ <b>Bot crashed during extraction:</b>\n<code>{str(e)}</code>")
+        else:
+            await message.reply_text("❌ Please send a valid numeric Package ID.")
+        return
+
+# ===================== COMMAND HANDLER (Optional: /addafree) ===================== #
 @app.on_message(filters.command("addafree"))
 async def adda_command_handler(client, m):
-
     try:
         pkg_msg = await client.ask(
             m.chat.id,
@@ -271,19 +346,10 @@ async def adda_command_handler(client, m):
             return await m.reply_text("❌ Process cancelled.")
 
         if not text.isdigit():
-            return await m.reply_text(
-                "❌ Please send a valid numeric Package ID."
-            )
+            return await m.reply_text("❌ Please send a valid numeric Package ID.")
 
-        await extract_adda247_package(
-            client,
-            m.chat.id,
-            text,
-            m.from_user
-        )
+        await extract_adda247_package(client, m.chat.id, text, m.from_user)
 
     except Exception as e:
         print(f"❌ CRITICAL ERROR: {e}")
-        await m.reply_text(
-            f"❌ <b>Error:</b>\n<code>{e}</code>"
-        )
+        await m.reply_text(f"❌ <b>Error:</b>\n<code>{e}</code>")
