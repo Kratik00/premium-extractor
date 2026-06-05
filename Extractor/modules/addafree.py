@@ -52,7 +52,6 @@ async def fetch_json_async(session, url: str, headers: dict):
             if r.status == 200:
                 return await r.json()
             else:
-                # FIX: Print actual error if API fails (e.g., 401, 403)
                 error_text = await r.text()
                 print(f"⚠️ API Error {r.status} for {url}: {error_text[:300]}")
                 return None
@@ -101,9 +100,23 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
         regular_count = 0
 
         async with aiohttp.ClientSession() as session:
-            for subj in syllabus:
+            for i, subj in enumerate(syllabus):
                 subject_id = subj.get("id")
                 subject_name = subj.get("tags", [{}])[0].get("name", "Unknown Subject")
+                
+                # 🚀 LIVE PROGRESS UPDATE 🚀
+                try:
+                    await processing_msg.edit_text(
+                        f"⏳ <b>Extracting Content...</b> Please wait ⚡\n\n"
+                        f"📖 <b>Subject:</b> <code>{subject_name}</code>\n"
+                        f"📊 <b>Progress:</b> {i+1}/{len(syllabus)}\n"
+                        f"🎥 <b>Videos found:</b> {total_videos}\n"
+                        f"📄 <b>PDFs found:</b> {total_pdfs}"
+                    )
+                except MessageNotModified:
+                    pass
+                except Exception as e:
+                    print(f"⚠️ Error editing progress message: {e}")
                 
                 all_results[subject_name] = []
                 page = 0
@@ -157,6 +170,8 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
         if total_videos == 0 and total_pdfs == 0:
             await processing_msg.edit_text("😕 <b>No content found in this package.</b>")
             return
+
+        await processing_msg.edit_text("⏳ <b>Generating file...</b> Almost done! ⚡")
 
         file_content = f"{MY_LOGO_URL}\n\n"
         for subj_name, links in all_results.items():
@@ -230,7 +245,7 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                 pass
 
 # ===================== MAIN CALLBACK ===================== #
-@app.on_callback_query(filters.regex("^adda247_$"))
+@app.on_callback_query(filters.regex("^adda247_"))
 async def adda247_callback(client, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
     if lol == 1:
@@ -267,7 +282,6 @@ async def adda247_callback(client, callback_query):
         await callback_query.answer("An error occurred", show_alert=True)
 
 # ===================== HANDLE PACKAGE ID INPUT ===================== #
-# FIX: Changed group=-2 to group=-15 to ensure it runs BEFORE other text handlers in start.py
 @app.on_message(filters.text & ~filters.command(["start", "help"]), group=-15)
 async def handle_package_id_input(client, message):
     user_id = message.from_user.id
