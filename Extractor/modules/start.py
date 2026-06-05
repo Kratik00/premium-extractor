@@ -41,6 +41,7 @@ from Extractor.modules.rwafree import *
 from Extractor.modules.civilgurujifree import *
 from Extractor.modules.rgvikramjeetfree import *
 from Extractor.modules.agrifree import *
+from Extractor.modules.addafree import *
 from Extractor.modules.gyanbindufree import *
 from Extractor.modules.htmlconverter import *
 from Extractor.modules.knowledgesankul import *
@@ -112,7 +113,7 @@ custom_button = [[
                     InlineKeyboardButton("🚀 PINNACLE ", callback_data="pinnacle"),
                     InlineKeyboardButton("🚀 TopppersWisdom", callback_data="topperswisdom_")
                 ],[
-                    InlineKeyboardButton("🌸 QUALITY EDUCATION", callback_data="qualitytext"),
+                    InlineKeyboardButton("🌸 ADDA 247", callback_data="adda247_"),
                     InlineKeyboardButton("♕ EXAMTUNE", callback_data="quantezyfree")
                 ],[
                     InlineKeyboardButton("🌷 AGRI COACHING", callback_data="agrifree"),
