@@ -14,15 +14,13 @@ from Extractor import app
 from Extractor.core.func import chk_user
 from config import PREMIUM_LOGS
 
-# ===================== CONFIG & STATE ===================== #
+# ===================== CONFIG ===================== #
 MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
-user_states = {}  # Stores {user_id: 'waiting_for_package_id'}
 
 # ===================== HEADERS ===================== #
 BASE_HEADERS = {
     "Accept": "*/*",
-    # 🚨 CRITICAL FIX: Removed 'br, zstd' because aiohttp doesn't support them natively!
-    # This was causing the API to return compressed data that aiohttp couldn't read, resulting in 0 URLs.
+    # 🚨 CRITICAL: Removed 'br, zstd' because aiohttp doesn't support them natively!
     "Accept-Encoding": "gzip, deflate", 
     "Accept-Language": "en-US,en;q=0.9",
     "Connection": "keep-alive",
@@ -80,22 +78,24 @@ async def download_thumbnail(logo_url: str) -> str:
     return None
 
 # ===================== EXTRACTION LOGIC ===================== #
-async def extract_adda247_package(app: Client, chat_id: int, package_id: str, user):
-    processing_msg = await app.send_message(chat_id, "⏳ <b>Fetching all subjects...</b> Please wait ⚡")
+# 🚨 CHANGED: Now accepts 'msg' as an argument to edit for progress (Like Pinnacle)
+async def extract_adda247_package(app: Client, chat_id: int, package_id: str, user, msg):
     thumb_path = None
     try:
+        await msg.edit_text("⏳ <b>Fetching all subjects...</b> Please wait ⚡")
+        
         url_subjects = f"https://store.adda247.com/api/v1/syllabus/pdp/subjects?packageId={package_id}&contentType=ONLINE_LIVE_CLASSES&pageNo=0&src=aweb"
         async with aiohttp.ClientSession() as session:
             data_subjects = await fetch_json_async(session, url_subjects, get_headers("store.adda247.com"))
 
         if not data_subjects or not data_subjects.get("success"):
             error_info = data_subjects if data_subjects else "Connection failed or API returned empty."
-            await processing_msg.edit_text(f"😕 <b>Failed to fetch subjects.</b>\n\n<code>{str(error_info)[:500]}</code>")
+            await msg.edit_text(f"😕 <b>Failed to fetch subjects.</b>\n\n<code>{str(error_info)[:500]}</code>")
             return
 
         syllabus = data_subjects.get("data", {}).get("syllabus", [])
         if not syllabus:
-            await processing_msg.edit_text("😕 <b>No subjects found for this Package ID.</b>")
+            await msg.edit_text("😕 <b>No subjects found for this Package ID.</b>")
             return
 
         all_results = {}
@@ -110,7 +110,7 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                 subject_name = subj.get("tags", [{}])[0].get("name", "Unknown Subject")
 
                 try:
-                    await processing_msg.edit_text(
+                    await msg.edit_text(
                         f"⏳ <b>Extracting Content...</b> Please wait ⚡\n\n"
                         f"📖 <b>Subject:</b> <code>{subject_name}</code>\n"
                         f"📊 <b>Progress:</b> {i+1}/{len(syllabus)}\n"
@@ -125,7 +125,6 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                 page_size = 50 
                 found_level = None
 
-                # Auto-detect the correct 'level' parameter
                 for level_type in ["TOPIC", "CHAPTER", "SUBJECT"]:
                     test_url = f"https://liveclasses.adda247.com/api/v1/pdp/OLC/content?contentType=ONLINE_LIVE_CLASSES&packageId={package_id}&level={level_type}&syllabusId={subject_id}&pageNo=0&pageSize={page_size}&src=aweb"
                     test_data = await fetch_json_async(session, test_url, get_headers("liveclasses.adda247.com"))
@@ -190,10 +189,10 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                     page += 1
 
         if total_videos == 0 and total_pdfs == 0:
-            await processing_msg.edit_text("😕 <b>No content found in this package.</b>")
+            await msg.edit_text("😕 <b>No content found in this package.</b>")
             return
 
-        await processing_msg.edit_text("⏳ <b>Generating file...</b> Almost done! ⚡")
+        await msg.edit_text("⏳ <b>Generating file...</b> Almost done! ⚡")
 
         file_content = f"{MY_LOGO_URL}\n\n"
         for subj_name, links in all_results.items():
@@ -231,24 +230,27 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
             f"📅 Generated On: {time_new} IST"
         ).rstrip()
 
-        await processing_msg.delete()
-
+        # Send Document
         await app.send_document(chat_id=chat_id, document=file_bytes, caption=caption, thumb=thumb_path, parse_mode="HTML")
 
+        # Log to Channel
         try:
             file_bytes.seek(0)
             await app.send_document(chat_id=PREMIUM_LOGS, document=file_bytes, caption=f"📡 <b>Adda247 Extract</b>\n\n{caption}", thumb=thumb_path, parse_mode="HTML")
         except Exception as e:
             print(f"⚠️ Error sending to log: {e}")
 
+    except Exception as e:
+        print(f"❌ CRITICAL ERROR IN EXTRACTION: {e}")
+        await msg.edit_text(f"❌ <b>Bot crashed during extraction:</b>\n<code>{str(e)}</code>")
     finally:
         if thumb_path and os.path.exists(thumb_path):
             try: os.remove(thumb_path)
             except: pass
 
-# ===================== CALLBACK HANDLER (SENDS NEW MESSAGE) ===================== #
+# ===================== CALLBACK HANDLER (LISTEN LOGIC) ===================== #
 @app.on_callback_query(filters.regex("^adda247_"))
-async def adda247_callback(client, callback_query):
+async def adda247_callback(app, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
     if lol == 1:
         await callback_query.message.reply_text(
@@ -259,91 +261,81 @@ async def adda247_callback(client, callback_query):
         )
         return
 
-    try:
-        user_id = callback_query.from_user.id
-        
-        # 1. Set state
-        user_states[user_id] = 'waiting_for_package_id'
-        
-        # 2. Send a NEW message (Fixes MessageNotModified error)
-        prompt_text = (
-            "📦 <b>Adda247 Extractor</b>\n\n"
-            "Please send the <b>Package ID</b> to extract all subjects.\n\n"
-            "⏱️ <i>Process will auto-cancel if you take too long.</i>"
-        )
-        cancel_markup = InlineKeyboardMarkup([
-            [InlineKeyboardButton("❌ Cancel", callback_data="adda_cancel")]
-        ])
-        
-        await callback_query.message.reply_text(prompt_text, reply_markup=cancel_markup)
-        await callback_query.answer()
-        
-    except Exception as e:
-        print(f"Error in adda247_callback: {e}")
-        await callback_query.answer("An error occurred", show_alert=True)
-
-# ===================== CANCEL BUTTON HANDLER ===================== #
-@app.on_callback_query(filters.regex("^adda_cancel$"))
-async def adda_cancel_handler(client, callback_query):
-    user_id = callback_query.from_user.id
-    if user_id in user_states and user_states[user_id] == 'waiting_for_package_id':
-        del user_states[user_id]
-        try:
-            await callback_query.message.edit_text("❌ <b>Process Cancelled.</b>")
-        except MessageNotModified:
-            pass
-        await callback_query.answer("Cancelled", show_alert=False)
-    else:
-        await callback_query.answer("Nothing to cancel.", show_alert=True)
-
-# ===================== HANDLE PACKAGE ID INPUT ===================== #
-@app.on_message(filters.text & ~filters.command(["start", "help"]), group=-15)
-async def handle_package_id_input(client, message):
-    user_id = message.from_user.id
+    await callback_query.answer()
+    chat_id = callback_query.message.chat.id
     
-    if user_id in user_states and user_states[user_id] == 'waiting_for_package_id':
-        message.stop_propagation()
+    # ✅ create ONE working message (don’t touch button msg)
+    main_msg = await app.send_message(chat_id, "📦 <b>Adda247 Extractor</b>\n\n📝 <b>Send Package ID:</b>")
+    
+    try:
+        # 👇 input using listen
+        pkg_msg = await app.listen(chat_id)
+        package_id = pkg_msg.text.strip()
         
-        text = message.text.strip()
-        if text.lower() == '/cancel':
-            del user_states[user_id]
-            await message.reply_text("❌ Process cancelled.")
+        try:
+            await pkg_msg.delete()
+        except:
+            pass
+            
+        if package_id.lower() == '/cancel':
+            await main_msg.edit_text("❌ <b>Process Cancelled.</b>")
+            await asyncio.sleep(2)
+            await main_msg.delete()
             return
             
-        if text.isdigit():
-            package_id = text
-            del user_states[user_id]
+        if not package_id.isdigit():
+            await main_msg.edit_text("❌ <b>Invalid Package ID.</b> Please send a numeric ID.")
+            await asyncio.sleep(2)
+            await main_msg.delete()
+            return
             
-            try:
-                await extract_adda247_package(client, message.chat.id, package_id, message.from_user)
-            except Exception as e:
-                print(f"❌ CRITICAL ERROR IN EXTRACTION: {e}")
-                await message.reply_text(f"❌ <b>Bot crashed during extraction:</b>\n<code>{str(e)}</code>")
-        else:
-            await message.reply_text("❌ Please send a valid numeric Package ID.")
-        return
+        await main_msg.edit_text("⏳ <b>Processing...</b>")
+        
+        # Call extraction and pass main_msg
+        await extract_adda247_package(app, chat_id, package_id, callback_query.from_user, main_msg)
+        
+        # Delete the prompt message after success
+        try:
+            await main_msg.delete()
+        except:
+            pass
+            
+    except Exception as e:
+        print(f"Error in adda247_callback listen: {e}")
+        try:
+            await main_msg.edit_text(f"❌ <b>Error:</b> {str(e)}")
+        except:
+            pass
 
 # ===================== COMMAND HANDLER ===================== #
 @app.on_message(filters.command("addafree"))
 async def adda_command_handler(client, m):
+    chat_id = m.chat.id
+    main_msg = await client.send_message(chat_id, "📦 <b>Adda247 Extractor</b>\n\n📝 <b>Send Package ID:</b>")
+    
     try:
-        pkg_msg = await client.ask(
-            m.chat.id,
-            "📦 <b>Adda247 Extractor</b>\n\nSend the <b>Package ID</b>.\n\n❌ Send <code>/cancel</code> to abort.",
-            filters=filters.text,
-            timeout=120
-        )
-
-        text = pkg_msg.text.strip()
-        if text.lower() == "/cancel":
-            return await m.reply_text("❌ Process cancelled.")
-        if not text.isdigit():
-            return await m.reply_text("❌ Please send a valid numeric Package ID.")
-
-        await extract_adda247_package(client, m.chat.id, text, m.from_user)
-
-    except asyncio.TimeoutError:
-        await m.reply_text("⏱️ <b>Time's up!</b> Process cancelled.")
+        pkg_msg = await client.listen(chat_id)
+        package_id = pkg_msg.text.strip()
+        
+        try:
+            await pkg_msg.delete()
+        except:
+            pass
+            
+        if package_id.lower() == "/cancel":
+            return await main_msg.edit_text("❌ <b>Process Cancelled.</b>")
+            
+        if not package_id.isdigit():
+            return await main_msg.edit_text("❌ <b>Invalid Package ID.</b>")
+            
+        await main_msg.edit_text("⏳ <b>Processing...</b>")
+        await extract_adda247_package(client, chat_id, package_id, m.from_user, main_msg)
+        
+        try:
+            await main_msg.delete()
+        except:
+            pass
+            
     except Exception as e:
         print(f"❌ CRITICAL ERROR: {e}")
-        await m.reply_text(f"❌ <b>Error:</b>\n<code>{e}</code>")
+        await main_msg.edit_text(f"❌ <b>Error:</b>\n<code>{e}</code>")
