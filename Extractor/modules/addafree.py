@@ -17,48 +17,17 @@ from config import PREMIUM_LOGS
 # ===================== CONFIG ===================== #
 MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
 
-# ===================== HEADERS ===================== #
-BASE_HEADERS = {
-    "Accept": "*/*",
-    # 🚨 CRITICAL: Removed 'br, zstd' because aiohttp doesn't support them natively!
-    "Accept-Encoding": "gzip, deflate", 
-    "Accept-Language": "en-US,en;q=0.9",
-    "Connection": "keep-alive",
-    "Content-Type": "application/json",
-    "cp-origin": "11",
-    "dName": "Chrome on Linux Desktop",
-    "Origin": "https://www.adda247.com",
-    "Referer": "https://www.adda247.com/",
-    "sec-ch-ua": '"Chromium";v="148", "Google Chrome";v="148", "Not/A)Brand";v="99"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Linux"',
-    "Sec-Fetch-Dest": "empty",
-    "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-site",
-    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
-    "X-Auth-Token": "fpoa43edty5",
-    "x-jwt-token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzdW9vaGFpbEBnbWFpbC5jb20iLCJhdWQiOiI3NTAzNTk3IiwiaWF0IjoxNzgwNjU4NDc0LCJpc3MiOiJhZGRhMjQ3LmNvbSIsIm5hbWUiOiJqYWNrIG9mIGFsbCBUcmFkZXMiLCJlbWFpbCI6InN1b29oYWlsQGdtYWlsLmNvbSIsInBob25lIjoiNzUwMTM0NDU2NyIsInVzZXJJZCI6ImFkZGEudjEuNDNhOGIzNDRkZmE1MzYxODFiYTY1MTU5N2RkMGIzZGQiLCJsb2dpbkFwaVZlcnNpb24iOjJ9.xejdMXXfdtNrzQkCVwQ7Ra7oj15dewxoLweFS82fq8KVspMv4a8tbQfdGvJUIe34qsWjJDJFMQwoe7fvkAdiaA",
-    "LOGIN_TOKEN": "3d23790f-855c-4e5a-9f7e-934c378ec4c6",
-    "LOGIN_TYPE": "1"
-}
-
-def get_headers(host: str):
-    h = BASE_HEADERS.copy()
-    h["Host"] = host
-    return h
-
 # ===================== HELPERS ===================== #
 def sanitize_filename(name: str) -> str:
     return re.sub(r'[\\/*?:"<>|₹]', "", name).strip() + ".txt"
 
-async def fetch_json_async(session, url: str, headers: dict):
+async def fetch_json_async(session, url: str, headers: dict = None):
     try:
-        async with session.get(url, headers=headers, timeout=20) as r:
+        req_headers = headers or {}
+        async with session.get(url, headers=req_headers, timeout=20) as r:
             if r.status == 200:
                 return await r.json()
             else:
-                error_text = await r.text()
-                print(f"⚠️ API Error {r.status} for {url}: {error_text[:300]}")
                 return None
     except Exception as e:
         print(f"⚠️ Failed to fetch {url}: {e}")
@@ -78,24 +47,25 @@ async def download_thumbnail(logo_url: str) -> str:
     return None
 
 # ===================== EXTRACTION LOGIC ===================== #
-# 🚨 CHANGED: Now accepts 'msg' as an argument to edit for progress (Like Pinnacle)
 async def extract_adda247_package(app: Client, chat_id: int, package_id: str, user, msg):
     thumb_path = None
     try:
         await msg.edit_text("⏳ <b>Fetching all subjects...</b> Please wait ⚡")
         
-        url_subjects = f"https://store.adda247.com/api/v1/syllabus/pdp/subjects?packageId={package_id}&contentType=ONLINE_LIVE_CLASSES&pageNo=0&src=aweb"
+        # 1. Fetch Main Data (NO HEADERS REQUIRED)
+        url_topics = f"https://adda-livid.vercel.app/api/topics?packageId={package_id}"
         async with aiohttp.ClientSession() as session:
-            data_subjects = await fetch_json_async(session, url_subjects, get_headers("store.adda247.com"))
+            data_topics = await fetch_json_async(session, url_topics, headers={})
 
-        if not data_subjects or not data_subjects.get("success"):
-            error_info = data_subjects if data_subjects else "Connection failed or API returned empty."
-            await msg.edit_text(f"😕 <b>Failed to fetch subjects.</b>\n\n<code>{str(error_info)[:500]}</code>")
+        if not data_topics:
+            await msg.edit_text("😕 <b>Failed to fetch subjects.</b> API returned empty.")
             return
 
-        syllabus = data_subjects.get("data", {}).get("syllabus", [])
-        if not syllabus:
-            await msg.edit_text("😕 <b>No subjects found for this Package ID.</b>")
+        subjects_list = data_topics.get("data", [])
+        tests_list = data_topics.get("tests", [])
+
+        if not subjects_list and not tests_list:
+            await msg.edit_text("😕 <b>No subjects or tests found for this Package ID.</b>")
             return
 
         all_results = {}
@@ -103,97 +73,109 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
         total_pdfs = 0
         youtube_count = 0
         regular_count = 0
+        total_tests = 0
 
         async with aiohttp.ClientSession() as session:
-            for i, subj in enumerate(syllabus):
-                subject_id = subj.get("id")
-                subject_name = subj.get("tags", [{}])[0].get("name", "Unknown Subject")
+            # 2. Process Subjects, Chapters, and Media
+            for i, subject in enumerate(subjects_list):
+                subject_name = subject.get("subjectName", "Unknown Subject")
+                chapters = subject.get("chapters", [])
+                
+                all_results[subject_name] = []
+                
+                for chapter in chapters:
+                    chapter_name = chapter.get("chapterName", "Unknown Chapter")
+                    media_list = chapter.get("media", [])
+                    
+                    for media in media_list:
+                        # Check if tImg or pdfFileName exists
+                        has_timg = bool(media.get("tImg"))
+                        has_pdf = bool(media.get("pdfFileName"))
+                        
+                        # 🚨 FIX: If BOTH are missing, SKIP this media item entirely
+                        if not has_timg and not has_pdf:
+                            continue
+                        
+                        title = media.get("name", "No Title").strip()
+                        
+                        # --- Extract Video URL (if tImg exists) ---
+                        if has_timg:
+                            tImg = media.get("tImg", "")
+                            video_url = None
+                            if "/ivs/" in tImg:
+                                try:
+                                    ivs_part = tImg.split("/ivs/")[1]
+                                    parts = ivs_part.split("/")
+                                    if len(parts) >= 3:
+                                        video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/{parts[0]}/{parts[1]}.mp4"
+                                    elif len(parts) == 2:
+                                        video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/{parts[0]}.mp4"
+                                    elif len(parts) == 1:
+                                        video_id = parts[0].split('.')[0]
+                                        video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/{video_id}.mp4"
+                                except Exception:
+                                    pass
+                            
+                            if video_url:
+                                all_results[subject_name].append(f"[{chapter_name}] [VIDEO] {title}: {video_url}")
+                                total_videos += 1
+                                if "youtube.com" in video_url or "youtu.be" in video_url:
+                                    youtube_count += 1
+                                else:
+                                    regular_count += 1
 
+                        # --- Extract PDF URL (if pdfFileName exists) ---
+                        if has_pdf:
+                            pdf_filename = media.get("pdfFileName")
+                            pdf_url = f"https://store.adda247.com/{pdf_filename}"
+                            all_results[subject_name].append(f"[{chapter_name}] [PDF] {title}: {pdf_url}")
+                            total_pdfs += 1
+                
+                # Update Progress
                 try:
                     await msg.edit_text(
                         f"⏳ <b>Extracting Content...</b> Please wait ⚡\n\n"
                         f"📖 <b>Subject:</b> <code>{subject_name}</code>\n"
-                        f"📊 <b>Progress:</b> {i+1}/{len(syllabus)}\n"
+                        f"📊 <b>Progress:</b> {i+1}/{len(subjects_list)}\n"
                         f"🎥 <b>Videos found:</b> {total_videos}\n"
-                        f"📄 <b>PDFs found:</b> {total_pdfs}"
+                        f"📄 <b>PDFs found:</b> {total_pdfs}\n"
+                        f"📝 <b>Tests found:</b> {total_tests}"
                     )
                 except MessageNotModified:
                     pass
 
-                all_results[subject_name] = []
-                page = 0
-                page_size = 50 
-                found_level = None
-
-                for level_type in ["TOPIC", "CHAPTER", "SUBJECT"]:
-                    test_url = f"https://liveclasses.adda247.com/api/v1/pdp/OLC/content?contentType=ONLINE_LIVE_CLASSES&packageId={package_id}&level={level_type}&syllabusId={subject_id}&pageNo=0&pageSize={page_size}&src=aweb"
-                    test_data = await fetch_json_async(session, test_url, get_headers("liveclasses.adda247.com"))
-                    if test_data and test_data.get("success"):
-                        test_content = test_data.get("data", {}).get("content", [])
-                        if test_content:
-                            found_level = level_type
-                            break
-                
-                if not found_level:
-                    continue
-
-                while True:
-                    url_classes = f"https://liveclasses.adda247.com/api/v1/pdp/OLC/content?contentType=ONLINE_LIVE_CLASSES&packageId={package_id}&level={found_level}&syllabusId={subject_id}&pageNo={page}&pageSize={page_size}&src=aweb"
-                    data_classes = await fetch_json_async(session, url_classes, get_headers("liveclasses.adda247.com"))
-
-                    if not data_classes or not data_classes.get("success"):
-                        break
+            # 3. Process Mock Tests (NO FETCHING, JUST FRAME URL DIRECTLY)
+            if tests_list:
+                all_results["MOCK TESTS"] = []
+                for test in tests_list:
+                    mock_id = test.get("mockTestId")
+                    test_title = test.get("title", "Unknown Test")
+                    test_topic = test.get("topic", "General")
+                    
+                    # Frame the URL directly without fetching
+                    test_url = f"https://ts-storetest.adda247.com/{mock_id}.json"
+                    all_results["MOCK TESTS"].append(f"[{test_topic}] [TEST] {test_title}: {test_url}")
+                    total_tests += 1
                         
-                    content = data_classes.get("data", {}).get("content", [])
-                    if not content:
-                        break
-                        
-                    for cls in content:
-                        title = cls.get("name", "No Title").strip()
-                        tImg = cls.get("tImg", "")
-                        video_url = None
-                        
-                        if "/ivs/" in tImg:
-                            try:
-                                ivs_part = tImg.split("/ivs/")[1]
-                                parts = ivs_part.split("/")
-                                if len(parts) >= 3:
-                                    video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/{parts[0]}/{parts[1]}.mp4"
-                                elif len(parts) == 2:
-                                    video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/{parts[0]}.mp4"
-                                elif len(parts) == 1:
-                                    video_id = parts[0].split('.')[0]
-                                    video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/{video_id}.mp4"
-                            except Exception:
-                                pass
-                        
-                        if not video_url and cls.get("externalScheduleId"):
-                            video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com//ivs/{cls['externalScheduleId']}.mp4"
+                # Update Progress for Tests
+                try:
+                    await msg.edit_text(
+                        f"⏳ <b>Extracting Tests...</b> Please wait ⚡\n\n"
+                        f"📝 <b>Total Tests:</b> {len(tests_list)}\n"
+                        f"🎥 <b>Videos found:</b> {total_videos}\n"
+                        f"📄 <b>PDFs found:</b> {total_pdfs}\n"
+                        f"📝 <b>Tests found:</b> {total_tests}"
+                    )
+                except MessageNotModified:
+                    pass
 
-                        if title and video_url:
-                            all_results[subject_name].append(f"[VIDEO] {title}: {video_url}")
-                            total_videos += 1
-                            if "youtube.com" in video_url or "youtu.be" in video_url:
-                                youtube_count += 1
-                            else:
-                                regular_count += 1
-
-                        pdf_filename = cls.get("pdfFileName")
-                        if pdf_filename:
-                            pdf_url = f"https://store.adda247.com/{pdf_filename}"
-                            all_results[subject_name].append(f"[PDF] {pdf_filename}: {pdf_url}")
-                            total_pdfs += 1
-
-                    if len(content) < page_size:
-                        break
-                    page += 1
-
-        if total_videos == 0 and total_pdfs == 0:
+        if total_videos == 0 and total_pdfs == 0 and total_tests == 0:
             await msg.edit_text("😕 <b>No content found in this package.</b>")
             return
 
         await msg.edit_text("⏳ <b>Generating file...</b> Almost done! ⚡")
 
+        # 4. Build Output File
         file_content = f"{MY_LOGO_URL}\n\n"
         for subj_name, links in all_results.items():
             if links:
@@ -206,11 +188,12 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
         file_bytes.name = sanitize_filename(f"Adda247_{package_id}")
         thumb_path = await download_thumbnail(MY_LOGO_URL)
 
+        # 5. Build Caption
         india_timezone = pytz.timezone("Asia/Kolkata")
         current_time = datetime.now(india_timezone)
         time_new = current_time.strftime("%d %b %Y, %I:%M %p")
 
-        total_links = total_videos + total_pdfs
+        total_links = total_videos + total_pdfs + total_tests
         price = "N/A"
         mention = f"<a href='tg://user?id={user.id}'>{user.first_name}</a>"
 
@@ -225,15 +208,16 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
             f"📁 Documents: {total_pdfs}\n"
             f"┠🎥 Videos : {total_videos}\n"
             f"  ┠📺 Regular : {regular_count}\n"
-            f"  ┠📻 YouTube : {youtube_count}</blockquote>\n\n"
+            f"  ┠📻 YouTube : {youtube_count}\n"
+            f"┠📝 Mock Tests : {total_tests}</blockquote>\n\n"
             f"👤 Generated By: {mention}\n"
             f"📅 Generated On: {time_new} IST"
         ).rstrip()
 
-        # Send Document
+        # 6. Send Document
         await app.send_document(chat_id=chat_id, document=file_bytes, caption=caption, thumb=thumb_path, parse_mode="HTML")
 
-        # Log to Channel
+        # 7. Log to Channel
         try:
             file_bytes.seek(0)
             await app.send_document(chat_id=PREMIUM_LOGS, document=file_bytes, caption=f"📡 <b>Adda247 Extract</b>\n\n{caption}", thumb=thumb_path, parse_mode="HTML")
@@ -268,7 +252,7 @@ async def adda247_callback(app, callback_query):
     main_msg = await app.send_message(chat_id, "📦 <b>Adda247 Extractor</b>\n\n📝 <b>Send Package ID:</b>")
     
     try:
-        # 👇 input using listen
+        # 👇 input using listen (Pinnacle logic)
         pkg_msg = await app.listen(chat_id)
         package_id = pkg_msg.text.strip()
         
@@ -291,7 +275,7 @@ async def adda247_callback(app, callback_query):
             
         await main_msg.edit_text("⏳ <b>Processing...</b>")
         
-        # Call extraction and pass main_msg
+        # Call extraction and pass main_msg for progress updates
         await extract_adda247_package(app, chat_id, package_id, callback_query.from_user, main_msg)
         
         # Delete the prompt message after success
