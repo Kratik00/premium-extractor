@@ -1,18 +1,25 @@
 import requests
 import os
-import  asyncio
+import asyncio
 import json
+import aiohttp
+import pytz
+from datetime import datetime
 from pyrogram import filters
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
+from pyrogram.errors import MessageNotModified
 from Extractor import app
 from Extractor.core.func import chk_user
 from config import PREMIUM_LOGS
 
 LOG_CHANNEL = PREMIUM_LOGS
+MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
 
+# State management for pagination
+user_courses = {}
+user_pages = {}
 
 # ================= API SETTINGS =================
-
 API_COURSES = "https://class.ingeniumedu.com/getRecentCourses"
 API_DETAILS = "https://class.ingeniumedu.com/getCourseDetailsStudent"
 
@@ -40,120 +47,134 @@ PARAMS = {
     "limit": "100"
 }
 
-
-# ================= GET COURSES =================
-
+# ================= GET COURSES (UNCHANGED) =================
 def get_courses():
-
     r = requests.get(API_COURSES, headers=HEADERS, params=PARAMS)
     if r.status_code != 200:
         return []
     
     data = r.json()
-
-
     courses = data.get("result", {}).get("assigned_courses", [])
+    return [(c["course_id"], c["course_title"]) for c in courses]
 
-    return [
-        (c["course_id"], c["course_title"])
-        for c in courses
-    ]
-
-
-# ================= EXTRACT LINKS =================
-
+# ================= EXTRACT LINKS (UNCHANGED) =================
 def extract_links(course_id):
-
     params = {
         "client_id": "2001",
         "course_id": course_id
     }
-
     r = requests.get(API_DETAILS, headers=HEADERS, params=params)
     data = r.json()
-
     sections = data.get("result", {}).get("section_array", [])
-
     lines = []
-
     for section in sections:
-
         subject = section.get("section_name", "Unknown")
-
         contents = sorted(
             section.get("content_array", []),
             key=lambda x: x.get("priority_order", 0)
         )
-
         for item in contents:
-
             topic = item.get("name", "No Title")
             url = None
-
-            # Tests / PDFs
             if item.get("file_url"):
                 url = item["file_url"]
-
-            # Drive / External
             elif item.get("file_link", "").startswith("http"):
                 url = item["file_link"]
-
-            # YouTube
             elif item.get("file_type") == "youtube":
                 url = f"https://youtu.be/{item['file_link']}"
-
             if url and url != "https":
                 lines.append(f"[{subject}] {topic} : {url}")
-
-    # Remove duplicates
     return list(dict.fromkeys(lines))
 
-
-# ================= SAVE TXT =================
-
+# ================= SAVE TXT (UNCHANGED) =================
 def save_txt(course_title, lines):
-
-    safe_name = "".join(
-        x for x in course_title if x.isalnum() or x in " -_"
-    )
-
+    safe_name = "".join(x for x in course_title if x.isalnum() or x in " -_")
     file_name = f"{safe_name}.txt"
-
     with open(file_name, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
-
     return file_name
 
+# ================= THUMBNAIL DOWNLOADER =================
+async def download_thumbnail(logo_url: str) -> str:
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(logo_url, timeout=15) as resp:
+                if resp.status == 200:
+                    thumb_path = f"thumb_ingenium_{datetime.now().timestamp()}.jpg"
+                    with open(thumb_path, 'wb') as f:
+                        f.write(await resp.read())
+                    return thumb_path
+    except Exception as e:
+        print(f"⚠️ Failed to download thumbnail: {e}")
+    return None
 
-#================== PROCESS =====================
+# ================= PAGINATION UI =================
+async def show_courses_page(client, target, courses, page=0):
+    is_callback = isinstance(target, CallbackQuery)
+    user_id = target.from_user.id
+    
+    total_courses = len(courses)
+    courses_per_page = 5
+    total_pages = (total_courses + courses_per_page - 1) // courses_per_page if total_courses else 1
+    
+    start_idx = page * courses_per_page
+    end_idx = min(start_idx + courses_per_page, total_courses)
+    page_courses = courses[start_idx:end_idx]
+    
+    keyboard = []
+    for i, (cid, title) in enumerate(page_courses):
+        display_title = title if len(title) <= 30 else title[:27] + "..."
+        keyboard.append([InlineKeyboardButton(f"📘 {display_title}", callback_data=f"ingi_{cid}")])
+        
+    nav_row = []
+    if page > 0:
+        nav_row.append(InlineKeyboardButton("◀️", callback_data=f"ingipage_{page-1}"))
+    
+    nav_row.append(InlineKeyboardButton(f"📄 {page + 1}/{total_pages}", callback_data="ingiinfo"))
+    
+    if page < total_pages - 1:
+        nav_row.append(InlineKeyboardButton("▶️", callback_data=f"ingipage_{page+1}"))
+        
+    keyboard.append(nav_row)
+    
+    text = (
+        f"💠 <b>Select a Course to Extract:</b>\n\n"
+        f"📂 <b>Showing:</b> {start_idx + 1}-{end_idx} of {total_courses}\n\n"
+        f"Tap a course to extract immediately.\n"
+        f"Use ◀️ ▶️ to navigate pages."
+    )
+    
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    
+    if is_callback:
+        try:
+            await target.message.edit_text(text, reply_markup=reply_markup)
+        except MessageNotModified:
+            pass
+    else:
+        await target.reply_text(text, reply_markup=reply_markup)
+    
+    user_pages[user_id] = page
 
+# ================= PROCESS =================
 async def process_ingenium(app, message):
-    """Show available courses as buttons"""
-
-    await message.reply_text(
-        "📡 <b>Fetching available courses...</b> Please wait ⚡"
-    )
-
+    user_id = message.from_user.id
+    msg = await message.reply_text("📡 <b>Fetching available courses...</b> Please wait ⚡")
+    
     courses = await asyncio.to_thread(get_courses)
-
-    keyboard = [
-        [InlineKeyboardButton(f"📘 {title}", callback_data=f"ingi_{cid}")]
-        for cid, title in courses
-    ]
-
-    await message.reply_text(
-        "💠 <b>Select a Course to Extract:</b>",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+    
+    if not courses:
+        await msg.edit_text("😕 <b>No courses found.</b>")
+        return
+        
+    user_courses[user_id] = courses
+    await msg.delete()
+    await show_courses_page(app, message, courses, page=0)
 
 # ================= BUTTON MENU =================
-
 @app.on_callback_query(filters.regex("^ingenium_$"))
 async def ingenium_callback(client, callback_query):
-    """Triggered when user clicks Ingenium Extractor"""
-
     lol = await chk_user(callback_query, callback_query.from_user.id)
-
     if lol == 1:
         await callback_query.message.reply_text(
             "🔒 <b>Premium Feature Locked!</b>\n\n"
@@ -170,73 +191,122 @@ async def ingenium_callback(client, callback_query):
             "⚙️ <b>Initializing KNOWLEDGE SANKUL Extractor...</b>\n\n"
             "Please wait while I load available courses 💫"
         )
-
         await process_ingenium(client, callback_query.message)
-
         await processing.delete()
-
     except Exception as e:
         print(f"Error in ingenium_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
 
+# ================= PAGINATION CALLBACKS =================
+@app.on_callback_query(filters.regex("^ingipage_"))
+async def ingenium_page_callback(client, callback_query):
+    page = int(callback_query.data.replace("ingipage_", ""))
+    user_id = callback_query.from_user.id
+    courses = user_courses.get(user_id, [])
+    if not courses:
+        await callback_query.answer("Session expired.", show_alert=True)
+        return
+    await callback_query.answer()
+    await show_courses_page(client, callback_query, courses, page)
 
+@app.on_callback_query(filters.regex("^ingiinfo$"))
+async def ingenium_info_callback(client, callback_query):
+    await callback_query.answer("Use ◀️ ▶️ buttons to change pages", show_alert=False)
 
 # ================= EXTRACT CALLBACK =================
-
 @app.on_callback_query(filters.regex("^ingi_"))
 async def ingenium_batch_callback(app, callback_query):
-
     course_id = callback_query.data.replace("ingi_", "")
-
     await callback_query.answer("⏳ Extracting... please wait")
 
     try:
-
-        courses = dict(get_courses())
-        course_title = courses.get(int(course_id), "Course")
+        # Get course title from cached list to avoid extra API calls
+        courses_dict = dict(user_courses.get(callback_query.from_user.id, []))
+        if not courses_dict:
+            courses_list = await asyncio.to_thread(get_courses)
+            courses_dict = dict(courses_list)
+            
+        course_title = courses_dict.get(int(course_id), "Course")
 
         subject_links = await asyncio.to_thread(extract_links, course_id)
-
         total_links = len(subject_links)
+
+        # Smart counting for caption
+        youtube_count = 0
+        regular_count = 0
+        pdf_count = 0
+        for line in subject_links:
+            url = line.split(" : ")[-1].strip()
+            if "youtu.be" in url or "youtube.com" in url:
+                youtube_count += 1
+            elif url.lower().endswith(('.pdf', '.doc', '.docx')):
+                pdf_count += 1
+            else:
+                regular_count += 1
 
         file_name = save_txt(course_title, subject_links)
 
         if total_links == 0 or os.path.getsize(file_name) == 0:
             os.remove(file_name)
-
-            await callback_query.message.edit_text(
-                f"⚠️ <b>No links found for:</b> <code>{course_title}</code>"
-            )
+            await callback_query.message.edit_text(f"⚠️ <b>No links found for:</b> <code>{course_title}</code>")
             return
 
+        # Download thumbnail
+        thumb_path = await download_thumbnail(MY_LOGO_URL)
+
+        # Time & Caption logic
+        india_timezone = pytz.timezone('Asia/Kolkata')
+        current_time = datetime.now(india_timezone)
+        time_new = current_time.strftime("%d %b %Y, %I:%M %p")
+        
+        mention = f"<a href='tg://user?id={callback_query.from_user.id}'>{callback_query.from_user.first_name}</a>"
+
         caption = (
-            f"╭━━━『 💠 𝐋𝐔𝐂𝐈𝐅𝐄𝐑 𝐄𝐗𝐓𝐑𝐀𝐂𝐓𝐎𝐑 💠 』━━━╮\n"
-            f"📦 <b>Platform:</b> Knowledge Sankul\n"
-            f"📚 <b>Course:</b> <code>{course_title}</code>\n"
-            f"🔗 <b>Total Links:</b> {total_links}\n"
-            f"╰━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-            f"<b>👑 Maintained by:</b> <a href='https://t.me/URS_LUCIFER'>Lucifer</a>"
-        )
+            f"<blockquote>📚 App: Knowledge Sankul</blockquote>\n\n"
+            f"═══════ BATCH DETAILS ═══════\n"
+            f"<blockquote>🌟 Batch Name: {course_title}\n"
+            f"🆔 Course ID: {course_id}\n"
+            f"💸 Price : ₹N/A</blockquote>\n\n"
+            f"═══════ LINK SUMMARY ═══════\n"
+            f"<blockquote>🔢 Total Links: {total_links}\n"
+            f"📁 Documents: {pdf_count}\n"
+            f"┠🎥 Videos : {youtube_count + regular_count}\n"
+            f"  ┠📺 Regular : {regular_count}\n"
+            f"  ┠📻 YouTube : {youtube_count}</blockquote>\n\n"
+            f"👤 Generated By: {mention}\n"
+            f"📅 Generated On: {time_new} IST"
+        ).rstrip()  # Ensures zero trailing spaces
 
         # Send to user
         await app.send_document(
             chat_id=callback_query.message.chat.id,
             document=file_name,
-            caption=caption
+            caption=caption,
+            thumb=thumb_path,
+            parse_mode="HTML"
         )
 
-        # OPTIONAL → send to logs (same as CDS)
+        # Send to logs
         try:
             await app.send_document(
                 chat_id=LOG_CHANNEL,
                 document=file_name,
-                caption=f"📡 <b>Ingenium Extract</b>\n\n{caption}"
+                caption=f"📡 <b>Knowledge Sankul Extract</b>\n\n{caption}",
+                thumb=thumb_path,
+                parse_mode="HTML"
             )
         except Exception as e:
             print(f"Log send error: {e}")
 
+        # Cleanup files
         os.remove(file_name)
-        await callback_query.message.delete()
+        if thumb_path and os.path.exists(thumb_path):
+            os.remove(thumb_path)
+            
+        try:
+            await callback_query.message.delete()
+        except:
+            pass
 
     except Exception as e:
         print("Ingenium extraction error:", e)
