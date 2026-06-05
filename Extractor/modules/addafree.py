@@ -215,12 +215,12 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
         ).rstrip()
 
         # 6. Send Document
-        await app.send_document(chat_id=chat_id, document=file_bytes, caption=caption, thumb=thumb_path, parse_mode="HTML")
+        await app.send_document(chat_id=chat_id, document=file_bytes, caption=caption, thumb=thumb_path)
 
         # 7. Log to Channel
         try:
             file_bytes.seek(0)
-            await app.send_document(chat_id=PREMIUM_LOGS, document=file_bytes, caption=f"📡 <b>Adda247 Extract</b>\n\n{caption}", thumb=thumb_path, parse_mode="HTML")
+            await app.send_document(chat_id=PREMIUM_LOGS, document=file_bytes, caption=caption, thumb=thumb_path)
         except Exception as e:
             print(f"⚠️ Error sending to log: {e}")
 
