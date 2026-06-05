@@ -111,7 +111,8 @@ async def download_thumbnail(logo_url: str) -> str:
 # ================= PAGINATION UI =================
 async def show_courses_page(client, target, courses, page=0):
     is_callback = isinstance(target, CallbackQuery)
-    user_id = target.from_user.id
+    # FIX: For Message objects, from_user is the bot. We must use chat.id to get the real user.
+    user_id = target.from_user.id if is_callback else target.chat.id 
     
     total_courses = len(courses)
     courses_per_page = 5
@@ -157,8 +158,8 @@ async def show_courses_page(client, target, courses, page=0):
     user_pages[user_id] = page
 
 # ================= PROCESS =================
-async def process_ingenium(app, message):
-    user_id = message.from_user.id
+# FIX: Accept user_id explicitly to avoid saving under the Bot's ID
+async def process_ingenium(app, message, user_id: int):
     msg = await message.reply_text("📡 <b>Fetching available courses...</b> Please wait ⚡")
     
     courses = await asyncio.to_thread(get_courses)
@@ -167,7 +168,7 @@ async def process_ingenium(app, message):
         await msg.edit_text("😕 <b>No courses found.</b>")
         return
         
-    user_courses[user_id] = courses
+    user_courses[user_id] = courses # Now saves under the correct user ID
     await msg.delete()
     await show_courses_page(app, message, courses, page=0)
 
@@ -191,7 +192,10 @@ async def ingenium_callback(client, callback_query):
             "⚙️ <b>Initializing KNOWLEDGE SANKUL Extractor...</b>\n\n"
             "Please wait while I load available courses 💫"
         )
-        await process_ingenium(client, callback_query.message)
+        
+        # FIX: Get actual user ID from the callback
+        user_id = callback_query.from_user.id 
+        await process_ingenium(client, callback_query.message, user_id)
         await processing.delete()
     except Exception as e:
         print(f"Error in ingenium_callback: {e}")
@@ -220,7 +224,6 @@ async def ingenium_batch_callback(app, callback_query):
     await callback_query.answer("⏳ Extracting... please wait")
 
     try:
-        # Get course title from cached list to avoid extra API calls
         courses_dict = dict(user_courses.get(callback_query.from_user.id, []))
         if not courses_dict:
             courses_list = await asyncio.to_thread(get_courses)
@@ -277,24 +280,37 @@ async def ingenium_batch_callback(app, callback_query):
             f"📅 Generated On: {time_new} IST"
         ).rstrip()  # Ensures zero trailing spaces
 
-        # Send to user
-        await app.send_document(
-            chat_id=callback_query.message.chat.id,
-            document=file_name,
-            caption=caption,
-            thumb=thumb_path,
-            parse_mode="HTML"
-        )
-
-        # Send to logs
+        # FIX: Send to user with thumbnail fallback (If Telegram rejects the image size, it sends without it)
         try:
             await app.send_document(
-                chat_id=LOG_CHANNEL,
+                chat_id=callback_query.message.chat.id,
                 document=file_name,
-                caption=f"📡 <b>Knowledge Sankul Extract</b>\n\n{caption}",
-                thumb=thumb_path,
-                parse_mode="HTML"
+                caption=caption,
+                thumb=thumb_path
             )
+        except Exception as e:
+            print(f"⚠️ Thumbnail failed ({e}), sending without thumbnail...")
+            await app.send_document(
+                chat_id=callback_query.message.chat.id,
+                document=file_name,
+                caption=caption
+            )
+
+        # Send to logs with same fallback
+        try:
+            try:
+                await app.send_document(
+                    chat_id=LOG_CHANNEL,
+                    document=file_name,
+                    caption=caption,
+                    thumb=thumb_path
+                )
+            except:
+                await app.send_document(
+                    chat_id=LOG_CHANNEL,
+                    document=file_name,
+                    caption=fcaption
+                )
         except Exception as e:
             print(f"Log send error: {e}")
 
