@@ -97,7 +97,7 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
 
         syllabus = data_subjects.get("data", {}).get("syllabus", [])
         if not syllabus:
-            await processing_msg.edit_text("😕 <b>No subjects found for this Package ID.</b>")
+            await processing_msg.edit<think>("😕 <b>No subjects found for this Package ID.</b>")
             return
 
         all_results = {}
@@ -126,48 +126,69 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
 
                 all_results[subject_name] = []
                 page = 0
+                page_size = 50  # Request 50 items per page to reduce API calls
+                found_level = None
 
+                # 🚀 FIX 1: Auto-detect the correct 'level' parameter (TOPIC, CHAPTER, or SUBJECT)
+                for level_type in ["TOPIC", "CHAPTER", "SUBJECT"]:
+                    test_url = (
+                        "https://liveclasses.adda247.com/api/v1/pdp/OLC/content"
+                        f"?contentType=ONLINE_LIVE_CLASSES&packageId={package_id}"
+                        f"&level={level_type}&syllabusId={subject_id}&pageNo=0&pageSize={page_size}&src=aweb"
+                    )
+                    test_data = await fetch_json_async(session, test_url, get_headers("liveclasses.adda247.com"))
+                    if test_data and test_data.get("success"):
+                        test_content = test_data.get("data", {}).get("content", [])
+                        if test_content:
+                            found_level = level_type
+                            print(f"✅ Found content for {subject_name} using level={level_type}")
+                            break
+                
+                if not found_level:
+                    print(f"⚠️ No content found for subject {subject_name} (ID: {subject_id}) with any level.")
+                    continue
+
+                # 🚀 FIX 2: Fetch all pages with the correct level and fixed pagination
                 while True:
                     url_classes = (
                         "https://liveclasses.adda247.com/api/v1/pdp/OLC/content"
                         f"?contentType=ONLINE_LIVE_CLASSES&packageId={package_id}"
-                        f"&level=CHAPTER&syllabusId={subject_id}&pageNo={page}&pageSize=20&src=aweb"
+                        f"&level={found_level}&syllabusId={subject_id}&pageNo={page}&pageSize={page_size}&src=aweb"
                     )
                     data_classes = await fetch_json_async(session, url_classes, get_headers("liveclasses.adda247.com"))
 
-                    # 🚨 DEBUG: Print if the API fails or returns success=False
                     if not data_classes or not data_classes.get("success"):
-                        print(f"⚠️ Classes API failed for subject {subject_name} (ID: {subject_id}): {data_classes}")
                         break
-
+                        
                     content = data_classes.get("data", {}).get("content", [])
                     if not content:
-                        print(f"⚠️ Empty content for subject {subject_name} on page {page}")
                         break
-
+                        
                     for cls in content:
                         title = cls.get("name", "No Title").strip()
 
-                        # --- Extract Video URL (FIXED FOR ALL FORMATS) ---
+                        # --- Extract Video URL ---
                         tImg = cls.get("tImg", "")
                         video_url = None
+                        
                         if "/ivs/" in tImg:
                             try:
                                 ivs_part = tImg.split("/ivs/")[1]
                                 parts = ivs_part.split("/")
                                 
                                 if len(parts) >= 3:
-                                    # Format: /ivs/ID1/ID2/filename.jpg
                                     video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com/ivs/{parts[0]}/{parts[1]}.mp4"
                                 elif len(parts) == 2:
-                                    # Format: /ivs/ID/filename.jpg
                                     video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com/ivs/{parts[0]}.mp4"
                                 elif len(parts) == 1:
-                                    # Format: /ivs/ID.jpg
                                     video_id = parts[0].split('.')[0]
                                     video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com/ivs/{video_id}.mp4"
                             except Exception as e:
                                 print(f"⚠️ Error parsing tImg {tImg}: {e}")
+                        
+                        # 🚀 FIX 3: Fallback to externalScheduleId if tImg parsing failed
+                        if not video_url and cls.get("externalScheduleId"):
+                            video_url = f"https://video-streaming-source.s3.ap-south-1.amazonaws.com/ivs/{cls['externalScheduleId']}.mp4"
 
                         if title and video_url:
                             all_results[subject_name].append(f"[VIDEO] {title}: {video_url}")
@@ -184,7 +205,8 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                             all_results[subject_name].append(f"[PDF] {pdf_filename}: {pdf_url}")
                             total_pdfs += 1
 
-                    if len(content) < 20:
+                    # 🚀 FIX 2 (cont.): Correctly break pagination based on actual page_size
+                    if len(content) < page_size:
                         break
                     page += 1
 
