@@ -35,7 +35,8 @@ BASE_HEADERS = {
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Site": "same-site",
     "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
-    "X-Auth-Token": "fpoa43edty5"
+    "X-Auth-Token": "fpoa43edty5",
+    "x-jwt-token": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJoczk1NjU2NTY2NDFAZ21haWwuY29tIiwiYXVkIjoiMTE4MzcxODkiLCJpYXQiOjE3Nzg5Mjc1NzEsImlzcyI6ImFkZGEyNDcuY29tIiwibmFtZSI6IlByaXlhbnNodSBTaW5naCIsImVtYWlsIjoiaHM5NTY1NjU2NjQxQGdtYWlsLmNvbSIsInBob25lIjoiODE3ODMwMjA3NyIsInVzZXJJZCI6ImFkZGEudjEuZTJkZmQxOGQzYTVjMzFjNDQ1YmZmZmE4MWRlYzNmZTciLCJpc01hc3RlckxvZ0luIjpmYWxzZSwibG9naW5BcGlWZXJzaW9uIjoyLCJlbmMiOmZhbHNlfQ.jqSD1WSEUzcVmD53V9niVfVGmRzKzaOAvp-G-3kmDtfADQhRpa9a5qZO5KhVlXmZfVyDyXcXwdIVb-beSlddqw"
 }
 
 def get_headers(host: str):
