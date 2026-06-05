@@ -51,7 +51,11 @@ async def fetch_json_async(session, url: str, headers: dict):
         async with session.get(url, headers=headers, timeout=20) as r:
             if r.status == 200:
                 return await r.json()
-            return None
+            else:
+                # FIX: Print actual error if API fails (e.g., 401, 403)
+                error_text = await r.text()
+                print(f"⚠️ API Error {r.status} for {url}: {error_text[:300]}")
+                return None
     except Exception as e:
         print(f"⚠️ Failed to fetch {url}: {e}")
         return None
@@ -80,7 +84,8 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
             data_subjects = await fetch_json_async(session, url_subjects, get_headers("store.adda247.com"))
         
         if not data_subjects or not data_subjects.get("success"):
-            await processing_msg.edit_text("😕 <b>Failed to fetch subjects. Check Package ID.</b>")
+            error_info = data_subjects if data_subjects else "Connection failed or API returned empty."
+            await processing_msg.edit_text(f"😕 <b>Failed to fetch subjects.</b>\n\n<code>{str(error_info)[:500]}</code>")
             return
 
         syllabus = data_subjects.get("data", {}).get("syllabus", [])
@@ -262,7 +267,8 @@ async def adda247_callback(client, callback_query):
         await callback_query.answer("An error occurred", show_alert=True)
 
 # ===================== HANDLE PACKAGE ID INPUT ===================== #
-@app.on_message(filters.text & ~filters.command(["start", "help"]), group=-2)
+# FIX: Changed group=-2 to group=-15 to ensure it runs BEFORE other text handlers in start.py
+@app.on_message(filters.text & ~filters.command(["start", "help"]), group=-15)
 async def handle_package_id_input(client, message):
     user_id = message.from_user.id
     
@@ -279,7 +285,12 @@ async def handle_package_id_input(client, message):
             package_id = text
             del user_states[user_id]
             
-            await extract_adda247_package(client, message.chat.id, package_id, message.from_user)
+            # FIX: Added try-except to catch silent crashes
+            try:
+                await extract_adda247_package(client, message.chat.id, package_id, message.from_user)
+            except Exception as e:
+                print(f"❌ CRITICAL ERROR IN EXTRACTION: {e}")
+                await message.reply_text(f"❌ <b>Bot crashed during extraction:</b>\n<code>{str(e)}</code>")
         else:
             await message.reply_text("❌ Please send a valid numeric Package ID.")
         return
