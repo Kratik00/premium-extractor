@@ -1565,6 +1565,8 @@ async def handle_callback(client, query):  # <- client यहाँ होना
     elif query.data=="close_data":
         await query.message.delete()
         await query.message.reply_to_message.delete()
+    else:
+        query.continue_propagation()
 
 def get_alphabet_keyboard():
     """Create a keyboard with A-Z buttons in a modern style"""
