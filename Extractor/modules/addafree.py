@@ -3,7 +3,6 @@ import os
 import re
 import aiohttp
 import pytz
-import uuid
 import asyncio
 from datetime import datetime
 
@@ -17,12 +16,14 @@ from config import PREMIUM_LOGS
 
 # ===================== CONFIG & STATE ===================== #
 MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
-user_states = {}  # Stores {user_id: {'state': 'waiting', 'session': 'uuid'}}
+user_states = {}  # Stores {user_id: 'waiting_for_package_id'}
 
 # ===================== HEADERS ===================== #
 BASE_HEADERS = {
     "Accept": "*/*",
-    "Accept-Encoding": "gzip, deflate, br, zstd",
+    # 🚨 CRITICAL FIX: Removed 'br, zstd' because aiohttp doesn't support them natively!
+    # This was causing the API to return compressed data that aiohttp couldn't read, resulting in 0 URLs.
+    "Accept-Encoding": "gzip, deflate", 
     "Accept-Language": "en-US,en;q=0.9",
     "Connection": "keep-alive",
     "Content-Type": "application/json",
@@ -78,7 +79,7 @@ async def download_thumbnail(logo_url: str) -> str:
         print(f"⚠️ Failed to download thumbnail: {e}")
     return None
 
-# ===================== EXTRACTION LOGIC (UNCHANGED) ===================== #
+# ===================== EXTRACTION LOGIC ===================== #
 async def extract_adda247_package(app: Client, chat_id: int, package_id: str, user):
     processing_msg = await app.send_message(chat_id, "⏳ <b>Fetching all subjects...</b> Please wait ⚡")
     thumb_path = None
@@ -124,6 +125,7 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                 page_size = 50 
                 found_level = None
 
+                # Auto-detect the correct 'level' parameter
                 for level_type in ["TOPIC", "CHAPTER", "SUBJECT"]:
                     test_url = f"https://liveclasses.adda247.com/api/v1/pdp/OLC/content?contentType=ONLINE_LIVE_CLASSES&packageId={package_id}&level={level_type}&syllabusId={subject_id}&pageNo=0&pageSize={page_size}&src=aweb"
                     test_data = await fetch_json_async(session, test_url, get_headers("liveclasses.adda247.com"))
@@ -244,7 +246,7 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
             try: os.remove(thumb_path)
             except: pass
 
-# ===================== NEW CALLBACK HANDLER (ASK LISTEN LOGIC) ===================== #
+# ===================== CALLBACK HANDLER (SENDS NEW MESSAGE) ===================== #
 @app.on_callback_query(filters.regex("^adda247_"))
 async def adda247_callback(client, callback_query):
     lol = await chk_user(callback_query, callback_query.from_user.id)
@@ -258,14 +260,16 @@ async def adda247_callback(client, callback_query):
         return
 
     try:
-        chat_id = callback_query.message.chat.id
         user_id = callback_query.from_user.id
         
-        # 1. Send a NEW message with a Cancel button (Fixes MessageNotModified)
+        # 1. Set state
+        user_states[user_id] = 'waiting_for_package_id'
+        
+        # 2. Send a NEW message (Fixes MessageNotModified error)
         prompt_text = (
             "📦 <b>Adda247 Extractor</b>\n\n"
             "Please send the <b>Package ID</b> to extract all subjects.\n\n"
-            "⏱️ <i>You have 2 minutes to respond.</i>"
+            "⏱️ <i>Process will auto-cancel if you take too long.</i>"
         )
         cancel_markup = InlineKeyboardMarkup([
             [InlineKeyboardButton("❌ Cancel", callback_data="adda_cancel")]
@@ -274,42 +278,6 @@ async def adda247_callback(client, callback_query):
         await callback_query.message.reply_text(prompt_text, reply_markup=cancel_markup)
         await callback_query.answer()
         
-        # 2. Set state with a unique session ID and listen for input
-        session_id = str(uuid.uuid4())
-        user_states[user_id] = {'state': 'waiting', 'session': session_id}
-        
-        try:
-            # Listen for the next text message from this specific user (Pinnacle logic)
-            msg = await client.ask(
-                chat_id=chat_id,
-                filters=filters.text & filters.user(user_id),
-                timeout=120  # 2 minutes timeout
-            )
-            
-            # Check if session is still valid (they didn't cancel or restart)
-            current_session = user_states.get(user_id, {})
-            if current_session.get('session') != session_id:
-                return  # Session expired or cancelled, ignore this message
-            
-            del user_states[user_id]
-            text = msg.text.strip()
-            
-            if text.lower() == '/cancel':
-                await msg.reply_text("❌ Process cancelled.")
-                return
-                
-            if not text.isdigit():
-                await msg.reply_text("❌ Please send a valid numeric Package ID.")
-                return
-                
-            # Start extraction
-            await extract_adda247_package(client, chat_id, text, callback_query.from_user)
-            
-        except asyncio.TimeoutError:
-            if user_id in user_states:
-                del user_states[user_id]
-            await client.send_message(chat_id, "⏱️ <b>Time's up!</b> You took too long to respond. Process cancelled.")
-            
     except Exception as e:
         print(f"Error in adda247_callback: {e}")
         await callback_query.answer("An error occurred", show_alert=True)
@@ -318,14 +286,44 @@ async def adda247_callback(client, callback_query):
 @app.on_callback_query(filters.regex("^adda_cancel$"))
 async def adda_cancel_handler(client, callback_query):
     user_id = callback_query.from_user.id
-    if user_id in user_states and user_states[user_id].get('state') == 'waiting':
-        del user_states[user_id]  # Delete state to invalidate the session
-        await callback_query.message.edit_text("❌ <b>Process Cancelled.</b>")
+    if user_id in user_states and user_states[user_id] == 'waiting_for_package_id':
+        del user_states[user_id]
+        try:
+            await callback_query.message.edit_text("❌ <b>Process Cancelled.</b>")
+        except MessageNotModified:
+            pass
         await callback_query.answer("Cancelled", show_alert=False)
     else:
         await callback_query.answer("Nothing to cancel.", show_alert=True)
 
-# ===================== COMMAND HANDLER (UNCHANGED) ===================== #
+# ===================== HANDLE PACKAGE ID INPUT ===================== #
+@app.on_message(filters.text & ~filters.command(["start", "help"]), group=-15)
+async def handle_package_id_input(client, message):
+    user_id = message.from_user.id
+    
+    if user_id in user_states and user_states[user_id] == 'waiting_for_package_id':
+        message.stop_propagation()
+        
+        text = message.text.strip()
+        if text.lower() == '/cancel':
+            del user_states[user_id]
+            await message.reply_text("❌ Process cancelled.")
+            return
+            
+        if text.isdigit():
+            package_id = text
+            del user_states[user_id]
+            
+            try:
+                await extract_adda247_package(client, message.chat.id, package_id, message.from_user)
+            except Exception as e:
+                print(f"❌ CRITICAL ERROR IN EXTRACTION: {e}")
+                await message.reply_text(f"❌ <b>Bot crashed during extraction:</b>\n<code>{str(e)}</code>")
+        else:
+            await message.reply_text("❌ Please send a valid numeric Package ID.")
+        return
+
+# ===================== COMMAND HANDLER ===================== #
 @app.on_message(filters.command("addafree"))
 async def adda_command_handler(client, m):
     try:
