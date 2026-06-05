@@ -251,7 +251,7 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                 pass
 
 # ===================== COMMAND HANDLER ===================== #
-@app.on_message(filters.command("adda"))
+@app.on_message(filters.command("addafree"))
 async def adda_command_handler(client: Client, m):
     lol = await chk_user(m, m.from_user.id)
     if lol == 1:
