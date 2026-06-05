@@ -251,42 +251,39 @@ async def extract_adda247_package(app: Client, chat_id: int, package_id: str, us
                 pass
 
 # ===================== COMMAND HANDLER ===================== #
-@app.on_message(filters.command("addafree"))
-async def adda_command_handler(client: Client, m):
-    lol = await chk_user(m, m.from_user.id)
-    if lol == 1:
-        return await m.reply_text(
-            "🔒 <b>Premium Feature Locked!</b>\n\n"
-            "You don't have access to use this feature yet.\n"
-            "💎 <b>Contact:</b> <a href='https://t.me/URS_LUCIFER'>LUCIFER</a> to upgrade.",
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton("💬 Contact Admin", url="https://t.me/noobhusir")]]
-            )
-        )
+@app.on_message(filters.command("adda"))
+async def adda_command_handler(client, m):
 
     try:
         pkg_msg = await client.ask(
             m.chat.id,
             "📦 <b>Adda247 Extractor</b>\n\n"
-            "Send the <b>Package ID</b> to extract all subjects.\n\n"
-            "❌ <i>Reply /cancel to abort.</i>"
+            "Send the <b>Package ID</b>.\n\n"
+            "❌ Send <code>/cancel</code> to abort."
         )
+
+        if not pkg_msg.text:
+            return
+
+        text = pkg_msg.text.strip()
+
+        if text.lower() == "/cancel":
+            return await m.reply_text("❌ Process cancelled.")
+
+        if not text.isdigit():
+            return await m.reply_text(
+                "❌ Please send a valid numeric Package ID."
+            )
+
+        await extract_adda247_package(
+            client,
+            m.chat.id,
+            text,
+            m.from_user
+        )
+
     except Exception as e:
-        return await m.reply_text(f"❌ <b>Failed to ask for Package ID:</b>\n<code>{e}</code>")
-
-    if not pkg_msg.text:
-        return await m.reply_text("❌ Please send a valid numeric Package ID.")
-
-    text = pkg_msg.text.strip()
-
-    if text.lower() == "/cancel":
-        return await pkg_msg.reply_text("❌ Process cancelled.")
-
-    if not text.isdigit():
-        return await pkg_msg.reply_text("❌ Please send a valid numeric Package ID.")
-
-    try:
-        await extract_adda247_package(client, m.chat.id, text, m.from_user)
-    except Exception as e:
-        print(f"❌ CRITICAL ERROR IN EXTRACTION: {e}")
-        await m.reply_text(f"❌ <b>Bot crashed during extraction:</b>\n<code>{str(e)}</code>")
+        print(f"❌ CRITICAL ERROR: {e}")
+        await m.reply_text(
+            f"❌ <b>Error:</b>\n<code>{e}</code>"
+        )
