@@ -191,6 +191,8 @@ def get_video_url(session, vid, subject_id):
         "origin": BASE,
         "x-requested-with": "XMLHttpRequest"
     }
+    if "Authorization" in session.headers:
+        headers["Authorization"] = session.headers["Authorization"]
 
     for real_vid in [int(vid), int(vid) + 1000]:  # 🔥 try both
         try:
@@ -229,7 +231,8 @@ async def cds_start(app, callback_query):
 
     buttons = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔐 Session Login", callback_data="cds_login_session")],
-        [InlineKeyboardButton("📧 Email Login (OTP)", callback_data="cds_login_email")]
+        [InlineKeyboardButton("📧 Email Login (OTP)", callback_data="cds_login_email")],
+        [InlineKeyboardButton("🎟 Token Login", callback_data="cds_login_token")]
     ])
 
     await callback_query.message.reply_text(
@@ -331,6 +334,56 @@ async def cds_email_login(app, callback_query):
     # 🔥 pass message for editing further
     await show_batches(app, chat_id, session, sessionid, main_msg)
 
+@app.on_callback_query(filters.regex("^cds_login_token$"))
+async def cds_token_login(app, callback_query):
+
+    await callback_query.answer()
+
+    chat_id = callback_query.message.chat.id
+    msg = callback_query.message
+
+    await msg.edit_text("🎟 <b>Send Bearer Token:</b>")
+
+    inp = await app.listen(chat_id)
+    token = inp.text.strip()
+
+    try:
+        await inp.delete()
+    except:
+        pass
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "accept": "application/json",
+        "user-agent": "Dart/3.10"
+    }
+
+    try:
+        # test token
+        r = requests.get(
+            "https://www.cdsjourney.com/api/get-watch-token/4195/",
+            headers=headers
+        )
+
+        if r.status_code != 200:
+            return await msg.edit_text("❌ Invalid Token")
+
+        await msg.edit_text(
+            "✅ <b>Token Accepted!</b>\n\nFetching batches..."
+        )
+
+        # create normal session
+        session = create_session()
+
+        # store token inside session object
+        session.headers.update({
+            "Authorization": f"Bearer {token}"
+        })
+
+        await show_batches(app, chat_id, session, token, msg)
+
+    except Exception as e:
+        await msg.edit_text(f"❌ Error:\n<code>{e}</code>")
 # ---------------- SHOW BATCHES ----------------
 async def show_batches(app, chat_id, session, sessionid, msg):
 
