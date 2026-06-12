@@ -21,7 +21,7 @@ current_time = datetime.now(india_timezone)
 time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
 # ================= CONFIG =================
 WEB_LOGIN = "https://www.apnacollege.in/api/signin"
-PRODUCTS_API = "https://www.apnacollege.in/api/products_all"
+PRODUCTS_API = "https://www.apnacollege.in/api/learner/products"
 COURSE_PROGRESS_API = "https://www.apnacollege.in/api/user/courses-progress?courses="
 COURSE_CONTENT_API = "https://www.apnacollege.in/api/course"
 WISTIA_API = "https://fast.wistia.com/embed/medias"
