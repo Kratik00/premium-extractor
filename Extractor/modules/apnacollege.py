@@ -155,31 +155,61 @@ def login(email, password, verbose=True):
     return None, None, None
 
 def get_batches(session, token):
-    headers = {"accept": "application/json", "referer": "https://www.apnacollege.in/start", "user-agent": "Mozilla/5.0", "token": token}
+    url = "https://www.apnacollege.in/api/learner/products"
+
+    headers = {
+        "accept": "application/json",
+        "content-type": "application/json",
+        "referer": "https://www.apnacollege.in/start",
+        "user-agent": "Mozilla/5.0",
+        "token": token
+    }
+
+    payload = {
+        "type": "course",
+        "access": "public,private-enroll,soon,view-locked",
+        "excludeNotEnrolledPrivateProductsForAdmin": "true",
+        "fields": "title,titleId,cohorts.packages,cohorts.authors,cohorts.content,settings,resourcePass,progress,firstFreeUnitPathPlayerUrl",
+        "appliedCoupon": "",
+        "owned": "true",
+        "sortFields": [
+            {"sortField": "lastVisited", "direction": "desc"},
+            {"sortField": "learnerAccessPriority", "direction": "asc"},
+            {"sortField": "order", "direction": "desc"}
+        ],
+        "offset": "0",
+        "itemsPerPage": "50",
+        "paginationType": "offset"
+    }
+
     try:
-        pj = session.get(COURSE_PROGRESS_API, headers=headers, timeout=12).json()
-        cj = session.get(PRODUCTS_API, headers=headers, timeout=12).json()
+        resp = session.post(url, headers=headers, json=payload, timeout=15)
+
+        if resp.status_code != 200:
+            return []
+
+        data = resp.json()
+        courses_data = data.get("data", [])
+
+        out = []
+
+        for course in courses_data:
+            title = course.get("title", "Unknown")
+            title_id = course.get("titleId")
+            course_id = course.get("id")
+
+            if title_id:
+                out.append({
+                    "title": title,
+                    "courseId": course_id,
+                    "titleId": title_id
+                })
+
+        return out
+
     except Exception as e:
-        print(f"  [⚠️] Fetch batches error: {e}")
+        print(f"Fetch batches error: {e}")
         return []
-    
-    courses = cj.get("courses", {})
-    user_courses = pj.get("userCourses", []) if isinstance(pj, dict) else (pj if isinstance(pj, list) else [])
-    
-    out = []
-    for it in user_courses:
-        if not isinstance(it, dict): continue
-        me = it.get("me", {})
-        if not me.get("expires_t", True): continue
-        if not (me.get("registered", False) or me.get("premium", False)): continue
-        cid = it.get("courseId")
-        if cid and cid in courses:
-            out.append({
-                "title": courses[cid].get("title") or "Unknown",
-                "courseId": cid,
-                "titleId": courses[cid].get("titleId")
-            })
-    return out
 
 def get_course_content_ordered(session, title_id, token):
     url = f"{COURSE_CONTENT_API}/{title_id}?contents&path-player"
