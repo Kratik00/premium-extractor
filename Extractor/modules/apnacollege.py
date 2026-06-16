@@ -419,7 +419,7 @@ async def apna_handler(app, m):
         f"═══════ BATCH DETAILS ═══════\n"
         f"<blockquote>🌟 Batch Name: {batch['title']}\n"
         f"🆔 Batch ID: {batch['courseId']}\n"
-        f"💸 Price : ₹{price}</blockquote>\n\n"
+        f"💸 Price : ₹NA</blockquote>\n\n"
         f"═══════ LINK SUMMARY ═══════\n"
         f"<blockquote>🔢 Total Links: {total_links}\n"
         f"🎬 Videos: {success}\n"
