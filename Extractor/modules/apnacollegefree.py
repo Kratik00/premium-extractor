@@ -22,6 +22,7 @@ COURSE_CONTENT_API = "https://www.apnacollege.in/api/course"
 WISTIA_API = "https://fast.wistia.com/embed/medias"
 MAX_RETRIES = 3
 RETRY_DELAY = 2  # seconds
+OUTPUT_DIR = "output"
 india_timezone = pytz.timezone('Asia/Kolkata')
 current_time = datetime.now(india_timezone)
 time_new = current_time.strftime("%d-%m-%Y %I:%M %p")
