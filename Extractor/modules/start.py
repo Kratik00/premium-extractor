@@ -47,6 +47,7 @@ from Extractor.modules.htmlconverter import *
 from Extractor.modules.knowledgesankul import *
 from Extractor.modules.db import *
 from Extractor.modules.apnacollege import *
+from Extractor.modules.apnacollegefree import *
 from Extractor.modules.pinnaclefree import *
 
 from Extractor.core.mongo import plans_db
