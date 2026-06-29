@@ -49,6 +49,7 @@ from Extractor.modules.db import *
 from Extractor.modules.apnacollege import *
 from Extractor.modules.apnacollegefree import *
 from Extractor.modules.pinnaclefree import *
+from Extractor.modules.appx_combined import *
 
 from Extractor.core.mongo import plans_db
 from telegram import Update
