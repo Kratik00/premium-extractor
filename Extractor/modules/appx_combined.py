@@ -77,17 +77,22 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                 return []
 
             file_title = data.get("Title", "Untitled")
+            prefix = ""
+            if path:
+                last_folder = path.split("<")[-1].strip()
+                if last_folder != "Home":
+                    prefix = f"[{last_folder}]"
 
             # YouTube video
             yt_id = data.get("video_id")
             if yt_id:
-                outputs.append(f"🗂️{file_title}:https://youtu.be/{decrypt(yt_id)}\n")
+                outputs.append(f"{prefix}{file_title}:https://youtu.be/{decrypt(yt_id)}\n")
 
             # Direct download link
             file_link = data.get("download_link")
             if file_link:
                 dec_link = decrypt(file_link)
-                outputs.append(f"{file_title}:{dec_link}\n")
+                outputs.append(f"{prefix}{file_title}:{dec_link}\n")
 
             # Encrypted links
             for link in data.get("encrypted_links", []):
@@ -97,11 +102,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                     dec_key1 = decrypt(key1)
                     decode_key1 = decode_base64(dec_key1)
                     dec_path1 = decode(path1)
-                    outputs.append(f"{file_title}:{dec_path1}*{decode_key1}\n")
+                    outputs.append(f"{prefix}{file_title}:{dec_path1}*{decode_key1}\n")
                     break
                 elif path1:
                     dec_path1 = decode(path1)
-                    outputs.append(f"{file_title}:{dec_path1}\n")
+                    outputs.append(f"{prefix}{file_title}:{dec_path1}\n")
                     break
 
             # PDF files
@@ -113,11 +118,11 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                 if pdf1:
                     dec_pdf1 = decrypt(pdf1)
                     dec_key1 = decrypt(key1)
-                    outputs.append(f"{file_title}:{dec_pdf1}*{dec_key1}\n")
+                    outputs.append(f"{prefix}{file_title}:{dec_pdf1}*{dec_key1}\n")
                 if pdf2:
                     dec_pdf2 = decrypt(pdf2)
                     dec_key2 = decrypt(key2)
-                    outputs.append(f"{file_title}:{dec_pdf2}*{dec_pdf2}")
+                    outputs.append(f"{prefix}{file_title}:{dec_pdf2}*{dec_pdf2}")
 
     except Exception as e:
         print(f"💣 Video error {vid_name}: {e}")
@@ -371,13 +376,16 @@ async def appex_v5_txt(app, message, api, name):
         try:
             response = requests.post(raw_url, data=data, headers=headers).json()
             status = response.get("status")
+            print("HTTP Status:", response.status_code)
+            print("Response:")
+            print(response.text)
 
             if status == 200:
                 userid = response["data"]["userid"]
                 token = response["data"]["token"]
                 await save_user_token(userid, token, api_base)
             
-            elif status == 203:
+            else:
                 second_api_url = f"{api_base}/post/userLogin?extra_details=0"
                 second_headers = {
                     "auth-key": "appxapi",
@@ -396,10 +404,15 @@ async def appex_v5_txt(app, message, api, name):
                 }
                 
                 second_response = requests.post(second_api_url, headers=second_headers, data=second_data).json()
+                print("HTTP Status:", response.status_code)
+                print("Response:")
+                print(response.text)    
                 if second_response.get("status") == 200:
                     userid = second_response["data"]["userid"]
                     token = second_response["data"]["token"]
                     await save_user_token(userid, token, api_base)
+                else:
+                    return await message.reply_text("__Login Failed__")
         except Exception as e:
             print(f"An error occurred: {str(e)}")
             return await message.reply_text("__Please try again later. Maybe Password Wrong__")
@@ -446,7 +459,7 @@ async def appex_v5_txt(app, message, api, name):
             start = course_data.get("start_date")
             end = course_data.get("end_date")
             pricing = course_data.get("price")
-            FFF += f"**`{batch_id}`   -   `{batch_name}`**\n\n"
+            FFF += f"`{batch_id}`   -   **{batch_name}**\n\n"
             valid_ids.append(batch_id)
     else:
         return await message.reply_text("__No Batches Found__")
@@ -459,7 +472,7 @@ async def appex_v5_txt(app, message, api, name):
         f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
         f"🔑 **App:** `{app_name}`\n"
         f"🧬 **API:** `{api_base}`\n"
-        f"🎫 **Token:** `{token[:20]}...`\n\n"
+        f"🎫 **Token:** `{token}...`\n\n"
         f"{FFF}"
     )
 
