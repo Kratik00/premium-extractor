@@ -374,11 +374,16 @@ async def appex_v5_txt(app, message, api, name):
         data = {"email": email, "password": password}
         
         try:
-            response = requests.post(raw_url, data=data, headers=headers).json()
-            status = response.get("status")
+            response = requests.post(raw_url, data=data, headers=headers)
+
+            print("=" * 50)
+            print("Legacy Login")
             print("HTTP Status:", response.status_code)
             print("Response:")
             print(response.text)
+
+            response = response.json()
+            status = response.get("status")
 
             if status == 200:
                 userid = response["data"]["userid"]
@@ -403,10 +408,19 @@ async def appex_v5_txt(app, message, api, name):
                     "extra_details": "1"
                 }
                 
-                second_response = requests.post(second_api_url, headers=second_headers, data=second_data).json()
-                print("HTTP Status:", response.status_code)
+                second_response = requests.post(
+                    second_api_url,
+                    headers=second_headers,
+                    data=second_data
+                )
+
+                print("=" * 50)
+                print("Website Login")
+                print("HTTP Status:", second_response.status_code)
                 print("Response:")
-                print(response.text)    
+                print(second_response.text)
+
+                second_response = second_response.json()  
                 if second_response.get("status") == 200:
                     userid = second_response["data"]["userid"]
                     token = second_response["data"]["token"]
