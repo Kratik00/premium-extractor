@@ -75,7 +75,7 @@ async def fetch(session, url, headers):
         return {}
 
 # ===================== VIDEO/PDF EXTRACTION =====================
-async def fetch_item_details(session, api_base, course_id, item, headers, userid, app_name, path="Home", stats):
+async def fetch_item_details(session, api_base, course_id, item, headers, userid, app_name, path="Home", stats=None):
     """Extract video/PDF details from item"""
     vid_id = item.get("id")
     lines = []
