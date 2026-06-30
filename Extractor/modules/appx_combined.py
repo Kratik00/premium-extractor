@@ -18,6 +18,11 @@ from config import PREMIUM_LOGS
 from Extractor.modules.db import save_user_token
 
 log_channel = PREMIUM_LOGS
+MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
+
+india_timezone = pytz.timezone('Asia/Kolkata')
+current_time = datetime.now(india_timezone)
+time_new = current_time.strftime("%d %b %Y, %I:%M %p")
 
 # ===================== DECRYPT HELPERS =====================
 def decrypt(enc):
@@ -34,6 +39,18 @@ def decrypt(enc):
     except Exception as e:
         print(f"Decryption error: {e}")
         return ""
+
+def download_thumbnail(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            thumb_path = "thumb_temp.jpg"
+            with open(thumb_path, "wb") as f:
+                f.write(response.content)
+            return thumb_path
+        return None
+    except Exception:
+        return None
 
 def decode_base64(encoded_str):
     """Decode base64 string"""
@@ -58,11 +75,10 @@ async def fetch(session, url, headers):
         return {}
 
 # ===================== VIDEO/PDF EXTRACTION =====================
-async def fetch_item_details(session, api_base, course_id, item, headers, userid, app_name, path="Home"):
+async def fetch_item_details(session, api_base, course_id, item, headers, userid, app_name, path="Home", stats):
     """Extract video/PDF details from item"""
     vid_id = item.get("id")
-    outputs = []
-    
+    lines = []
     try:
         async with session.get(
             f"{api_base}/get/fetchVideoDetailsById?course_id={course_id}&video_id={vid_id}&folder_wise_course=1&ytflag=0",
@@ -86,13 +102,14 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
             # YouTube video
             yt_id = data.get("video_id")
             if yt_id:
-                outputs.append(f"{prefix}{file_title}:https://youtu.be/{decrypt(yt_id)}\n")
-
+                lines.append(f"{prefix}{file_title}:https://youtu.be/{decrypt(yt_id)}\n")
+                stats["youtube"] += 1
             # Direct download link
             file_link = data.get("download_link")
             if file_link:
                 dec_link = decrypt(file_link)
-                outputs.append(f"{prefix}{file_title}:{dec_link}\n")
+                lines.append(f"{prefix}{file_title}:{dec_link}\n")
+                stats["regular"] += 1
 
             # Encrypted links
             for link in data.get("encrypted_links", []):
@@ -102,11 +119,13 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                     dec_key1 = decrypt(key1)
                     decode_key1 = decode_base64(dec_key1)
                     dec_path1 = decode(path1)
-                    outputs.append(f"{prefix}{file_title}:{dec_path1}*{decode_key1}\n")
+                    lines.append(f"{prefix}{file_title}:{dec_path1}*{decode_key1}\n")
+                    stats["regular"] += 1
                     break
                 elif path1:
                     dec_path1 = decode(path1)
-                    outputs.append(f"{prefix}{file_title}:{dec_path1}\n")
+                    lines.append(f"{prefix}{file_title}:{dec_path1}\n")
+                    stats["regular"] += 1
                     break
 
             # PDF files
@@ -118,19 +137,21 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                 if pdf1:
                     dec_pdf1 = decrypt(pdf1)
                     dec_key1 = decrypt(key1)
-                    outputs.append(f"{prefix}{file_title}:{dec_pdf1}*{dec_key1}\n")
+                    lines.append(f"{prefix}{file_title}:{dec_pdf1}*{dec_key1}\n")
+                    stats["pdf"] += 1
                 if pdf2:
                     dec_pdf2 = decrypt(pdf2)
                     dec_key2 = decrypt(key2)
-                    outputs.append(f"{prefix}{file_title}:{dec_pdf2}*{dec_pdf2}")
+                    lines.append(f"{prefix}{file_title}:{dec_pdf2}*{dec_key2}")
+                    stats["pdf"] += 1
 
     except Exception as e:
-        print(f"💣 Video error {vid_name}: {e}")
+        print(f"💣 Video error {vid_id}: {e}")
 
-    return outputs
+    return lines
 
 # ===================== FOLDER RECURSION =====================
-async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, userid, app_name, path="Home"):
+async def fetch_folder_contents(session, api_base, course_id, folder_id, headers, userid, app_name, path="Home", stats=None):
     """Recursively fetch folder contents"""
     outputs = []
     
@@ -155,13 +176,13 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
                 if mtype == "FOLDER":
                     sub = await fetch_folder_contents(
                         session, api_base, course_id,
-                        item["id"], headers, userid, app_name, current_path
+                        item["id"], headers, userid, app_name, current_path, stats
                     )
                     outputs.extend(sub)
                 else:
                     vids = await fetch_item_details(
                         session, api_base, course_id,
-                        item, headers, userid, app_name, current_path
+                        item, headers, userid, app_name, current_path, stats
                     )
                     outputs.extend(vids)
 
@@ -172,12 +193,12 @@ async def fetch_folder_contents(session, api_base, course_id, folder_id, headers
 
 # ===================== FOLDER-BASED EXTRACTION =====================
 async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, 
-                 sanitized_course_name, start_time, start, end, pricing, input2, msg):
+                 sanitized_course_name, start_time, start, end, pricing, input2, msg, stats):
     """Extract course using folder-based method"""
     async with aiohttp.ClientSession() as session:
         all_outputs = await fetch_folder_contents(
             session, api_base, raw_text2, folder_id=-1,
-            headers=hdr1, userid=userid, app_name=app_name, path="Home"
+            headers=hdr1, userid=userid, app_name=app_name, path="Home", stats=stats
         )
 
         if not all_outputs:
@@ -189,20 +210,39 @@ async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_bas
                 f.write(line)
 
         elapsed = time.time() - start_time
-        caption = generate_caption(app_name, sanitized_course_name, start, end, pricing, elapsed)
+        regular_count = stats["regular"]
+        youtube_count = stats["youtube"]
+        pdf_count = stats["pdf"]
 
+        video_count = regular_count + youtube_count
+        total_links = video_count + pdf_count
+
+        mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+        caption = generate_caption(
+            app_name,
+            sanitized_course_name,
+            raw_text2,
+            pricing,
+            total_links,
+            video_count,
+            regular_count,
+            youtube_count,
+            pdf_count,
+            mention,
+            time_new
+        )
         await input2.delete(True)
-        await m1.delete(True)
-        await m2.delete(True)
+        await msg.delete(True)
+        thumb_path = await download_thumbnail(MY_LOGO_URL)
 
-        await app.send_document(message.chat.id, filename, caption=caption)
-        await app.send_document(log_channel, filename, caption=caption)
+        await app.send_document(message.chat.id, filename, caption=caption, thumb=thumb_path)
+        await app.send_document(log_channel, filename, caption=caption, thumb=thumb_path)
 
         os.remove(filename)
         await message.reply_text("Done✅")
 
 # ===================== SUBJECT/TOPIC EXTRACTION =====================
-async def process_video(session, api_base, course_id, sub_id, sub_name, top_id, top_name, video, hdr1, userid, app_name):
+async def process_video(session, api_base, course_id, sub_id, sub_name, top_id, top_name, video, hdr1, userid, app_name, stats):
     """Process individual video"""
     vid_id = video.get("id")
     vid_name = video.get("Title")
@@ -221,10 +261,12 @@ async def process_video(session, api_base, course_id, sub_id, sub_name, top_id, 
         
         if yt_id:
             lines.append(f"{prefix}{file_title}:https://youtu.be/{decrypt(yt_id)}\n")
+            stats["youtube"] += 1
 
         if file_link:
             dec_link = decrypt(file_link)
             lines.append(f"{prefix}{file_title}:{dec_link}\n")
+            stats["regular"] += 1
 
         else:
             encrypted_links = r4.get("data", {}).get("encrypted_links", [])
@@ -237,10 +279,12 @@ async def process_video(session, api_base, course_id, sub_id, sub_name, top_id, 
                     decode_key1 = decode_base64(dec_key1)
                     dec_path1 = decrypt(path1) # Using decrypt for consistency with path encryption
                     lines.append(f"{prefix}{file_title}:{dec_path1}*{decode_key1}\n")
+                    stats["regular"] += 1
                     break
                 elif path1:
                     dec_path1 = decrypt(path1)
                     lines.append(f"{prefix}{file_title}:{dec_path1}\n")
+                    stats["regular"] += 1
                     break
         if "material_type" in r4.get("data", {}):
             mt = r4["data"]["material_type"]
@@ -254,10 +298,12 @@ async def process_video(session, api_base, course_id, sub_id, sub_name, top_id, 
                     dec_pdf1 = decrypt(pdf1)
                     dec_key1 = decrypt(key1)
                     lines.append(f"{prefix}{file_title}:{dec_pdf1}*{dec_key1}\n")
+                    stats["pdf"] += 1
                 if pdf2 and key2:
                     dec_pdf2 = decrypt(pdf2)
                     dec_key2 = decrypt(key2)
                     lines.append(f"{prefix}{file_title}:{dec_pdf2}*{dec_key2}\n")
+                    stats["pdf"] += 1
         
         return lines
 
@@ -265,7 +311,7 @@ async def process_video(session, api_base, course_id, sub_id, sub_name, top_id, 
         print(f"An error occurred while processing video ID {vid_id}: {str(e)}")
         return None
 
-async def handle_course(session, api_base, course_id, sub_id, sub_name, topic, headers, userid, app_name):
+async def handle_course(session, api_base, course_id, sub_id, sub_name, topic, headers, userid, app_name, stats):
     """Handle course with subjects/topics structure"""
     top_id = topic.get("topicid")
     top_name = topic.get("topic_name")
@@ -296,7 +342,7 @@ async def handle_course(session, api_base, course_id, sub_id, sub_name, topic, h
             print(f"      ▶ processing video [{idx}/{len(videos)}] ID={vid_id}")
 
             try:
-                lines = await process_video(session, api_base, course_id, sub_id, sub_name, top_id, top_name, video, headers, userid, app_name)
+                lines = await process_video(session, api_base, course_id, sub_id, sub_name, top_id, top_name, video, headers, userid, app_name, stats)
                 if lines:
                     all_lines.extend(lines)
             except Exception as e:
@@ -308,21 +354,23 @@ async def handle_course(session, api_base, course_id, sub_id, sub_name, topic, h
     return all_lines
 
 # ===================== CAPTION GENERATOR =====================
-def generate_caption(app_name, course_name, start, end, pricing, elapsed):
+def generate_caption(app_name, txtn, raw_text2, pricing, total_links, video_count, regular_count, youtube_count, pdf_count, mention, time_new):
     """Generate formatted caption for documents"""
     return (
-        f"╭━━━━━━━『 <b>🚀 COURSE INFO </b> 』━━━━━━━╮\n"
-        f"📦 <b>App Name: </b> <code>{app_name}</code>\n"
-        f"🎓 <b>Batch Name: </b> <code>{course_name}</code>\n"
-        f"🕒 <b>Validity: </b> <code>{start}</code> ➜ <code>{end}</code>\n"
-        f"💰 <b>Price: </b> <code>{pricing}</code>\n"
-        f"⏱️ <b>Extracted In: </b> <code>{elapsed:.1f}s</code>\n"
-        f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\n\n"
-        f"╭━━━━━━━『 <b>💾 DOWNLOAD INFO </b> 』━━━━━━━╮\n"
-        f"👑 <b>Admin: </b> <a href='https://t.me/NOOBHUSIR'>LUCIFER ⚡</a>\n"
-        f"⚙️ <b>Extractor: </b> <code>LUCIFER EXTRACTOR ⚡</code>\n"
-        f"╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯"
-    )
+            f"<blockquote>📚 App: {app_name.upper()}</blockquote>\n\n"
+            f"═══════ BATCH DETAILS ═══════\n"
+            f"<blockquote>🌟 Batch Name: {txtn}\n"
+            f"🆔 Batch ID: {raw_text2}\n"
+            f"💸 Price : ₹{pricing}</blockquote>\n\n"
+            f"═══════ LINK SUMMARY ═══════\n"
+            f"<blockquote>🔢 Total Links: {total_links}\n"
+            f"┠🎥 Videos : {video_count}\n"
+            f"  ┠📺 Regular : {regular_count}\n"
+            f"  ┠📻 YouTube : {youtube_count}\n"
+            f"┠📁 Documents: {pdf_count}</blockquote>\n\n"
+            f"👤 Generated By: {mention}\n"
+            f"📅 Generated On: {time_new} IST"
+        )
 
 # ===================== MAIN HANDLERS =====================
 @app.on_message(filters.command(["masterappx"]))
@@ -345,7 +393,7 @@ async def appex_v5_txt(app, message, api, name):
     input1 = await app.ask(
         message.chat.id, 
         text=(
-            f"🔐 **LOGIN TO `{app_name}`**\n\n"
+            f"🔐 **LOGIN TO {app_name.upper()}**\n\n"
             f"Please choose one method:\n\n"
             f"1️⃣ **ID & Password**\n"
             f"Format: `Mobile*Password`\n\n"
@@ -449,7 +497,7 @@ async def appex_v5_txt(app, message, api, name):
             "User-ID": userid
         }
         await save_user_token(userid, token, api_base)
-
+    
     # Fetch courses
     scraper = cloudscraper.create_scraper()
     try:
@@ -540,6 +588,11 @@ async def appex_v5_txt(app, message, api, name):
     for raw_text2 in batch_ids:
         msg = await message.reply_text(f"__Extracting batch `{raw_text2}`__")
         start_time = time.time()
+        stats = {
+            "regular": 0,
+            "youtube": 0,
+            "pdf": 0
+        }
         
         try:
             r = scraper.get(f"{api_base}/get/course_by_id?id={raw_text2}", headers=hdr1).json()
@@ -552,7 +605,7 @@ async def appex_v5_txt(app, message, api, name):
             course_name = next((course_data.get("course_name") for course_data in main_data["data"] if course_data.get("id") == raw_text2), "Course")
             sanitized_course_name = course_name.replace(':', '_').replace('/', '_')
             await v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, 
-                        sanitized_course_name, start_time, start, end, pricing, input2, msg)
+                        sanitized_course_name, start_time, start, end, pricing, input2, msg, stats)
             continue
 
         # Subject/topic-based extraction
@@ -573,7 +626,7 @@ async def appex_v5_txt(app, message, api, name):
                             topics = sorted(r2.get("data", []), key=lambda x: x.get("topicid"))
 
                             for topic in topics:
-                                data = await handle_course(session, api_base, raw_text2, sub_id, sub_name, topic, hdr1, userid, app_name)
+                                data = await handle_course(session, api_base, raw_text2, sub_id, sub_name, topic, hdr1, userid, app_name, stats)
                                 if data:
                                     f.writelines(data)
                     except Exception as e:
@@ -583,21 +636,29 @@ async def appex_v5_txt(app, message, api, name):
                 
                 end_time = time.time()
                 elapsed_time = end_time - start_time
-                print(f"Elapsed time: {elapsed_time:.1f} seconds")
+                mention = f'<a href="tg://user?id={message.from_user.id}">{message.from_user.first_name}</a>'
+                regular_count = stats["regular"]
+                youtube_count = stats["youtube"]
+                pdf_count = stats["pdf"]
 
-                c_text = generate_caption(app_name, txtn, start, end, pricing, elapsed_time)
+                video_count = regular_count + youtube_count
+                total_links = video_count + pdf_count
+                print(f"Elapsed time: {elapsed_time:.1f} seconds")
+                thumb_path = await download_thumbnail(MY_LOGO_URL)
+
+                c_text = generate_caption(app_name, txtn, raw_text2, pricing, total_links, video_count, regular_count, youtube_count, pdf_count, mention, time_new)
 
                 try:
                     await input2.delete(True)
                     await msg.delete(True)
-                    await app.send_document(message.chat.id, filename, caption=c_text)
-                    await app.send_document(log_channel, filename, caption=c_text)
+                    await app.send_document(message.chat.id, filename, caption=c_text, thumb=thumb_path)
+                    await app.send_document(log_channel, filename, caption=c_text, thumb=thumb_path)
                 except Exception as e:
                     print(f"__Error on sending file__: {str(e)}")
                     course_name = next((course_data.get("course_name") for course_data in main_data["data"] if course_data.get("id") == raw_text2), "Course")
                     sanitized_course_name = course_name.replace(':', '_').replace('/', '_')
                     await v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_base, 
-                                sanitized_course_name, start_time, start, end, pricing, input2, msg)
+                                sanitized_course_name, start_time, start, end, pricing, input2, msg, stats)
                 finally:
                     if os.path.exists(filename):
                         os.remove(filename)
