@@ -120,12 +120,12 @@ async def fetch_item_details(session, api_base, course_id, item, headers, userid
                 if path1 and key1:
                     dec_key1 = decrypt(key1)
                     decode_key1 = decode_base64(dec_key1)
-                    dec_path1 = decode(path1)
+                    dec_path1 = decrypt(path1)
                     lines.append(f"{prefix}{file_title}:{dec_path1}*{decode_key1}\n")
                     stats["regular"] += 1
                     break
                 elif path1:
-                    dec_path1 = decode(path1)
+                    dec_path1 = decrypt(path1)
                     lines.append(f"{prefix}{file_title}:{dec_path1}\n")
                     stats["regular"] += 1
                     break
