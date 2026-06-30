@@ -235,7 +235,7 @@ async def v2_new(app, message, token, userid, hdr1, app_name, raw_text2, api_bas
         )
         await input2.delete(True)
         await msg.delete(True)
-        thumb_path = await download_thumbnail(MY_LOGO_URL)
+        thumb_path = download_thumbnail(MY_LOGO_URL)
 
         await app.send_document(message.chat.id, filename, caption=caption, thumb=thumb_path)
         await app.send_document(log_channel, filename, caption=caption, thumb=thumb_path)
@@ -646,7 +646,7 @@ async def appex_v5_txt(app, message, api, name):
                 video_count = regular_count + youtube_count
                 total_links = video_count + pdf_count
                 print(f"Elapsed time: {elapsed_time:.1f} seconds")
-                thumb_path = await download_thumbnail(MY_LOGO_URL)
+                thumb_path = download_thumbnail(MY_LOGO_URL)
 
                 c_text = generate_caption(app_name, txtn, raw_text2, pricing, total_links, video_count, regular_count, youtube_count, pdf_count, mention, time_new)
 
