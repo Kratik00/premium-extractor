@@ -9,17 +9,20 @@ log_channel = CHANNEL_ID
 
 @app.on_message(filters.command(["appxotp"]))
 async def send_otpp(app, message):
-    api = await app.ask(message.chat.id, text="SEND APPX API\n\n✅ Example:\ntcsexamzoneapi.classx.co.in")
+   """Main command handler"""
+    api = await app.ask(message.chat.id, text="__Enter your AppX API Domain:__")
     api_txt = api.text
     name = api_txt.split('.')[0].replace("api", "") if api else api_txt.split('.')[0]
+    
     if "api" in api_txt:
-        await send_otp(app, message, api_txt, name)
+        await appex_v5_txt(app, message, api_txt, name)
     else:
-        await app.send_message(message.chat.id, "INVALID INPUT IF YOU DONT KNOW API GO TO FIND API OPTION")
+        await app.send_message(message.chat.id, "__❌ Invalid API Format. Please check the example again.__")
+
         
 async def send_otp(app, message, api, name):
     api_base = api if api.startswith(("http://", "https://")) else f"https://{api}"
-    input1 = await app.ask(message.chat.id, text="SEND MOBILE NUMBER.")
+    input1 = await app.ask(message.chat.id, text="__SEND MOBILE NUMBER.__")
     mobile = input1.text.strip()
     url = f"{api_base}/get/sendotp?phone={mobile}"
     headers = {
