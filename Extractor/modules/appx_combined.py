@@ -453,7 +453,7 @@ async def appex_v5_txt(app, message, api, name):
     # Fetch courses
     scraper = cloudscraper.create_scraper()
     try:
-        main_data = scraper.get(f"{api_base}/get/mycoursev2?userid={userid}", headers=hdr1).json()
+        main_data = scraper.get(f"{api_base}/get/mycourseweb?userid={userid}", headers=hdr1).json()
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return await message.reply_text("An error occurred while fetching your courses. Please try again later.")
