@@ -9,13 +9,12 @@ log_channel = CHANNEL_ID
 
 @app.on_message(filters.command(["appxotp"]))
 async def send_otpp(app, message):
-   """Main command handler"""
     api = await app.ask(message.chat.id, text="__Enter your AppX API Domain:__")
     api_txt = api.text
     name = api_txt.split('.')[0].replace("api", "") if api else api_txt.split('.')[0]
     
     if "api" in api_txt:
-        await appex_v5_txt(app, message, api_txt, name)
+        await send_otp(app, message, api_txt, name)
     else:
         await app.send_message(message.chat.id, "__❌ Invalid API Format. Please check the example again.__")
 
