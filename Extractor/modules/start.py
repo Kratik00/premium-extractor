@@ -401,9 +401,6 @@ async def handle_callback(client, query):  # <- client यहाँ होना
             )
      
     elif query.data=="modes_":
-      #  lol = await chk_user(query, query.from_user.id)
-       # if lol == 1:
-         # return
         reply_markup = InlineKeyboardMarkup(modes_button)
         await query.message.edit_text(
               script.MODES_TXT,
