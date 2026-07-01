@@ -37,6 +37,7 @@ from Extractor.modules.knowledgesankul import *
 from Extractor.modules.db import *
 from Extractor.modules.apnacollege import *
 from Extractor.modules.apnacollegefree import *
+from Extractor.modules.iqfree import *
 from Extractor.modules.pinnaclefree import *
 from Extractor.modules.appx_combined import *
 
@@ -88,8 +89,8 @@ custom_button = [[
                     InlineKeyboardButton("🚀 PINNACLE ", callback_data="pinnacle"),
                     InlineKeyboardButton("🚀 TopppersWisdom", callback_data="topperswisdom_")
                 ],[
-                  InlineKeyboardButton("🌸 ADDA 247", callback_data="adda247_")
-                   # InlineKeyboardButton("♕ EXAMTUNE", callback_data="quantezyfree")
+                  InlineKeyboardButton("🌸 ADDA 247", callback_data="adda247_"),
+                  InlineKeyboardButton("♕ STUDY IQ", callback_data="studyiq_")
                 ],[
                   InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
                 ],[
@@ -377,6 +378,9 @@ async def html_button(client, cq):
 async def handle_sw_batch(client, callback_query):
     await selectionway_batch_callback(client, callback_query)
 
+@app.on_callback_query(filters.regex("^sw_batch_"))
+async def handle_sw_batch(client, callback_query):
+    await selectionway_batch_callback(client, callback_query)
 @app.on_callback_query(filters.regex("^cw$"))
 async def career_will_callback(app: Client, callback_query: CallbackQuery):
     try:
