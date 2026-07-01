@@ -378,9 +378,6 @@ async def html_button(client, cq):
 async def handle_sw_batch(client, callback_query):
     await selectionway_batch_callback(client, callback_query)
 
-@app.on_callback_query(filters.regex("^sw_batch_"))
-async def handle_sw_batch(client, callback_query):
-    await selectionway_batch_callback(client, callback_query)
 @app.on_callback_query(filters.regex("^cw$"))
 async def career_will_callback(app: Client, callback_query: CallbackQuery):
     try:
