@@ -89,8 +89,8 @@ custom_button = [[
                     InlineKeyboardButton("🚀 PINNACLE ", callback_data="pinnacle"),
                     InlineKeyboardButton("🚀 TopppersWisdom", callback_data="topperswisdom_")
                 ],[
-                  InlineKeyboardButton("🌸 ADDA 247", callback_data="adda247_"),
-                  InlineKeyboardButton("♕ STUDY IQ", callback_data="studyiq_")
+                  InlineKeyboardButton("🌸 ADDA 247", callback_data="adda247_")
+                #  InlineKeyboardButton("♕ STUDY IQ", callback_data="studyiq_")
                 ],[
                   InlineKeyboardButton("👑 PREMIUM", callback_data="premium_")
                 ],[

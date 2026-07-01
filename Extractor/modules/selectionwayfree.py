@@ -2,6 +2,7 @@ import asyncio
 import io
 import os
 import re
+import json
 import aiohttp
 import pytz
 from datetime import datetime
@@ -19,6 +20,7 @@ time_new = current_time.strftime("%d %b %Y, %I:%M %p")
 
 # ===================== CONFIG & STATE ===================== #
 BASE_URL = "https://gdgoenkaratia.com"
+EXTRA_JSON_FILE = "Extractor/modules/extra_batches.json"
 
 MY_LOGO_URL = "https://i.ibb.co/BHQ2HsW5/JPEG-20260125-141038-953649353278939736.jpg"
 
@@ -61,6 +63,55 @@ async def download_thumbnail(logo_url: str) -> str:
         print(f"⚠️ Failed to download thumbnail: {e}")
     return None
 
+# ===================== BATCH MERGING LOGIC ===================== #
+def normalize_batch(b: dict) -> dict:
+    """
+    Normalizes keys from the external JSON to match the API format 
+    expected by the rest of your code (title, banner, discountPrice).
+    """
+    return {
+        "id": b.get("id"),
+        "title": b.get("title") or b.get("name", "Unknown Batch"),
+        "banner": b.get("banner") or b.get("banner_url", ""),
+        "bannerSquare": b.get("bannerSquare", ""),
+        "discountPrice": b.get("discountPrice") or b.get("discounted_price"),
+        "price": b.get("price")
+    }
+
+async def get_all_batches():
+    """
+    Fetches batches from the live API and merges them with the external JSON file.
+    Prevents duplicates by prioritizing the live API data.
+    """
+    api_batches = []
+    async with aiohttp.ClientSession() as session:
+        data_info = await fetch_json_async(session, f"{BASE_URL}/api/courses/active?userId=2054598")
+        if data_info and "data" in data_info:
+            api_batches = [normalize_batch(b) for b in data_info["data"] if b.get("id")]
+    
+    extra_batches = []
+    try:
+        # Read the external JSON file
+        with open(EXTRA_JSON_FILE, "r", encoding="utf-8") as f:
+            extra_data = json.load(f)
+            if "batches" in extra_data:
+                extra_batches = [normalize_batch(b) for b in extra_data["batches"] if b.get("id")]
+    except FileNotFoundError:
+        print(f"⚠️ {EXTRA_JSON_FILE} not found. Using API data only.")
+    except Exception as e:
+        print(f"⚠️ Error reading {EXTRA_JSON_FILE}: {e}")
+
+    # Merge dictionaries to avoid duplicate IDs (API takes priority)
+    merged_dict = {}
+    for b in api_batches:
+        merged_dict[b["id"]] = b
+    for b in extra_batches:
+        if b["id"] not in merged_dict:
+            merged_dict[b["id"]] = b
+            
+    return list(merged_dict.values())
+
+# ===================== SCRAPING LOGIC ===================== #
 async def scrape_batch(course_id: str):
     all_results = {} 
     video_count = 0
@@ -72,7 +123,7 @@ async def scrape_batch(course_id: str):
         data_topics = await fetch_json_async(session, url_topics)
         
         if not data_topics or "data" not in data_topics:
-            return all_results, video_count, pdf_count
+            return all_results, video_count, pdf_count, youtube_count
 
         topics = data_topics["data"].get("topics", [])
         
@@ -114,11 +165,12 @@ async def scrape_batch(course_id: str):
                 video_url = None
                 if cls.get("class_link"):
                     video_url = cls.get("class_link")
-                    
                 else:
-                    recs = cls["mp4Recordings"]
-                    preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
-                    video_url = preferred["url"] if preferred else recs[0].get("url")
+                    recs = cls.get("mp4Recordings", [])
+                    if recs:
+                        preferred = next((r for r in recs if r.get("quality") == "720p" and r.get("url")), None)
+                        video_url = preferred["url"] if preferred else recs[0].get("url")
+                
                 if title and video_url:
                     all_results[topic_name][section_name].append(f"({topic_name}) {title}: {video_url}")
                     video_count += 1
@@ -163,20 +215,14 @@ async def show_batches_page(client, target, batches, page=0):
             title = title[:27] + "..."
         keyboard.append([InlineKeyboardButton(f"{actual_index}. {title}", callback_data=f"sw_batch_{batch['id']}")])
     
-    # Navigation buttons with page info
     nav_row = []
     if page > 0:
         nav_row.append(InlineKeyboardButton("◀️", callback_data=f"sw_page_{page-1}"))
-    
-    # Show current page indicator
     nav_row.append(InlineKeyboardButton(f"📄 {page + 1}/{total_pages}", callback_data="sw_page_info"))
-    
     if page < total_pages - 1:
         nav_row.append(InlineKeyboardButton("▶️", callback_data=f"sw_page_{page+1}"))
-    
     keyboard.append(nav_row)
     
-    # Show range of batches displayed
     display_info = ""
     if total_batches > 0:
         display_info = f"📂 <b>Showing:</b> {start_idx + 1}-{end_idx} of {total_batches}\n\n"
@@ -198,7 +244,6 @@ async def show_batches_page(client, target, batches, page=0):
     else:
         await target.reply_text(text, reply_markup=reply_markup)
     
-    # Save current page
     user_pages[user_id] = page
 
 # ===================== MAIN CALLBACK ===================== #
@@ -234,11 +279,8 @@ async def selectionway_callback(client, callback_query):
 async def process_selectionway(app: Client, message, user_id: int):
     waiting_msg = await message.reply_text("📡 <b>Fetching all batches...</b> Please wait ⚡")
 
-    url_info = f"{BASE_URL}/api/courses/active?userId=2054598"
-    async with aiohttp.ClientSession() as session:
-        data_info = await fetch_json_async(session, url_info)
-    
-    batches = data_info.get("data", []) if data_info else []
+    # Fetch merged batches (API + External JSON)
+    batches = await get_all_batches()
 
     if not batches:
         await waiting_msg.edit_text("😕 <b>No active batches found.</b>")
@@ -287,11 +329,10 @@ async def selectionway_batch_callback(app: Client, callback_query):
         pass
 
 async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str, user):
-    url_info = f"{BASE_URL}/api/courses/active?userId=2054598"
-    async with aiohttp.ClientSession() as session:
-        data_info = await fetch_json_async(session, url_info)
+    # Fetch merged batches to find the specific batch details
+    all_batches = await get_all_batches()
+    batch_data = next((b for b in all_batches if b.get("id") == batch_id), {})
     
-    batch_data = next((b for b in (data_info.get("data", []) if data_info else []) if b["id"] == batch_id), {})
     batch_name = batch_data.get("title", "Unknown Batch")
     thumbnail_url = batch_data.get("banner") or batch_data.get("bannerSquare") or ""
     price = batch_data.get("discountPrice") or batch_data.get("price", "N/A")
@@ -309,7 +350,6 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str, user)
             await processing_msg.edit_text("😕 <b>No content found in this batch.</b>")
             return
 
-        # Build output file with logo URL at top
         file_content = f"{batch_name}[Batch Thumbnail]: {thumbnail_url}\n\n"
         for topic_name, sections in all_results.items():
             for section_name, links in sections.items():
@@ -319,7 +359,6 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str, user)
         file_bytes = io.BytesIO(file_content.encode("utf-8"))
         file_bytes.name = sanitize_filename(batch_name)
 
-        # Download thumbnail
         thumb_path = await download_thumbnail(MY_LOGO_URL)
 
         mention = f'<a href="tg://user?id={user.id}">{user.first_name}</a>'
@@ -341,7 +380,6 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str, user)
             f"📅 Generated On: {time_new} IST"
         )
 
-        # Send document with thumbnail
         await app.send_document(
             chat_id=chat_id, 
             document=file_bytes, 
@@ -349,7 +387,6 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str, user)
             thumb=thumb_path
         )
 
-        # Send to log channel
         try:
             file_bytes.seek(0)
             await app.send_document(
@@ -364,9 +401,8 @@ async def extract_and_send_batch(app: Client, chat_id: int, batch_id: str, user)
         await processing_msg.delete()
         
     finally:
-        # Clean up thumbnail file
         if os.path.exists(thumb_path if 'thumb_path' in locals() else ""):
             try:
                 os.remove(thumb_path)
             except:
-                pass
+                passs
